@@ -1,0 +1,652 @@
+{
+  "prompt:7569713878345157671": {
+    "task": "Write a clean architecture for a game engine module",
+    "project": 1,
+    "selected_node": "lenovo",
+    "selected_model": "nemotron-3-ultra",
+    "reason": "Role 'architect' -> Lenovo (Torquemada) (nemotron-3-ultra)",
+    "fallback_chain": [
+      "nemotron-3-ultra",
+      "qwen2.5-coder-32b",
+      "deepseek-coder-33b"
+    ],
+    "timestamp": "2026-08-13T11:32:32.568891+00:00"
+  },
+  "prompt:7923163423172450773": {
+    "task": "Implement adaptive music system for Unity",
+    "project": 1,
+    "selected_node": "totomoto",
+    "selected_model": "ace-step",
+    "reason": "Role 'audio-generation' -> totomoto (Audio Master) (ace-step)",
+    "fallback_chain": [
+      "ace-step",
+      "musicgen",
+      "audioldm"
+    ],
+    "timestamp": "2026-08-13T11:32:32.569891+00:00"
+  },
+  "prompt:-7173041071200618955": {
+    "task": "Refactor authentication module with OAuth2",
+    "project": 1,
+    "selected_node": "lenovo",
+    "selected_model": "nemotron-3-ultra",
+    "reason": "Role 'architect' -> Lenovo (Torquemada) (nemotron-3-ultra)",
+    "fallback_chain": [
+      "nemotron-3-ultra",
+      "qwen2.5-coder-32b",
+      "deepseek-coder-33b"
+    ],
+    "timestamp": "2026-08-13T11:32:32.569891+00:00"
+  },
+  "prompt:3572876387014936446": {
+    "task": "Optimize render pipeline for 120fps",
+    "project": 1,
+    "selected_node": "lenovo",
+    "selected_model": "nemotron-3-ultra",
+    "reason": "Role 'coder' -> Lenovo (Torquemada) (nemotron-3-ultra)",
+    "fallback_chain": [
+      "nemotron-3-ultra",
+      "qwen2.5-coder-32b",
+      "deepseek-coder-33b"
+    ],
+    "timestamp": "2026-08-13T11:32:32.569891+00:00"
+  },
+  "prompt:8761904471425169983": {
+    "task": "Generate boss fight music theme",
+    "project": 1,
+    "selected_node": "totomoto",
+    "selected_model": "ace-step",
+    "reason": "Role 'audio-generation' -> totomoto (Audio Master) (ace-step)",
+    "fallback_chain": [
+      "ace-step",
+      "musicgen",
+      "audioldm"
+    ],
+    "timestamp": "2026-08-13T11:32:32.570892+00:00"
+  },
+  "prompt:2463174365178604583": {
+    "task": "Create FMOD integration for spatial audio",
+    "project": 1,
+    "selected_node": "dell",
+    "selected_model": "qwen2.5-14b",
+    "reason": "Role 'orchestrator' -> Dell (Tomas) (qwen2.5-14b)",
+    "fallback_chain": [
+      "qwen2.5-14b",
+      "phi-3.5-mini",
+      "gemma-2-9b"
+    ],
+    "timestamp": "2026-08-13T11:32:32.571648+00:00"
+  },
+  "prompt:7428431644274181935": {
+    "task": "Write property-based tests for core engine",
+    "project": 1,
+    "selected_node": "dell",
+    "selected_model": "qwen2.5-14b",
+    "reason": "Role 'tester' -> Dell (Tomas) (qwen2.5-14b)",
+    "fallback_chain": [
+      "qwen2.5-14b",
+      "phi-3.5-mini",
+      "gemma-2-9b"
+    ],
+    "timestamp": "2026-08-13T11:32:32.572177+00:00"
+  },
+  "prompt:-8646580692545913680": {
+    "task": "Design zero-trust security architecture",
+    "project": 1,
+    "selected_node": "lenovo",
+    "selected_model": "nemotron-3-ultra",
+    "reason": "Role 'architect' -> Lenovo (Torquemada) (nemotron-3-ultra)",
+    "fallback_chain": [
+      "nemotron-3-ultra",
+      "qwen2.5-coder-32b",
+      "deepseek-coder-33b"
+    ],
+    "timestamp": "2026-08-13T11:32:32.572177+00:00"
+  },
+  "prompt:7725819359242286078": {
+    "task": "Implement distributed model routing",
+    "project": 1,
+    "selected_node": "lenovo",
+    "selected_model": "nemotron-3-ultra",
+    "reason": "Role 'coder' -> Lenovo (Torquemada) (nemotron-3-ultra)",
+    "fallback_chain": [
+      "nemotron-3-ultra",
+      "qwen2.5-coder-32b",
+      "deepseek-coder-33b"
+    ],
+    "timestamp": "2026-08-13T11:32:32.572177+00:00"
+  },
+  "prompt:7386757873502010046": {
+    "task": "Create CI/CD pipeline for multi-platform deploy",
+    "project": 1,
+    "selected_node": "dell",
+    "selected_model": "qwen2.5-14b",
+    "reason": "Role 'deployer' -> Dell (Tomas) (qwen2.5-14b)",
+    "fallback_chain": [
+      "qwen2.5-14b",
+      "phi-3.5-mini",
+      "gemma-2-9b"
+    ],
+    "timestamp": "2026-08-13T11:32:32.572177+00:00"
+  },
+  "prompt:4485436982161099176": {
+    "task": "Write a clean architecture for a game engine module",
+    "project": 1,
+    "selected_node": "lenovo",
+    "selected_model": "nemotron-3-ultra",
+    "reason": "Role 'architect' -> Lenovo (Torquemada) (nemotron-3-ultra)",
+    "fallback_chain": [
+      "nemotron-3-ultra",
+      "qwen2.5-coder-32b",
+      "deepseek-coder-33b"
+    ],
+    "timestamp": "2026-08-13T12:08:38.347710+00:00"
+  },
+  "prompt:-8624288344623426780": {
+    "task": "Implement adaptive music system for Unity",
+    "project": 1,
+    "selected_node": "totomoto",
+    "selected_model": "ace-step",
+    "reason": "Role 'audio-generation' -> totomoto (Audio Master) (ace-step)",
+    "fallback_chain": [
+      "ace-step",
+      "musicgen",
+      "audioldm"
+    ],
+    "timestamp": "2026-08-13T12:08:38.349715+00:00"
+  },
+  "prompt:-5628547513588553037": {
+    "task": "Refactor authentication module with OAuth2",
+    "project": 1,
+    "selected_node": "lenovo",
+    "selected_model": "nemotron-3-ultra",
+    "reason": "Role 'architect' -> Lenovo (Torquemada) (nemotron-3-ultra)",
+    "fallback_chain": [
+      "nemotron-3-ultra",
+      "qwen2.5-coder-32b",
+      "deepseek-coder-33b"
+    ],
+    "timestamp": "2026-08-13T12:08:38.349715+00:00"
+  },
+  "prompt:-2212367755595940797": {
+    "task": "Optimize render pipeline for 120fps",
+    "project": 1,
+    "selected_node": "lenovo",
+    "selected_model": "nemotron-3-ultra",
+    "reason": "Role 'coder' -> Lenovo (Torquemada) (nemotron-3-ultra)",
+    "fallback_chain": [
+      "nemotron-3-ultra",
+      "qwen2.5-coder-32b",
+      "deepseek-coder-33b"
+    ],
+    "timestamp": "2026-08-13T12:08:38.349715+00:00"
+  },
+  "prompt:6943856811688525837": {
+    "task": "Generate boss fight music theme",
+    "project": 1,
+    "selected_node": "totomoto",
+    "selected_model": "ace-step",
+    "reason": "Role 'audio-generation' -> totomoto (Audio Master) (ace-step)",
+    "fallback_chain": [
+      "ace-step",
+      "musicgen",
+      "audioldm"
+    ],
+    "timestamp": "2026-08-13T12:08:38.349715+00:00"
+  },
+  "prompt:-2976257475965913094": {
+    "task": "Create FMOD integration for spatial audio",
+    "project": 1,
+    "selected_node": "dell",
+    "selected_model": "qwen2.5-14b",
+    "reason": "Role 'orchestrator' -> Dell (Tomas) (qwen2.5-14b)",
+    "fallback_chain": [
+      "qwen2.5-14b",
+      "phi-3.5-mini",
+      "gemma-2-9b"
+    ],
+    "timestamp": "2026-08-13T12:08:38.349715+00:00"
+  },
+  "prompt:5562975951647276966": {
+    "task": "Write property-based tests for core engine",
+    "project": 1,
+    "selected_node": "dell",
+    "selected_model": "qwen2.5-14b",
+    "reason": "Role 'tester' -> Dell (Tomas) (qwen2.5-14b)",
+    "fallback_chain": [
+      "qwen2.5-14b",
+      "phi-3.5-mini",
+      "gemma-2-9b"
+    ],
+    "timestamp": "2026-08-13T12:08:38.351722+00:00"
+  },
+  "prompt:-51327959961440277": {
+    "task": "Design zero-trust security architecture",
+    "project": 1,
+    "selected_node": "lenovo",
+    "selected_model": "nemotron-3-ultra",
+    "reason": "Role 'architect' -> Lenovo (Torquemada) (nemotron-3-ultra)",
+    "fallback_chain": [
+      "nemotron-3-ultra",
+      "qwen2.5-coder-32b",
+      "deepseek-coder-33b"
+    ],
+    "timestamp": "2026-08-13T12:08:38.351722+00:00"
+  },
+  "prompt:-9167242273577125380": {
+    "task": "Implement distributed model routing",
+    "project": 1,
+    "selected_node": "lenovo",
+    "selected_model": "nemotron-3-ultra",
+    "reason": "Role 'coder' -> Lenovo (Torquemada) (nemotron-3-ultra)",
+    "fallback_chain": [
+      "nemotron-3-ultra",
+      "qwen2.5-coder-32b",
+      "deepseek-coder-33b"
+    ],
+    "timestamp": "2026-08-13T12:08:38.351722+00:00"
+  },
+  "prompt:5494711378578074298": {
+    "task": "Create CI/CD pipeline for multi-platform deploy",
+    "project": 1,
+    "selected_node": "dell",
+    "selected_model": "qwen2.5-14b",
+    "reason": "Role 'deployer' -> Dell (Tomas) (qwen2.5-14b)",
+    "fallback_chain": [
+      "qwen2.5-14b",
+      "phi-3.5-mini",
+      "gemma-2-9b"
+    ],
+    "timestamp": "2026-08-13T12:08:38.351722+00:00"
+  },
+  "prompt:-308691260236855061": {
+    "task": "Write a clean architecture for a game engine module",
+    "project": 1,
+    "selected_node": "lenovo",
+    "selected_model": "nemotron-3-ultra",
+    "reason": "Role 'architect' -> Lenovo (Torquemada) (nemotron-3-ultra)",
+    "fallback_chain": [
+      "nemotron-3-ultra",
+      "qwen2.5-coder-32b",
+      "deepseek-coder-33b"
+    ],
+    "timestamp": "2026-08-13T12:09:48.716470+00:00"
+  },
+  "prompt:5969442362787118605": {
+    "task": "Implement adaptive music system for Unity",
+    "project": 1,
+    "selected_node": "totomoto",
+    "selected_model": "ace-step",
+    "reason": "Role 'audio-generation' -> totomoto (Audio Master) (ace-step)",
+    "fallback_chain": [
+      "ace-step",
+      "musicgen",
+      "audioldm"
+    ],
+    "timestamp": "2026-08-13T12:09:48.716470+00:00"
+  },
+  "prompt:8253338327480909077": {
+    "task": "Refactor authentication module with OAuth2",
+    "project": 1,
+    "selected_node": "lenovo",
+    "selected_model": "nemotron-3-ultra",
+    "reason": "Role 'architect' -> Lenovo (Torquemada) (nemotron-3-ultra)",
+    "fallback_chain": [
+      "nemotron-3-ultra",
+      "qwen2.5-coder-32b",
+      "deepseek-coder-33b"
+    ],
+    "timestamp": "2026-08-13T12:09:48.717470+00:00"
+  },
+  "prompt:531400404368343498": {
+    "task": "Optimize render pipeline for 120fps",
+    "project": 1,
+    "selected_node": "lenovo",
+    "selected_model": "nemotron-3-ultra",
+    "reason": "Role 'coder' -> Lenovo (Torquemada) (nemotron-3-ultra)",
+    "fallback_chain": [
+      "nemotron-3-ultra",
+      "qwen2.5-coder-32b",
+      "deepseek-coder-33b"
+    ],
+    "timestamp": "2026-08-13T12:09:48.717470+00:00"
+  },
+  "prompt:1724454562660941394": {
+    "task": "Generate boss fight music theme",
+    "project": 1,
+    "selected_node": "totomoto",
+    "selected_model": "ace-step",
+    "reason": "Role 'audio-generation' -> totomoto (Audio Master) (ace-step)",
+    "fallback_chain": [
+      "ace-step",
+      "musicgen",
+      "audioldm"
+    ],
+    "timestamp": "2026-08-13T12:09:48.717470+00:00"
+  },
+  "prompt:-7456897393015238010": {
+    "task": "Create FMOD integration for spatial audio",
+    "project": 1,
+    "selected_node": "dell",
+    "selected_model": "qwen2.5-14b",
+    "reason": "Role 'orchestrator' -> Dell (Tomas) (qwen2.5-14b)",
+    "fallback_chain": [
+      "qwen2.5-14b",
+      "phi-3.5-mini",
+      "gemma-2-9b"
+    ],
+    "timestamp": "2026-08-13T12:09:48.718473+00:00"
+  },
+  "prompt:-8788290651014316082": {
+    "task": "Write property-based tests for core engine",
+    "project": 1,
+    "selected_node": "dell",
+    "selected_model": "qwen2.5-14b",
+    "reason": "Role 'tester' -> Dell (Tomas) (qwen2.5-14b)",
+    "fallback_chain": [
+      "qwen2.5-14b",
+      "phi-3.5-mini",
+      "gemma-2-9b"
+    ],
+    "timestamp": "2026-08-13T12:09:48.718473+00:00"
+  },
+  "prompt:-2503287383779856313": {
+    "task": "Design zero-trust security architecture",
+    "project": 1,
+    "selected_node": "lenovo",
+    "selected_model": "nemotron-3-ultra",
+    "reason": "Role 'architect' -> Lenovo (Torquemada) (nemotron-3-ultra)",
+    "fallback_chain": [
+      "nemotron-3-ultra",
+      "qwen2.5-coder-32b",
+      "deepseek-coder-33b"
+    ],
+    "timestamp": "2026-08-13T12:09:48.719469+00:00"
+  },
+  "prompt:5534870055104706896": {
+    "task": "Implement distributed model routing",
+    "project": 1,
+    "selected_node": "lenovo",
+    "selected_model": "nemotron-3-ultra",
+    "reason": "Role 'coder' -> Lenovo (Torquemada) (nemotron-3-ultra)",
+    "fallback_chain": [
+      "nemotron-3-ultra",
+      "qwen2.5-coder-32b",
+      "deepseek-coder-33b"
+    ],
+    "timestamp": "2026-08-13T12:09:48.719469+00:00"
+  },
+  "prompt:-7916189447424918110": {
+    "task": "Create CI/CD pipeline for multi-platform deploy",
+    "project": 1,
+    "selected_node": "dell",
+    "selected_model": "qwen2.5-14b",
+    "reason": "Role 'deployer' -> Dell (Tomas) (qwen2.5-14b)",
+    "fallback_chain": [
+      "qwen2.5-14b",
+      "phi-3.5-mini",
+      "gemma-2-9b"
+    ],
+    "timestamp": "2026-08-13T12:09:48.719469+00:00"
+  },
+  "prompt:8468134931298717433": {
+    "task": "Write a clean architecture for a game engine module",
+    "project": 1,
+    "selected_node": "lenovo",
+    "selected_model": "nemotron-3-ultra",
+    "reason": "Role 'architect' -> Lenovo (Torquemada) (nemotron-3-ultra)",
+    "fallback_chain": [
+      "nemotron-3-ultra",
+      "qwen2.5-coder-32b",
+      "deepseek-coder-33b"
+    ],
+    "timestamp": "2026-08-13T12:11:25.510904+00:00"
+  },
+  "prompt:-8526418606382932327": {
+    "task": "Implement adaptive music system for Unity",
+    "project": 1,
+    "selected_node": "totomoto",
+    "selected_model": "ace-step",
+    "reason": "Role 'audio-generation' -> totomoto (Audio Master) (ace-step)",
+    "fallback_chain": [
+      "ace-step",
+      "musicgen",
+      "audioldm"
+    ],
+    "timestamp": "2026-08-13T12:11:25.510904+00:00"
+  },
+  "prompt:-5571871281014656186": {
+    "task": "Refactor authentication module with OAuth2",
+    "project": 1,
+    "selected_node": "lenovo",
+    "selected_model": "nemotron-3-ultra",
+    "reason": "Role 'architect' -> Lenovo (Torquemada) (nemotron-3-ultra)",
+    "fallback_chain": [
+      "nemotron-3-ultra",
+      "qwen2.5-coder-32b",
+      "deepseek-coder-33b"
+    ],
+    "timestamp": "2026-08-13T12:11:25.511907+00:00"
+  },
+  "prompt:1668372595869333156": {
+    "task": "Optimize render pipeline for 120fps",
+    "project": 1,
+    "selected_node": "lenovo",
+    "selected_model": "nemotron-3-ultra",
+    "reason": "Role 'coder' -> Lenovo (Torquemada) (nemotron-3-ultra)",
+    "fallback_chain": [
+      "nemotron-3-ultra",
+      "qwen2.5-coder-32b",
+      "deepseek-coder-33b"
+    ],
+    "timestamp": "2026-08-13T12:11:25.511907+00:00"
+  },
+  "prompt:7644020953413157619": {
+    "task": "Generate boss fight music theme",
+    "project": 1,
+    "selected_node": "totomoto",
+    "selected_model": "ace-step",
+    "reason": "Role 'audio-generation' -> totomoto (Audio Master) (ace-step)",
+    "fallback_chain": [
+      "ace-step",
+      "musicgen",
+      "audioldm"
+    ],
+    "timestamp": "2026-08-13T12:11:25.512908+00:00"
+  },
+  "prompt:-5140887477685068290": {
+    "task": "Create FMOD integration for spatial audio",
+    "project": 1,
+    "selected_node": "dell",
+    "selected_model": "qwen2.5-14b",
+    "reason": "Role 'orchestrator' -> Dell (Tomas) (qwen2.5-14b)",
+    "fallback_chain": [
+      "qwen2.5-14b",
+      "phi-3.5-mini",
+      "gemma-2-9b"
+    ],
+    "timestamp": "2026-08-13T12:11:25.512908+00:00"
+  },
+  "prompt:-1458271069656299137": {
+    "task": "Write property-based tests for core engine",
+    "project": 1,
+    "selected_node": "dell",
+    "selected_model": "qwen2.5-14b",
+    "reason": "Role 'tester' -> Dell (Tomas) (qwen2.5-14b)",
+    "fallback_chain": [
+      "qwen2.5-14b",
+      "phi-3.5-mini",
+      "gemma-2-9b"
+    ],
+    "timestamp": "2026-08-13T12:11:25.513902+00:00"
+  },
+  "prompt:1330076462946023388": {
+    "task": "Design zero-trust security architecture",
+    "project": 1,
+    "selected_node": "lenovo",
+    "selected_model": "nemotron-3-ultra",
+    "reason": "Role 'architect' -> Lenovo (Torquemada) (nemotron-3-ultra)",
+    "fallback_chain": [
+      "nemotron-3-ultra",
+      "qwen2.5-coder-32b",
+      "deepseek-coder-33b"
+    ],
+    "timestamp": "2026-08-13T12:11:25.513902+00:00"
+  },
+  "prompt:3489969170923681655": {
+    "task": "Implement distributed model routing",
+    "project": 1,
+    "selected_node": "lenovo",
+    "selected_model": "nemotron-3-ultra",
+    "reason": "Role 'coder' -> Lenovo (Torquemada) (nemotron-3-ultra)",
+    "fallback_chain": [
+      "nemotron-3-ultra",
+      "qwen2.5-coder-32b",
+      "deepseek-coder-33b"
+    ],
+    "timestamp": "2026-08-13T12:11:25.514902+00:00"
+  },
+  "prompt:4094951459927018202": {
+    "task": "Create CI/CD pipeline for multi-platform deploy",
+    "project": 1,
+    "selected_node": "dell",
+    "selected_model": "qwen2.5-14b",
+    "reason": "Role 'deployer' -> Dell (Tomas) (qwen2.5-14b)",
+    "fallback_chain": [
+      "qwen2.5-14b",
+      "phi-3.5-mini",
+      "gemma-2-9b"
+    ],
+    "timestamp": "2026-08-13T12:11:25.514902+00:00"
+  },
+  "prompt:-6106432513341620534": {
+    "task": "Write a clean architecture for a game engine module",
+    "project": 1,
+    "selected_node": "lenovo",
+    "selected_model": "nemotron-3-ultra",
+    "reason": "Role 'architect' -> Lenovo (Torquemada) (nemotron-3-ultra)",
+    "fallback_chain": [
+      "nemotron-3-ultra",
+      "qwen2.5-coder-32b",
+      "deepseek-coder-33b"
+    ],
+    "timestamp": "2026-08-13T12:14:49.659009+00:00"
+  },
+  "prompt:911378377138711387": {
+    "task": "Implement adaptive music system for Unity",
+    "project": 1,
+    "selected_node": "totomoto",
+    "selected_model": "ace-step",
+    "reason": "Role 'audio-generation' -> totomoto (Audio Master) (ace-step)",
+    "fallback_chain": [
+      "ace-step",
+      "musicgen",
+      "audioldm"
+    ],
+    "timestamp": "2026-08-13T12:14:49.660010+00:00"
+  },
+  "prompt:636010999121005735": {
+    "task": "Refactor authentication module with OAuth2",
+    "project": 1,
+    "selected_node": "lenovo",
+    "selected_model": "nemotron-3-ultra",
+    "reason": "Role 'architect' -> Lenovo (Torquemada) (nemotron-3-ultra)",
+    "fallback_chain": [
+      "nemotron-3-ultra",
+      "qwen2.5-coder-32b",
+      "deepseek-coder-33b"
+    ],
+    "timestamp": "2026-08-13T12:14:49.660010+00:00"
+  },
+  "prompt:-8249565156592026742": {
+    "task": "Optimize render pipeline for 120fps",
+    "project": 1,
+    "selected_node": "lenovo",
+    "selected_model": "nemotron-3-ultra",
+    "reason": "Role 'coder' -> Lenovo (Torquemada) (nemotron-3-ultra)",
+    "fallback_chain": [
+      "nemotron-3-ultra",
+      "qwen2.5-coder-32b",
+      "deepseek-coder-33b"
+    ],
+    "timestamp": "2026-08-13T12:14:49.661011+00:00"
+  },
+  "prompt:-8065979777311974921": {
+    "task": "Generate boss fight music theme",
+    "project": 1,
+    "selected_node": "totomoto",
+    "selected_model": "ace-step",
+    "reason": "Role 'audio-generation' -> totomoto (Audio Master) (ace-step)",
+    "fallback_chain": [
+      "ace-step",
+      "musicgen",
+      "audioldm"
+    ],
+    "timestamp": "2026-08-13T12:14:49.662010+00:00"
+  },
+  "prompt:858679065808322218": {
+    "task": "Create FMOD integration for spatial audio",
+    "project": 1,
+    "selected_node": "dell",
+    "selected_model": "qwen2.5-14b",
+    "reason": "Role 'orchestrator' -> Dell (Tomas) (qwen2.5-14b)",
+    "fallback_chain": [
+      "qwen2.5-14b",
+      "phi-3.5-mini",
+      "gemma-2-9b"
+    ],
+    "timestamp": "2026-08-13T12:14:49.663011+00:00"
+  },
+  "prompt:2179384930437227469": {
+    "task": "Write property-based tests for core engine",
+    "project": 1,
+    "selected_node": "dell",
+    "selected_model": "qwen2.5-14b",
+    "reason": "Role 'tester' -> Dell (Tomas) (qwen2.5-14b)",
+    "fallback_chain": [
+      "qwen2.5-14b",
+      "phi-3.5-mini",
+      "gemma-2-9b"
+    ],
+    "timestamp": "2026-08-13T12:14:49.664008+00:00"
+  },
+  "prompt:3860779645634431946": {
+    "task": "Design zero-trust security architecture",
+    "project": 1,
+    "selected_node": "lenovo",
+    "selected_model": "nemotron-3-ultra",
+    "reason": "Role 'architect' -> Lenovo (Torquemada) (nemotron-3-ultra)",
+    "fallback_chain": [
+      "nemotron-3-ultra",
+      "qwen2.5-coder-32b",
+      "deepseek-coder-33b"
+    ],
+    "timestamp": "2026-08-13T12:14:49.665010+00:00"
+  },
+  "prompt:-6180477679721192479": {
+    "task": "Implement distributed model routing",
+    "project": 1,
+    "selected_node": "lenovo",
+    "selected_model": "nemotron-3-ultra",
+    "reason": "Role 'coder' -> Lenovo (Torquemada) (nemotron-3-ultra)",
+    "fallback_chain": [
+      "nemotron-3-ultra",
+      "qwen2.5-coder-32b",
+      "deepseek-coder-33b"
+    ],
+    "timestamp": "2026-08-13T12:14:49.665010+00:00"
+  },
+  "prompt:4757431348244366190": {
+    "task": "Create CI/CD pipeline for multi-platform deploy",
+    "project": 1,
+    "selected_node": "dell",
+    "selected_model": "qwen2.5-14b",
+    "reason": "Role 'deployer' -> Dell (Tomas) (qwen2.5-14b)",
+    "fallback_chain": [
+      "qwen2.5-14b",
+      "phi-3.5-mini",
+      "gemma-2-9b"
+    ],
+    "timestamp": "2026-08-13T12:14:49.666009+00:00"
+  }
+}

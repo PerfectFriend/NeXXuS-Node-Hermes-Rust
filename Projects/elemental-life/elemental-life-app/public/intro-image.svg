@@ -1,0 +1,105 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" width="1920" height="1080">
+  <defs>
+    <linearGradient id="sky" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#0a0015"/>
+      <stop offset="20%" style="stop-color:#150030"/>
+      <stop offset="50%" style="stop-color:#200040"/>
+      <stop offset="80%" style="stop-color:#100020"/>
+      <stop offset="100%" style="stop-color:#050010"/>
+    </linearGradient>
+    <radialGradient id="oasis" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" style="stop-color:#00ffb4;stop-opacity:0.8"/>
+      <stop offset="30%" style="stop-color:#00c896;stop-opacity:0.5"/>
+      <stop offset="60%" style="stop-color:#009664;stop-opacity:0.3"/>
+      <stop offset="100%" style="stop-color:#006440;stop-opacity:0"/>
+    </radialGradient>
+    <radialGradient id="palm" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" style="stop-color:#1a5a1a"/>
+      <stop offset="100%" style="stop-color:#0d3d0d"/>
+    </radialGradient>
+  </defs>
+  
+  <!-- Background sky -->
+  <rect width="1920" height="1080" fill="url(#sky)"/>
+  
+  <!-- Stars -->
+  <g fill="white" opacity="0.8">
+    <circle cx="100" cy="150" r="1.5"/>
+    <circle cx="300" cy="200" r="1"/>
+    <circle cx="500" cy="100" r="2"/>
+    <circle cx="700" cy="300" r="1"/>
+    <circle cx="900" cy="80" r="1.5"/>
+    <circle cx="1100" cy="250" r="1"/>
+    <circle cx="1300" cy="180" r="1.5"/>
+    <circle cx="1500" cy="120" r="1"/>
+    <circle cx="1700" cy="220" r="1"/>
+    <circle cx="200" cy="400" r="1.5"/>
+    <circle cx="400" cy="350" r="1"/>
+    <circle cx="600" cy="420" r="2"/>
+    <circle cx="800" cy="380" r="1"/>
+    <circle cx="1000" cy="320" r="1.5"/>
+    <circle cx="1200" cy="450" r="1"/>
+    <circle cx="1400" cy="370" r="1.5"/>
+    <circle cx="1600" cy="430" r="1"/>
+    <circle cx="1800" cy="390" r="1"/>
+  </g>
+  
+  <!-- Cyberpunk swirls -->
+  <g opacity="0.15">
+    <circle cx="384" cy="162" r="120" fill="url(#oasis)" opacity="0.3"/>
+    <circle cx="1152" cy="162" r="140" fill="#00ffb4" opacity="0.2"/>
+    <circle cx="1536" cy="432" r="100" fill="#00c896" opacity="0.25"/>
+    <circle cx="384" cy="648" r="130" fill="#009664" opacity="0.2"/>
+    <circle cx="1152" cy="648" r="110" fill="#00ffb4" opacity="0.15"/>
+    <circle cx="1536" cy="864" r="120" fill="#00c896" opacity="0.18"/>
+    <circle cx="768" cy="324" r="150" fill="#009664" opacity="0.15"/>
+    <circle cx="1344" cy="864" r="100" fill="#00ffb4" opacity="0.12"/>
+  </g>
+  
+  <!-- Oasis center -->
+  <circle cx="960" cy="540" r="180" fill="url(#oasis)"/>
+  
+  <!-- Ripples -->
+  <g stroke="#00ffc8" stroke-width="2" fill="none" opacity="0.4">
+    <circle cx="960" cy="540" r="120"/>
+    <circle cx="960" cy="540" r="160"/>
+    <circle cx="960" cy="540" r="200"/>
+    <circle cx="960" cy="540" r="240"/>
+    <circle cx="960" cy="540" r="280"/>
+  </g>
+  
+  <!-- Palm tree trunk -->
+  <g stroke="#2d4a1e" stroke-width="8" fill="none" stroke-linecap="round">
+    <path d="M960,540 Q950,500 955,460 Q960,420 958,380"/>
+    <path d="M960,540 Q960,500 960,460 Q960,420 960,380"/>
+    <path d="M960,540 Q970,500 965,460 Q960,420 962,380"/>
+  </g>
+  
+  <!-- Palm fronds -->
+  <g fill="url(#palm)">
+    <ellipse cx="960" cy="350" rx="60" ry="20" transform="rotate(-45 960 350)"/>
+    <ellipse cx="960" cy="350" rx="60" ry="20" transform="rotate(45 960 350)"/>
+    <ellipse cx="960" cy="350" rx="60" ry="20" transform="rotate(-135 960 350)"/>
+    <ellipse cx="960" cy="350" rx="60" ry="20" transform="rotate(135 960 350)"/>
+    <ellipse cx="960" cy="330" rx="50" ry="15" transform="rotate(-90 960 330)"/>
+    <ellipse cx="960" cy="330" rx="50" ry="15" transform="rotate(90 960 330)"/>
+    <ellipse cx="960" cy="330" rx="50" ry="15" transform="rotate(-180 960 330)"/>
+    <ellipse cx="960" cy="330" rx="50" ry="15" transform="rotate(0 960 330)"/>
+  </g>
+  
+  <!-- Title -->
+  <text x="960" y="80" font-family="Georgia, serif" font-size="48" font-weight="bold" fill="white" text-anchor="middle" fill-opacity="0.9" filter="drop-shadow(0 0 20px rgba(0,255,180,0.5))">
+    Elemental Life
+  </text>
+  <text x="960" y="130" font-family="monospace" font-size="20" fill="#b4c8ff" text-anchor="middle" letter-spacing="4">
+    Cyberpunk Oasis
+  </text>
+  
+  <!-- Tap hint -->
+  <g transform="translate(960, 980)">
+    <rect x="-100" y="-20" width="200" height="40" rx="20" fill="rgba(0,255,180,0.2)" stroke="rgba(0,255,180,0.5)" stroke-width="1"/>
+    <text x="0" y="6" font-family="monospace" font-size="14" fill="#00ffb4" text-anchor="middle" letter-spacing="1">
+      Tap to continue
+    </text>
+  </g>
+</svg>

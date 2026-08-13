@@ -1,0 +1,21 @@
+{
+  "schema_version": "1.0",
+  "default_locale": "en",
+  "supported_locales": ["en", "zh", "es", "hi", "ar", "pt", "ru", "ja", "fr", "de"],
+  "status": {
+    "en": "complete", "ru": "complete",
+    "zh": "stub_en_fallback", "es": "complete", "hi": "stub_en_fallback",
+    "ar": "stub_en_fallback", "pt": "complete", "ja": "stub_en_fallback",
+    "fr": "complete", "de": "complete"
+  },
+  "note": "Keys pulled 1:1 from the working prototype (CyberTarot.jsx). zh/hi/ar/ja need a native-speaker pass before launch - machine translation is acceptable for internal QA only, not for shipped UI copy given cultural connotations in a divination product.",
+  "keys": [
+    "app.name", "app.tagline", "oracle.drawButton", "oracle.spreadOne",
+    "oracle.spreadThree", "wallet.balanceLabel", "wallet.referralLabel",
+    "nav.oracle", "nav.collection", "nav.mint", "nav.market",
+    "mint.button", "mint.costLabel", "activity.simulateButton",
+    "referral.copyButton", "referral.copiedConfirmation",
+    "card.reversedTag", "card.uprightTag",
+    "spread.positionPresent", "spread.positionChallenge", "spread.positionOutcome"
+  ]
+}

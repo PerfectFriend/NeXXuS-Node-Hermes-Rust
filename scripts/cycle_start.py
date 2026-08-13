@@ -1,0 +1,183 @@
+#!/usr/bin/env python3
+# Living Code Ecosystem — Cycle Start (T+0min)
+# Версия: 1.0
+# Git pull, health checks, chronicle entry, encrypted_comm briefing
+# Использование: python cycle_start.py --cycle 42
+
+import argparse
+import json
+import subprocess
+import sys
+from pathlib import Path
+from datetime import datetime, timezone
+from typing import Dict
+
+class CycleStart:
+    def __init__(self, cycle: int):
+        self.cycle = cycle
+        self.root = Path("C:/LivingCode")
+        self.vault_root = Path("C:/Vault")
+        self.grimoire_root = Path("C:/Users/tomas/the-grimoire/ru")
+        self.chronicle_path = self.vault_root / "Evolution" / "chronicle.md"
+    
+    def run_cmd(self, cmd: str, cwd: Path = None, timeout: int = 120) -> tuple:
+        try:
+            result = subprocess.run(
+                cmd, shell=True, capture_output=True, text=True,
+                timeout=timeout, cwd=str(cwd or self.root)
+            )
+            return result.returncode == 0, result.stdout, result.stderr
+        except Exception as e:
+            return False, "", str(e)
+    
+    def git_pull_all(self) -> Dict:
+        """Git pull --rebase on all repos"""
+        print("  📥 Git pull --rebase all repos...")
+        repos = [
+            ("LivingCode Root", self.root),
+            ("Project1", self.root / "Project1"),
+            ("Project2", self.root / "Project2"),
+            ("Project3", self.root / "Project3"),
+            ("Project4", self.root / "Project4"),
+            ("Vault", self.vault_root),
+            ("Grimoire", self.grimoire_root),
+        ]
+        
+        results = []
+        for name, path in repos:
+            if path.exists():
+                success, out, err = self.run_cmd("git pull --rebase", cwd=path, timeout=60)
+                results.append({"repo": name, "success": success, "output": out[:200] if out else err[:200]})
+                status = "✅" if success else "⚠️"
+                print(f"     {status} {name}")
+            else:
+                results.append({"repo": name, "success": False, "output": "Path not found"})
+                print(f"     ❌ {name}: not found")
+        
+        return {"repos": results, "all_ok": all(r["success"] for r in results)}
+    
+    def check_tailscale_mesh(self) -> Dict:
+        """Check Tailscale connectivity for all 6 nodes"""
+        print("  🔗 Checking Tailscale mesh...")
+        nodes = ["lenovo", "dell", "totomoto", "unsloth-studio", "ubuntu-server"]
+        results = []
+        
+        for node in nodes:
+            success, out, err = self.run_cmd(f"tailscale ping -c 1 {node} 2>&1", timeout=10)
+            online = success and "pong" in out.lower()
+            results.append({"node": node, "online": online})
+            icon = "✅" if online else "❌"
+            print(f"     {icon} {node}: {'online' if online else 'offline'}")
+        
+        return {"nodes": results, "all_online": all(r["online"] for r in results)}
+    
+    def check_model_registry(self) -> Dict:
+        """Quick model registry health check"""
+        print("  🤖 Checking model registry...")
+        hermes_python = r"C:\Users\tomas\AppData\Local\hermes\hermes-agent\venv\Scripts\python.exe"
+        script = self.grimoire_root / "scripts" / "model_registry.py"
+        
+        success, out, err = self.run_cmd(f'"{hermes_python}" "{script}" --health-check --all-nodes', cwd=self.grimoire_root, timeout=60)
+        
+        try:
+            result = json.loads(out) if out.strip() else {"success": success}
+        except:
+            result = {"success": success, "output": out}
+        
+        if "healthy_nodes" in result:
+            print(f"     📊 {result.get('healthy_nodes', 0)}/{result.get('total_nodes', 6)} nodes healthy")
+        
+        return result
+    
+    def update_chronicle(self) -> bool:
+        """Add CYCLE_START entry to chronicle"""
+        self.chronicle_path.parent.mkdir(parents=True, exist_ok=True)
+        
+        entry = f"\n## {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M')} — CYCLE START {self.cycle}/120\n\n"
+        entry += f"**Cycle:** {self.cycle}/120\n"
+        entry += f"**Started:** {datetime.now(timezone.utc).isoformat()}\n"
+        entry += f"**Duration:** 4 hours\n\n"
+        entry += "---\n"
+        
+        if self.chronicle_path.exists():
+            content = self.chronicle_path.read_text(encoding='utf-8')
+        else:
+            content = "# Летопись Живого Кода\n\n"
+        
+        self.chronicle_path.write_text(content + entry, encoding='utf-8')
+        print("  📜 Chronicle updated")
+        return True
+    
+    def send_briefing(self) -> Dict:
+        """Trigger encrypted_comm briefing"""
+        print("  📢 Sending cycle briefing via encrypted_comm...")
+        hermes_python = r"C:\Users\tomas\AppData\Local\hermes\hermes-agent\venv\Scripts\python.exe"
+        script = self.grimoire_root / "scripts" / "encrypted_comm.py"
+        
+        success, out, err = self.run_cmd(f'"{hermes_python}" "{script}" --briefing --cycle {self.cycle}', cwd=self.grimoire_root, timeout=30)
+        
+        return {"success": success, "output": out[:200] if out else err[:200]}
+    
+    def run(self) -> Dict:
+        """Run complete cycle start sequence"""
+        print(f"\n{'='*60}")
+        print(f"🚀 CYCLE START — Cycle {self.cycle}/120")
+        print(f"{'='*60}")
+        
+        results = {}
+        
+        # Phase 1: Git sync
+        results["git_sync"] = self.git_pull_all()
+        
+        # Phase 2: Tailscale mesh
+        results["tailscale"] = self.check_tailscale_mesh()
+        
+        # Phase 3: Model registry
+        results["model_registry"] = self.check_model_registry()
+        
+        # Phase 4: Chronicle
+        results["chronicle"] = self.update_chronicle()
+        
+        # Phase 5: Briefing
+        results["briefing"] = self.send_briefing()
+        
+        # Overall status
+        all_ok = (
+            results["git_sync"].get("all_ok", False) and
+            results["tailscale"].get("all_online", False) and
+            results["model_registry"].get("success", False)
+        )
+        
+        results["overall_success"] = all_ok
+        results["cycle"] = self.cycle
+        results["timestamp"] = datetime.now(timezone.utc).isoformat()
+        
+        print(f"\n{'='*60}")
+        if all_ok:
+            print(f"✅ CYCLE {self.cycle} START SUCCESSFUL")
+        else:
+            print(f"⚠️  CYCLE {self.cycle} START HAS WARNINGS")
+        print(f"{'='*60}")
+        
+        return results
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Cycle Start — Living Code")
+    parser.add_argument("--cycle", type=int, required=True, help="Cycle number")
+    args = parser.parse_args()
+    
+    starter = CycleStart(args.cycle)
+    result = starter.run()
+    
+    # Save report
+    report_file = Path("C:/LivingCode/artifacts") / f"cycle_start_{args.cycle:03d}.json"
+    report_file.parent.mkdir(parents=True, exist_ok=True)
+    report_file.write_text(json.dumps(result, indent=2, ensure_ascii=False), encoding='utf-8')
+    
+    sys.exit(0 if result.get("overall_success") else 1)
+
+
+if __name__ == "__main__":
+    import json
+    main()

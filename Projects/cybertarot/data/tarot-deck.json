@@ -1,0 +1,1702 @@
+{
+  "schema_version": "1.0",
+  "deck_id": "cybertarot-base",
+  "total_cards": 78,
+  "supported_locales": [
+    "en",
+    "zh",
+    "es",
+    "hi",
+    "ar",
+    "pt",
+    "ru",
+    "ja",
+    "fr",
+    "de"
+  ],
+  "default_locale": "en",
+  "rarity_tiers": [
+    "common",
+    "rare",
+    "epic",
+    "legendary"
+  ],
+  "mini_sets": [
+    "gold",
+    "silver"
+  ],
+  "cards": [
+    {
+      "id": "M00",
+      "arcana": "major",
+      "number": 0,
+      "name": {
+        "en": "The Fool",
+        "ru": "Дурак"
+      },
+      "keywords": {
+        "upright": {
+          "en": "new beginnings, leap of faith, innocence",
+          "ru": "новые начинания, прыжок веры, наивность"
+        },
+        "reversed": {
+          "en": "recklessness, unpreparedness",
+          "ru": "безрассудство, неготовность"
+        }
+      },
+      "default_rarity": "common"
+    },
+    {
+      "id": "M01",
+      "arcana": "major",
+      "number": 1,
+      "name": {
+        "en": "The Magician",
+        "ru": "Маг"
+      },
+      "keywords": {
+        "upright": {
+          "en": "willpower, manifestation, resourcefulness",
+          "ru": "воля, воплощение замысла, находчивость"
+        },
+        "reversed": {
+          "en": "manipulation, untapped potential",
+          "ru": "манипуляция, нереализованный потенциал"
+        }
+      },
+      "default_rarity": "common"
+    },
+    {
+      "id": "M02",
+      "arcana": "major",
+      "number": 2,
+      "name": {
+        "en": "The High Priestess",
+        "ru": "Верховная Жрица"
+      },
+      "keywords": {
+        "upright": {
+          "en": "intuition, mystery, subconscious",
+          "ru": "интуиция, тайна, подсознание"
+        },
+        "reversed": {
+          "en": "hidden agendas, disconnection",
+          "ru": "скрытые мотивы, разрыв с интуицией"
+        }
+      },
+      "default_rarity": "common"
+    },
+    {
+      "id": "M03",
+      "arcana": "major",
+      "number": 3,
+      "name": {
+        "en": "The Empress",
+        "ru": "Императрица"
+      },
+      "keywords": {
+        "upright": {
+          "en": "abundance, nurturing, creativity",
+          "ru": "изобилие, забота, творчество"
+        },
+        "reversed": {
+          "en": "stagnation, dependence",
+          "ru": "застой, зависимость"
+        }
+      },
+      "default_rarity": "common"
+    },
+    {
+      "id": "M04",
+      "arcana": "major",
+      "number": 4,
+      "name": {
+        "en": "The Emperor",
+        "ru": "Император"
+      },
+      "keywords": {
+        "upright": {
+          "en": "structure, authority, stability",
+          "ru": "структура, власть, стабильность"
+        },
+        "reversed": {
+          "en": "tyranny, rigidity",
+          "ru": "тирания, ригидность"
+        }
+      },
+      "default_rarity": "common"
+    },
+    {
+      "id": "M05",
+      "arcana": "major",
+      "number": 5,
+      "name": {
+        "en": "The Hierophant",
+        "ru": "Иерофант"
+      },
+      "keywords": {
+        "upright": {
+          "en": "tradition, institutions, guidance",
+          "ru": "традиция, институты, наставничество"
+        },
+        "reversed": {
+          "en": "dogmatism, rebellion",
+          "ru": "догматизм, бунт против системы"
+        }
+      },
+      "default_rarity": "common"
+    },
+    {
+      "id": "M06",
+      "arcana": "major",
+      "number": 6,
+      "name": {
+        "en": "The Lovers",
+        "ru": "Влюблённые"
+      },
+      "keywords": {
+        "upright": {
+          "en": "union, choice, alignment",
+          "ru": "союз, выбор, согласие ценностей"
+        },
+        "reversed": {
+          "en": "discord, wrong choice",
+          "ru": "разлад, неверный выбор"
+        }
+      },
+      "default_rarity": "common"
+    },
+    {
+      "id": "M07",
+      "arcana": "major",
+      "number": 7,
+      "name": {
+        "en": "The Chariot",
+        "ru": "Колесница"
+      },
+      "keywords": {
+        "upright": {
+          "en": "willpower, victory, direction",
+          "ru": "воля, победа, направление"
+        },
+        "reversed": {
+          "en": "loss of control, aggression",
+          "ru": "потеря контроля, агрессия"
+        }
+      },
+      "default_rarity": "common"
+    },
+    {
+      "id": "M08",
+      "arcana": "major",
+      "number": 8,
+      "name": {
+        "en": "Strength",
+        "ru": "Сила"
+      },
+      "keywords": {
+        "upright": {
+          "en": "courage, inner strength, compassion",
+          "ru": "мужество, внутренняя сила, сострадание"
+        },
+        "reversed": {
+          "en": "self-doubt, weakness",
+          "ru": "сомнение в себе, слабость воли"
+        }
+      },
+      "default_rarity": "common"
+    },
+    {
+      "id": "M09",
+      "arcana": "major",
+      "number": 9,
+      "name": {
+        "en": "The Hermit",
+        "ru": "Отшельник"
+      },
+      "keywords": {
+        "upright": {
+          "en": "introspection, solitude, guidance",
+          "ru": "самоанализ, уединение, поиск смысла"
+        },
+        "reversed": {
+          "en": "isolation, refusing help",
+          "ru": "изоляция, отказ от помощи"
+        }
+      },
+      "default_rarity": "common"
+    },
+    {
+      "id": "M10",
+      "arcana": "major",
+      "number": 10,
+      "name": {
+        "en": "Wheel of Fortune",
+        "ru": "Колесо Фортуны"
+      },
+      "keywords": {
+        "upright": {
+          "en": "cycles, fate, turning point",
+          "ru": "циклы, судьба, поворотный момент"
+        },
+        "reversed": {
+          "en": "resisting change, bad luck",
+          "ru": "сопротивление переменам, невезение"
+        }
+      },
+      "default_rarity": "common"
+    },
+    {
+      "id": "M11",
+      "arcana": "major",
+      "number": 11,
+      "name": {
+        "en": "Justice",
+        "ru": "Справедливость"
+      },
+      "keywords": {
+        "upright": {
+          "en": "truth, cause and effect, fairness",
+          "ru": "истина, причина и следствие, честность"
+        },
+        "reversed": {
+          "en": "injustice, avoiding accountability",
+          "ru": "несправедливость, уклонение от ответственности"
+        }
+      },
+      "default_rarity": "common"
+    },
+    {
+      "id": "M12",
+      "arcana": "major",
+      "number": 12,
+      "name": {
+        "en": "The Hanged Man",
+        "ru": "Повешенный"
+      },
+      "keywords": {
+        "upright": {
+          "en": "surrender, new perspective, pause",
+          "ru": "смирение, новый взгляд, пауза"
+        },
+        "reversed": {
+          "en": "stalling, resistance",
+          "ru": "промедление, сопротивление"
+        }
+      },
+      "default_rarity": "common"
+    },
+    {
+      "id": "M13",
+      "arcana": "major",
+      "number": 13,
+      "name": {
+        "en": "Death",
+        "ru": "Смерть"
+      },
+      "keywords": {
+        "upright": {
+          "en": "transformation, endings, transition",
+          "ru": "трансформация, окончания, переход"
+        },
+        "reversed": {
+          "en": "stagnation, fear of change",
+          "ru": "застревание, страх перемен"
+        }
+      },
+      "default_rarity": "common"
+    },
+    {
+      "id": "M14",
+      "arcana": "major",
+      "number": 14,
+      "name": {
+        "en": "Temperance",
+        "ru": "Умеренность"
+      },
+      "keywords": {
+        "upright": {
+          "en": "balance, patience, moderation",
+          "ru": "баланс, терпение, умеренность"
+        },
+        "reversed": {
+          "en": "imbalance, excess",
+          "ru": "дисбаланс, крайности"
+        }
+      },
+      "default_rarity": "common"
+    },
+    {
+      "id": "M15",
+      "arcana": "major",
+      "number": 15,
+      "name": {
+        "en": "The Devil",
+        "ru": "Дьявол"
+      },
+      "keywords": {
+        "upright": {
+          "en": "attachment, addiction, materialism",
+          "ru": "привязанность, зависимость, материализм"
+        },
+        "reversed": {
+          "en": "release, awareness of chains",
+          "ru": "освобождение, осознание оков"
+        }
+      },
+      "default_rarity": "common"
+    },
+    {
+      "id": "M16",
+      "arcana": "major",
+      "number": 16,
+      "name": {
+        "en": "The Tower",
+        "ru": "Башня"
+      },
+      "keywords": {
+        "upright": {
+          "en": "sudden upheaval, revelation, collapse",
+          "ru": "внезапный переворот, откровение, крах"
+        },
+        "reversed": {
+          "en": "averted disaster, delayed crisis",
+          "ru": "предотвращённая катастрофа, отложенный кризис"
+        }
+      },
+      "default_rarity": "common"
+    },
+    {
+      "id": "M17",
+      "arcana": "major",
+      "number": 17,
+      "name": {
+        "en": "The Star",
+        "ru": "Звезда"
+      },
+      "keywords": {
+        "upright": {
+          "en": "hope, faith, renewal",
+          "ru": "надежда, вера, обновление"
+        },
+        "reversed": {
+          "en": "despair, loss of faith",
+          "ru": "отчаяние, потеря веры"
+        }
+      },
+      "default_rarity": "common"
+    },
+    {
+      "id": "M18",
+      "arcana": "major",
+      "number": 18,
+      "name": {
+        "en": "The Moon",
+        "ru": "Луна"
+      },
+      "keywords": {
+        "upright": {
+          "en": "illusion, fear, subconscious",
+          "ru": "иллюзия, страх, подсознание"
+        },
+        "reversed": {
+          "en": "clarity, overcoming fear",
+          "ru": "прояснение, преодоление страха"
+        }
+      },
+      "default_rarity": "common"
+    },
+    {
+      "id": "M19",
+      "arcana": "major",
+      "number": 19,
+      "name": {
+        "en": "The Sun",
+        "ru": "Солнце"
+      },
+      "keywords": {
+        "upright": {
+          "en": "joy, success, vitality",
+          "ru": "радость, успех, жизненная сила"
+        },
+        "reversed": {
+          "en": "temporary setback, clouded joy",
+          "ru": "временная неудача, омрачённая радость"
+        }
+      },
+      "default_rarity": "common"
+    },
+    {
+      "id": "M20",
+      "arcana": "major",
+      "number": 20,
+      "name": {
+        "en": "Judgement",
+        "ru": "Суд"
+      },
+      "keywords": {
+        "upright": {
+          "en": "rebirth, inner calling, reckoning",
+          "ru": "возрождение, внутренний зов, итог"
+        },
+        "reversed": {
+          "en": "self-doubt, refusing growth",
+          "ru": "самокритика, отказ от роста"
+        }
+      },
+      "default_rarity": "common"
+    },
+    {
+      "id": "M21",
+      "arcana": "major",
+      "number": 21,
+      "name": {
+        "en": "The World",
+        "ru": "Мир"
+      },
+      "keywords": {
+        "upright": {
+          "en": "completion, integration, wholeness",
+          "ru": "завершение, целостность, интеграция"
+        },
+        "reversed": {
+          "en": "incompletion, seeking closure",
+          "ru": "незавершённость, поиск закрытия"
+        }
+      },
+      "default_rarity": "common"
+    },
+    {
+      "id": "W01",
+      "arcana": "minor",
+      "suit": "wands",
+      "element": "fire",
+      "number": 1,
+      "name": {
+        "en": "Ace of Wands",
+        "ru": "Туз Жезлы"
+      },
+      "keywords": {
+        "upright": {
+          "en": "fire-themed initiation, raw potential",
+          "ru": "тема стихии жезлы: начало, сырой потенциал"
+        },
+        "reversed": {
+          "en": "blocked or excessive initiation, raw potential",
+          "ru": "заблокированная или избыточная тема: начало, сырой потенциал"
+        }
+      },
+      "default_rarity": "common"
+    },
+    {
+      "id": "W02",
+      "arcana": "minor",
+      "suit": "wands",
+      "element": "fire",
+      "number": 2,
+      "name": {
+        "en": "2 of Wands",
+        "ru": "2 Жезлы"
+      },
+      "keywords": {
+        "upright": {
+          "en": "fire-themed partnership, choice",
+          "ru": "тема стихии жезлы: партнёрство, выбор"
+        },
+        "reversed": {
+          "en": "blocked or excessive partnership, choice",
+          "ru": "заблокированная или избыточная тема: партнёрство, выбор"
+        }
+      },
+      "default_rarity": "common"
+    },
+    {
+      "id": "W03",
+      "arcana": "minor",
+      "suit": "wands",
+      "element": "fire",
+      "number": 3,
+      "name": {
+        "en": "3 of Wands",
+        "ru": "3 Жезлы"
+      },
+      "keywords": {
+        "upright": {
+          "en": "fire-themed growth, collaboration",
+          "ru": "тема стихии жезлы: рост, сотрудничество"
+        },
+        "reversed": {
+          "en": "blocked or excessive growth, collaboration",
+          "ru": "заблокированная или избыточная тема: рост, сотрудничество"
+        }
+      },
+      "default_rarity": "common"
+    },
+    {
+      "id": "W04",
+      "arcana": "minor",
+      "suit": "wands",
+      "element": "fire",
+      "number": 4,
+      "name": {
+        "en": "4 of Wands",
+        "ru": "4 Жезлы"
+      },
+      "keywords": {
+        "upright": {
+          "en": "fire-themed stability, structure",
+          "ru": "тема стихии жезлы: стабильность, устойчивость"
+        },
+        "reversed": {
+          "en": "blocked or excessive stability, structure",
+          "ru": "заблокированная или избыточная тема: стабильность, устойчивость"
+        }
+      },
+      "default_rarity": "common"
+    },
+    {
+      "id": "W05",
+      "arcana": "minor",
+      "suit": "wands",
+      "element": "fire",
+      "number": 5,
+      "name": {
+        "en": "5 of Wands",
+        "ru": "5 Жезлы"
+      },
+      "keywords": {
+        "upright": {
+          "en": "fire-themed conflict, challenge",
+          "ru": "тема стихии жезлы: конфликт, вызов"
+        },
+        "reversed": {
+          "en": "blocked or excessive conflict, challenge",
+          "ru": "заблокированная или избыточная тема: конфликт, вызов"
+        }
+      },
+      "default_rarity": "common"
+    },
+    {
+      "id": "W06",
+      "arcana": "minor",
+      "suit": "wands",
+      "element": "fire",
+      "number": 6,
+      "name": {
+        "en": "6 of Wands",
+        "ru": "6 Жезлы"
+      },
+      "keywords": {
+        "upright": {
+          "en": "fire-themed harmony, giving",
+          "ru": "тема стихии жезлы: гармония, отдача"
+        },
+        "reversed": {
+          "en": "blocked or excessive harmony, giving",
+          "ru": "заблокированная или избыточная тема: гармония, отдача"
+        }
+      },
+      "default_rarity": "common"
+    },
+    {
+      "id": "W07",
+      "arcana": "minor",
+      "suit": "wands",
+      "element": "fire",
+      "number": 7,
+      "name": {
+        "en": "7 of Wands",
+        "ru": "7 Жезлы"
+      },
+      "keywords": {
+        "upright": {
+          "en": "fire-themed reassessment, patience",
+          "ru": "тема стихии жезлы: переоценка, терпение"
+        },
+        "reversed": {
+          "en": "blocked or excessive reassessment, patience",
+          "ru": "заблокированная или избыточная тема: переоценка, терпение"
+        }
+      },
+      "default_rarity": "common"
+    },
+    {
+      "id": "W08",
+      "arcana": "minor",
+      "suit": "wands",
+      "element": "fire",
+      "number": 8,
+      "name": {
+        "en": "8 of Wands",
+        "ru": "8 Жезлы"
+      },
+      "keywords": {
+        "upright": {
+          "en": "fire-themed swift movement, focus",
+          "ru": "тема стихии жезлы: стремительное движение, фокус"
+        },
+        "reversed": {
+          "en": "blocked or excessive swift movement, focus",
+          "ru": "заблокированная или избыточная тема: стремительное движение, фокус"
+        }
+      },
+      "default_rarity": "common"
+    },
+    {
+      "id": "W09",
+      "arcana": "minor",
+      "suit": "wands",
+      "element": "fire",
+      "number": 9,
+      "name": {
+        "en": "9 of Wands",
+        "ru": "9 Жезлы"
+      },
+      "keywords": {
+        "upright": {
+          "en": "fire-themed resilience, near-completion",
+          "ru": "тема стихии жезлы: стойкость, почти завершение"
+        },
+        "reversed": {
+          "en": "blocked or excessive resilience, near-completion",
+          "ru": "заблокированная или избыточная тема: стойкость, почти завершение"
+        }
+      },
+      "default_rarity": "common"
+    },
+    {
+      "id": "W10",
+      "arcana": "minor",
+      "suit": "wands",
+      "element": "fire",
+      "number": 10,
+      "name": {
+        "en": "10 of Wands",
+        "ru": "10 Жезлы"
+      },
+      "keywords": {
+        "upright": {
+          "en": "fire-themed culmination, burden or completion",
+          "ru": "тема стихии жезлы: кульминация, бремя или завершение цикла"
+        },
+        "reversed": {
+          "en": "blocked or excessive culmination, burden or completion",
+          "ru": "заблокированная или избыточная тема: кульминация, бремя или завершение цикла"
+        }
+      },
+      "default_rarity": "common"
+    },
+    {
+      "id": "WC0",
+      "arcana": "minor",
+      "suit": "wands",
+      "element": "fire",
+      "court": "Page",
+      "name": {
+        "en": "Page of Wands",
+        "ru": "Паж Жезлы"
+      },
+      "keywords": {
+        "upright": {
+          "en": "curiosity, learning, a message",
+          "ru": "любопытство, обучение, весть"
+        },
+        "reversed": {
+          "en": "immature or shadow expression of: curiosity, learning, a message",
+          "ru": "незрелое/теневое проявление: любопытство, обучение, весть"
+        }
+      },
+      "default_rarity": "common"
+    },
+    {
+      "id": "WC1",
+      "arcana": "minor",
+      "suit": "wands",
+      "element": "fire",
+      "court": "Knight",
+      "name": {
+        "en": "Knight of Wands",
+        "ru": "Рыцарь Жезлы"
+      },
+      "keywords": {
+        "upright": {
+          "en": "pursuit, action, single-mindedness",
+          "ru": "стремление, действие, целеустремлённость"
+        },
+        "reversed": {
+          "en": "immature or shadow expression of: pursuit, action, single-mindedness",
+          "ru": "незрелое/теневое проявление: стремление, действие, целеустремлённость"
+        }
+      },
+      "default_rarity": "common"
+    },
+    {
+      "id": "WC2",
+      "arcana": "minor",
+      "suit": "wands",
+      "element": "fire",
+      "court": "Queen",
+      "name": {
+        "en": "Queen of Wands",
+        "ru": "Королева Жезлы"
+      },
+      "keywords": {
+        "upright": {
+          "en": "mastery through nurturing, intuition",
+          "ru": "мастерство через заботу, интуиция"
+        },
+        "reversed": {
+          "en": "immature or shadow expression of: mastery through nurturing, intuition",
+          "ru": "незрелое/теневое проявление: мастерство через заботу, интуиция"
+        }
+      },
+      "default_rarity": "common"
+    },
+    {
+      "id": "WC3",
+      "arcana": "minor",
+      "suit": "wands",
+      "element": "fire",
+      "court": "King",
+      "name": {
+        "en": "King of Wands",
+        "ru": "Король Жезлы"
+      },
+      "keywords": {
+        "upright": {
+          "en": "mastery through command, authority",
+          "ru": "мастерство через власть, авторитет"
+        },
+        "reversed": {
+          "en": "immature or shadow expression of: mastery through command, authority",
+          "ru": "незрелое/теневое проявление: мастерство через власть, авторитет"
+        }
+      },
+      "default_rarity": "common"
+    },
+    {
+      "id": "C01",
+      "arcana": "minor",
+      "suit": "cups",
+      "element": "water",
+      "number": 1,
+      "name": {
+        "en": "Ace of Cups",
+        "ru": "Туз Кубки"
+      },
+      "keywords": {
+        "upright": {
+          "en": "water-themed initiation, raw potential",
+          "ru": "тема стихии кубки: начало, сырой потенциал"
+        },
+        "reversed": {
+          "en": "blocked or excessive initiation, raw potential",
+          "ru": "заблокированная или избыточная тема: начало, сырой потенциал"
+        }
+      },
+      "default_rarity": "common"
+    },
+    {
+      "id": "C02",
+      "arcana": "minor",
+      "suit": "cups",
+      "element": "water",
+      "number": 2,
+      "name": {
+        "en": "2 of Cups",
+        "ru": "2 Кубки"
+      },
+      "keywords": {
+        "upright": {
+          "en": "water-themed partnership, choice",
+          "ru": "тема стихии кубки: партнёрство, выбор"
+        },
+        "reversed": {
+          "en": "blocked or excessive partnership, choice",
+          "ru": "заблокированная или избыточная тема: партнёрство, выбор"
+        }
+      },
+      "default_rarity": "common"
+    },
+    {
+      "id": "C03",
+      "arcana": "minor",
+      "suit": "cups",
+      "element": "water",
+      "number": 3,
+      "name": {
+        "en": "3 of Cups",
+        "ru": "3 Кубки"
+      },
+      "keywords": {
+        "upright": {
+          "en": "water-themed growth, collaboration",
+          "ru": "тема стихии кубки: рост, сотрудничество"
+        },
+        "reversed": {
+          "en": "blocked or excessive growth, collaboration",
+          "ru": "заблокированная или избыточная тема: рост, сотрудничество"
+        }
+      },
+      "default_rarity": "common"
+    },
+    {
+      "id": "C04",
+      "arcana": "minor",
+      "suit": "cups",
+      "element": "water",
+      "number": 4,
+      "name": {
+        "en": "4 of Cups",
+        "ru": "4 Кубки"
+      },
+      "keywords": {
+        "upright": {
+          "en": "water-themed stability, structure",
+          "ru": "тема стихии кубки: стабильность, устойчивость"
+        },
+        "reversed": {
+          "en": "blocked or excessive stability, structure",
+          "ru": "заблокированная или избыточная тема: стабильность, устойчивость"
+        }
+      },
+      "default_rarity": "common"
+    },
+    {
+      "id": "C05",
+      "arcana": "minor",
+      "suit": "cups",
+      "element": "water",
+      "number": 5,
+      "name": {
+        "en": "5 of Cups",
+        "ru": "5 Кубки"
+      },
+      "keywords": {
+        "upright": {
+          "en": "water-themed conflict, challenge",
+          "ru": "тема стихии кубки: конфликт, вызов"
+        },
+        "reversed": {
+          "en": "blocked or excessive conflict, challenge",
+          "ru": "заблокированная или избыточная тема: конфликт, вызов"
+        }
+      },
+      "default_rarity": "common"
+    },
+    {
+      "id": "C06",
+      "arcana": "minor",
+      "suit": "cups",
+      "element": "water",
+      "number": 6,
+      "name": {
+        "en": "6 of Cups",
+        "ru": "6 Кубки"
+      },
+      "keywords": {
+        "upright": {
+          "en": "water-themed harmony, giving",
+          "ru": "тема стихии кубки: гармония, отдача"
+        },
+        "reversed": {
+          "en": "blocked or excessive harmony, giving",
+          "ru": "заблокированная или избыточная тема: гармония, отдача"
+        }
+      },
+      "default_rarity": "common"
+    },
+    {
+      "id": "C07",
+      "arcana": "minor",
+      "suit": "cups",
+      "element": "water",
+      "number": 7,
+      "name": {
+        "en": "7 of Cups",
+        "ru": "7 Кубки"
+      },
+      "keywords": {
+        "upright": {
+          "en": "water-themed reassessment, patience",
+          "ru": "тема стихии кубки: переоценка, терпение"
+        },
+        "reversed": {
+          "en": "blocked or excessive reassessment, patience",
+          "ru": "заблокированная или избыточная тема: переоценка, терпение"
+        }
+      },
+      "default_rarity": "common"
+    },
+    {
+      "id": "C08",
+      "arcana": "minor",
+      "suit": "cups",
+      "element": "water",
+      "number": 8,
+      "name": {
+        "en": "8 of Cups",
+        "ru": "8 Кубки"
+      },
+      "keywords": {
+        "upright": {
+          "en": "water-themed swift movement, focus",
+          "ru": "тема стихии кубки: стремительное движение, фокус"
+        },
+        "reversed": {
+          "en": "blocked or excessive swift movement, focus",
+          "ru": "заблокированная или избыточная тема: стремительное движение, фокус"
+        }
+      },
+      "default_rarity": "common"
+    },
+    {
+      "id": "C09",
+      "arcana": "minor",
+      "suit": "cups",
+      "element": "water",
+      "number": 9,
+      "name": {
+        "en": "9 of Cups",
+        "ru": "9 Кубки"
+      },
+      "keywords": {
+        "upright": {
+          "en": "water-themed resilience, near-completion",
+          "ru": "тема стихии кубки: стойкость, почти завершение"
+        },
+        "reversed": {
+          "en": "blocked or excessive resilience, near-completion",
+          "ru": "заблокированная или избыточная тема: стойкость, почти завершение"
+        }
+      },
+      "default_rarity": "common"
+    },
+    {
+      "id": "C10",
+      "arcana": "minor",
+      "suit": "cups",
+      "element": "water",
+      "number": 10,
+      "name": {
+        "en": "10 of Cups",
+        "ru": "10 Кубки"
+      },
+      "keywords": {
+        "upright": {
+          "en": "water-themed culmination, burden or completion",
+          "ru": "тема стихии кубки: кульминация, бремя или завершение цикла"
+        },
+        "reversed": {
+          "en": "blocked or excessive culmination, burden or completion",
+          "ru": "заблокированная или избыточная тема: кульминация, бремя или завершение цикла"
+        }
+      },
+      "default_rarity": "common"
+    },
+    {
+      "id": "CC0",
+      "arcana": "minor",
+      "suit": "cups",
+      "element": "water",
+      "court": "Page",
+      "name": {
+        "en": "Page of Cups",
+        "ru": "Паж Кубки"
+      },
+      "keywords": {
+        "upright": {
+          "en": "curiosity, learning, a message",
+          "ru": "любопытство, обучение, весть"
+        },
+        "reversed": {
+          "en": "immature or shadow expression of: curiosity, learning, a message",
+          "ru": "незрелое/теневое проявление: любопытство, обучение, весть"
+        }
+      },
+      "default_rarity": "common"
+    },
+    {
+      "id": "CC1",
+      "arcana": "minor",
+      "suit": "cups",
+      "element": "water",
+      "court": "Knight",
+      "name": {
+        "en": "Knight of Cups",
+        "ru": "Рыцарь Кубки"
+      },
+      "keywords": {
+        "upright": {
+          "en": "pursuit, action, single-mindedness",
+          "ru": "стремление, действие, целеустремлённость"
+        },
+        "reversed": {
+          "en": "immature or shadow expression of: pursuit, action, single-mindedness",
+          "ru": "незрелое/теневое проявление: стремление, действие, целеустремлённость"
+        }
+      },
+      "default_rarity": "common"
+    },
+    {
+      "id": "CC2",
+      "arcana": "minor",
+      "suit": "cups",
+      "element": "water",
+      "court": "Queen",
+      "name": {
+        "en": "Queen of Cups",
+        "ru": "Королева Кубки"
+      },
+      "keywords": {
+        "upright": {
+          "en": "mastery through nurturing, intuition",
+          "ru": "мастерство через заботу, интуиция"
+        },
+        "reversed": {
+          "en": "immature or shadow expression of: mastery through nurturing, intuition",
+          "ru": "незрелое/теневое проявление: мастерство через заботу, интуиция"
+        }
+      },
+      "default_rarity": "common"
+    },
+    {
+      "id": "CC3",
+      "arcana": "minor",
+      "suit": "cups",
+      "element": "water",
+      "court": "King",
+      "name": {
+        "en": "King of Cups",
+        "ru": "Король Кубки"
+      },
+      "keywords": {
+        "upright": {
+          "en": "mastery through command, authority",
+          "ru": "мастерство через власть, авторитет"
+        },
+        "reversed": {
+          "en": "immature or shadow expression of: mastery through command, authority",
+          "ru": "незрелое/теневое проявление: мастерство через власть, авторитет"
+        }
+      },
+      "default_rarity": "common"
+    },
+    {
+      "id": "S01",
+      "arcana": "minor",
+      "suit": "swords",
+      "element": "air",
+      "number": 1,
+      "name": {
+        "en": "Ace of Swords",
+        "ru": "Туз Мечи"
+      },
+      "keywords": {
+        "upright": {
+          "en": "air-themed initiation, raw potential",
+          "ru": "тема стихии мечи: начало, сырой потенциал"
+        },
+        "reversed": {
+          "en": "blocked or excessive initiation, raw potential",
+          "ru": "заблокированная или избыточная тема: начало, сырой потенциал"
+        }
+      },
+      "default_rarity": "common"
+    },
+    {
+      "id": "S02",
+      "arcana": "minor",
+      "suit": "swords",
+      "element": "air",
+      "number": 2,
+      "name": {
+        "en": "2 of Swords",
+        "ru": "2 Мечи"
+      },
+      "keywords": {
+        "upright": {
+          "en": "air-themed partnership, choice",
+          "ru": "тема стихии мечи: партнёрство, выбор"
+        },
+        "reversed": {
+          "en": "blocked or excessive partnership, choice",
+          "ru": "заблокированная или избыточная тема: партнёрство, выбор"
+        }
+      },
+      "default_rarity": "common"
+    },
+    {
+      "id": "S03",
+      "arcana": "minor",
+      "suit": "swords",
+      "element": "air",
+      "number": 3,
+      "name": {
+        "en": "3 of Swords",
+        "ru": "3 Мечи"
+      },
+      "keywords": {
+        "upright": {
+          "en": "air-themed growth, collaboration",
+          "ru": "тема стихии мечи: рост, сотрудничество"
+        },
+        "reversed": {
+          "en": "blocked or excessive growth, collaboration",
+          "ru": "заблокированная или избыточная тема: рост, сотрудничество"
+        }
+      },
+      "default_rarity": "common"
+    },
+    {
+      "id": "S04",
+      "arcana": "minor",
+      "suit": "swords",
+      "element": "air",
+      "number": 4,
+      "name": {
+        "en": "4 of Swords",
+        "ru": "4 Мечи"
+      },
+      "keywords": {
+        "upright": {
+          "en": "air-themed stability, structure",
+          "ru": "тема стихии мечи: стабильность, устойчивость"
+        },
+        "reversed": {
+          "en": "blocked or excessive stability, structure",
+          "ru": "заблокированная или избыточная тема: стабильность, устойчивость"
+        }
+      },
+      "default_rarity": "common"
+    },
+    {
+      "id": "S05",
+      "arcana": "minor",
+      "suit": "swords",
+      "element": "air",
+      "number": 5,
+      "name": {
+        "en": "5 of Swords",
+        "ru": "5 Мечи"
+      },
+      "keywords": {
+        "upright": {
+          "en": "air-themed conflict, challenge",
+          "ru": "тема стихии мечи: конфликт, вызов"
+        },
+        "reversed": {
+          "en": "blocked or excessive conflict, challenge",
+          "ru": "заблокированная или избыточная тема: конфликт, вызов"
+        }
+      },
+      "default_rarity": "common"
+    },
+    {
+      "id": "S06",
+      "arcana": "minor",
+      "suit": "swords",
+      "element": "air",
+      "number": 6,
+      "name": {
+        "en": "6 of Swords",
+        "ru": "6 Мечи"
+      },
+      "keywords": {
+        "upright": {
+          "en": "air-themed harmony, giving",
+          "ru": "тема стихии мечи: гармония, отдача"
+        },
+        "reversed": {
+          "en": "blocked or excessive harmony, giving",
+          "ru": "заблокированная или избыточная тема: гармония, отдача"
+        }
+      },
+      "default_rarity": "common"
+    },
+    {
+      "id": "S07",
+      "arcana": "minor",
+      "suit": "swords",
+      "element": "air",
+      "number": 7,
+      "name": {
+        "en": "7 of Swords",
+        "ru": "7 Мечи"
+      },
+      "keywords": {
+        "upright": {
+          "en": "air-themed reassessment, patience",
+          "ru": "тема стихии мечи: переоценка, терпение"
+        },
+        "reversed": {
+          "en": "blocked or excessive reassessment, patience",
+          "ru": "заблокированная или избыточная тема: переоценка, терпение"
+        }
+      },
+      "default_rarity": "common"
+    },
+    {
+      "id": "S08",
+      "arcana": "minor",
+      "suit": "swords",
+      "element": "air",
+      "number": 8,
+      "name": {
+        "en": "8 of Swords",
+        "ru": "8 Мечи"
+      },
+      "keywords": {
+        "upright": {
+          "en": "air-themed swift movement, focus",
+          "ru": "тема стихии мечи: стремительное движение, фокус"
+        },
+        "reversed": {
+          "en": "blocked or excessive swift movement, focus",
+          "ru": "заблокированная или избыточная тема: стремительное движение, фокус"
+        }
+      },
+      "default_rarity": "common"
+    },
+    {
+      "id": "S09",
+      "arcana": "minor",
+      "suit": "swords",
+      "element": "air",
+      "number": 9,
+      "name": {
+        "en": "9 of Swords",
+        "ru": "9 Мечи"
+      },
+      "keywords": {
+        "upright": {
+          "en": "air-themed resilience, near-completion",
+          "ru": "тема стихии мечи: стойкость, почти завершение"
+        },
+        "reversed": {
+          "en": "blocked or excessive resilience, near-completion",
+          "ru": "заблокированная или избыточная тема: стойкость, почти завершение"
+        }
+      },
+      "default_rarity": "common"
+    },
+    {
+      "id": "S10",
+      "arcana": "minor",
+      "suit": "swords",
+      "element": "air",
+      "number": 10,
+      "name": {
+        "en": "10 of Swords",
+        "ru": "10 Мечи"
+      },
+      "keywords": {
+        "upright": {
+          "en": "air-themed culmination, burden or completion",
+          "ru": "тема стихии мечи: кульминация, бремя или завершение цикла"
+        },
+        "reversed": {
+          "en": "blocked or excessive culmination, burden or completion",
+          "ru": "заблокированная или избыточная тема: кульминация, бремя или завершение цикла"
+        }
+      },
+      "default_rarity": "common"
+    },
+    {
+      "id": "SC0",
+      "arcana": "minor",
+      "suit": "swords",
+      "element": "air",
+      "court": "Page",
+      "name": {
+        "en": "Page of Swords",
+        "ru": "Паж Мечи"
+      },
+      "keywords": {
+        "upright": {
+          "en": "curiosity, learning, a message",
+          "ru": "любопытство, обучение, весть"
+        },
+        "reversed": {
+          "en": "immature or shadow expression of: curiosity, learning, a message",
+          "ru": "незрелое/теневое проявление: любопытство, обучение, весть"
+        }
+      },
+      "default_rarity": "common"
+    },
+    {
+      "id": "SC1",
+      "arcana": "minor",
+      "suit": "swords",
+      "element": "air",
+      "court": "Knight",
+      "name": {
+        "en": "Knight of Swords",
+        "ru": "Рыцарь Мечи"
+      },
+      "keywords": {
+        "upright": {
+          "en": "pursuit, action, single-mindedness",
+          "ru": "стремление, действие, целеустремлённость"
+        },
+        "reversed": {
+          "en": "immature or shadow expression of: pursuit, action, single-mindedness",
+          "ru": "незрелое/теневое проявление: стремление, действие, целеустремлённость"
+        }
+      },
+      "default_rarity": "common"
+    },
+    {
+      "id": "SC2",
+      "arcana": "minor",
+      "suit": "swords",
+      "element": "air",
+      "court": "Queen",
+      "name": {
+        "en": "Queen of Swords",
+        "ru": "Королева Мечи"
+      },
+      "keywords": {
+        "upright": {
+          "en": "mastery through nurturing, intuition",
+          "ru": "мастерство через заботу, интуиция"
+        },
+        "reversed": {
+          "en": "immature or shadow expression of: mastery through nurturing, intuition",
+          "ru": "незрелое/теневое проявление: мастерство через заботу, интуиция"
+        }
+      },
+      "default_rarity": "common"
+    },
+    {
+      "id": "SC3",
+      "arcana": "minor",
+      "suit": "swords",
+      "element": "air",
+      "court": "King",
+      "name": {
+        "en": "King of Swords",
+        "ru": "Король Мечи"
+      },
+      "keywords": {
+        "upright": {
+          "en": "mastery through command, authority",
+          "ru": "мастерство через власть, авторитет"
+        },
+        "reversed": {
+          "en": "immature or shadow expression of: mastery through command, authority",
+          "ru": "незрелое/теневое проявление: мастерство через власть, авторитет"
+        }
+      },
+      "default_rarity": "common"
+    },
+    {
+      "id": "P01",
+      "arcana": "minor",
+      "suit": "pentacles",
+      "element": "earth",
+      "number": 1,
+      "name": {
+        "en": "Ace of Pentacles",
+        "ru": "Туз Пентакли"
+      },
+      "keywords": {
+        "upright": {
+          "en": "earth-themed initiation, raw potential",
+          "ru": "тема стихии пентакли: начало, сырой потенциал"
+        },
+        "reversed": {
+          "en": "blocked or excessive initiation, raw potential",
+          "ru": "заблокированная или избыточная тема: начало, сырой потенциал"
+        }
+      },
+      "default_rarity": "common"
+    },
+    {
+      "id": "P02",
+      "arcana": "minor",
+      "suit": "pentacles",
+      "element": "earth",
+      "number": 2,
+      "name": {
+        "en": "2 of Pentacles",
+        "ru": "2 Пентакли"
+      },
+      "keywords": {
+        "upright": {
+          "en": "earth-themed partnership, choice",
+          "ru": "тема стихии пентакли: партнёрство, выбор"
+        },
+        "reversed": {
+          "en": "blocked or excessive partnership, choice",
+          "ru": "заблокированная или избыточная тема: партнёрство, выбор"
+        }
+      },
+      "default_rarity": "common"
+    },
+    {
+      "id": "P03",
+      "arcana": "minor",
+      "suit": "pentacles",
+      "element": "earth",
+      "number": 3,
+      "name": {
+        "en": "3 of Pentacles",
+        "ru": "3 Пентакли"
+      },
+      "keywords": {
+        "upright": {
+          "en": "earth-themed growth, collaboration",
+          "ru": "тема стихии пентакли: рост, сотрудничество"
+        },
+        "reversed": {
+          "en": "blocked or excessive growth, collaboration",
+          "ru": "заблокированная или избыточная тема: рост, сотрудничество"
+        }
+      },
+      "default_rarity": "common"
+    },
+    {
+      "id": "P04",
+      "arcana": "minor",
+      "suit": "pentacles",
+      "element": "earth",
+      "number": 4,
+      "name": {
+        "en": "4 of Pentacles",
+        "ru": "4 Пентакли"
+      },
+      "keywords": {
+        "upright": {
+          "en": "earth-themed stability, structure",
+          "ru": "тема стихии пентакли: стабильность, устойчивость"
+        },
+        "reversed": {
+          "en": "blocked or excessive stability, structure",
+          "ru": "заблокированная или избыточная тема: стабильность, устойчивость"
+        }
+      },
+      "default_rarity": "common"
+    },
+    {
+      "id": "P05",
+      "arcana": "minor",
+      "suit": "pentacles",
+      "element": "earth",
+      "number": 5,
+      "name": {
+        "en": "5 of Pentacles",
+        "ru": "5 Пентакли"
+      },
+      "keywords": {
+        "upright": {
+          "en": "earth-themed conflict, challenge",
+          "ru": "тема стихии пентакли: конфликт, вызов"
+        },
+        "reversed": {
+          "en": "blocked or excessive conflict, challenge",
+          "ru": "заблокированная или избыточная тема: конфликт, вызов"
+        }
+      },
+      "default_rarity": "common"
+    },
+    {
+      "id": "P06",
+      "arcana": "minor",
+      "suit": "pentacles",
+      "element": "earth",
+      "number": 6,
+      "name": {
+        "en": "6 of Pentacles",
+        "ru": "6 Пентакли"
+      },
+      "keywords": {
+        "upright": {
+          "en": "earth-themed harmony, giving",
+          "ru": "тема стихии пентакли: гармония, отдача"
+        },
+        "reversed": {
+          "en": "blocked or excessive harmony, giving",
+          "ru": "заблокированная или избыточная тема: гармония, отдача"
+        }
+      },
+      "default_rarity": "common"
+    },
+    {
+      "id": "P07",
+      "arcana": "minor",
+      "suit": "pentacles",
+      "element": "earth",
+      "number": 7,
+      "name": {
+        "en": "7 of Pentacles",
+        "ru": "7 Пентакли"
+      },
+      "keywords": {
+        "upright": {
+          "en": "earth-themed reassessment, patience",
+          "ru": "тема стихии пентакли: переоценка, терпение"
+        },
+        "reversed": {
+          "en": "blocked or excessive reassessment, patience",
+          "ru": "заблокированная или избыточная тема: переоценка, терпение"
+        }
+      },
+      "default_rarity": "common"
+    },
+    {
+      "id": "P08",
+      "arcana": "minor",
+      "suit": "pentacles",
+      "element": "earth",
+      "number": 8,
+      "name": {
+        "en": "8 of Pentacles",
+        "ru": "8 Пентакли"
+      },
+      "keywords": {
+        "upright": {
+          "en": "earth-themed swift movement, focus",
+          "ru": "тема стихии пентакли: стремительное движение, фокус"
+        },
+        "reversed": {
+          "en": "blocked or excessive swift movement, focus",
+          "ru": "заблокированная или избыточная тема: стремительное движение, фокус"
+        }
+      },
+      "default_rarity": "common"
+    },
+    {
+      "id": "P09",
+      "arcana": "minor",
+      "suit": "pentacles",
+      "element": "earth",
+      "number": 9,
+      "name": {
+        "en": "9 of Pentacles",
+        "ru": "9 Пентакли"
+      },
+      "keywords": {
+        "upright": {
+          "en": "earth-themed resilience, near-completion",
+          "ru": "тема стихии пентакли: стойкость, почти завершение"
+        },
+        "reversed": {
+          "en": "blocked or excessive resilience, near-completion",
+          "ru": "заблокированная или избыточная тема: стойкость, почти завершение"
+        }
+      },
+      "default_rarity": "common"
+    },
+    {
+      "id": "P10",
+      "arcana": "minor",
+      "suit": "pentacles",
+      "element": "earth",
+      "number": 10,
+      "name": {
+        "en": "10 of Pentacles",
+        "ru": "10 Пентакли"
+      },
+      "keywords": {
+        "upright": {
+          "en": "earth-themed culmination, burden or completion",
+          "ru": "тема стихии пентакли: кульминация, бремя или завершение цикла"
+        },
+        "reversed": {
+          "en": "blocked or excessive culmination, burden or completion",
+          "ru": "заблокированная или избыточная тема: кульминация, бремя или завершение цикла"
+        }
+      },
+      "default_rarity": "common"
+    },
+    {
+      "id": "PC0",
+      "arcana": "minor",
+      "suit": "pentacles",
+      "element": "earth",
+      "court": "Page",
+      "name": {
+        "en": "Page of Pentacles",
+        "ru": "Паж Пентакли"
+      },
+      "keywords": {
+        "upright": {
+          "en": "curiosity, learning, a message",
+          "ru": "любопытство, обучение, весть"
+        },
+        "reversed": {
+          "en": "immature or shadow expression of: curiosity, learning, a message",
+          "ru": "незрелое/теневое проявление: любопытство, обучение, весть"
+        }
+      },
+      "default_rarity": "common"
+    },
+    {
+      "id": "PC1",
+      "arcana": "minor",
+      "suit": "pentacles",
+      "element": "earth",
+      "court": "Knight",
+      "name": {
+        "en": "Knight of Pentacles",
+        "ru": "Рыцарь Пентакли"
+      },
+      "keywords": {
+        "upright": {
+          "en": "pursuit, action, single-mindedness",
+          "ru": "стремление, действие, целеустремлённость"
+        },
+        "reversed": {
+          "en": "immature or shadow expression of: pursuit, action, single-mindedness",
+          "ru": "незрелое/теневое проявление: стремление, действие, целеустремлённость"
+        }
+      },
+      "default_rarity": "common"
+    },
+    {
+      "id": "PC2",
+      "arcana": "minor",
+      "suit": "pentacles",
+      "element": "earth",
+      "court": "Queen",
+      "name": {
+        "en": "Queen of Pentacles",
+        "ru": "Королева Пентакли"
+      },
+      "keywords": {
+        "upright": {
+          "en": "mastery through nurturing, intuition",
+          "ru": "мастерство через заботу, интуиция"
+        },
+        "reversed": {
+          "en": "immature or shadow expression of: mastery through nurturing, intuition",
+          "ru": "незрелое/теневое проявление: мастерство через заботу, интуиция"
+        }
+      },
+      "default_rarity": "common"
+    },
+    {
+      "id": "PC3",
+      "arcana": "minor",
+      "suit": "pentacles",
+      "element": "earth",
+      "court": "King",
+      "name": {
+        "en": "King of Pentacles",
+        "ru": "Король Пентакли"
+      },
+      "keywords": {
+        "upright": {
+          "en": "mastery through command, authority",
+          "ru": "мастерство через власть, авторитет"
+        },
+        "reversed": {
+          "en": "immature or shadow expression of: mastery through command, authority",
+          "ru": "незрелое/теневое проявление: мастерство через власть, авторитет"
+        }
+      },
+      "default_rarity": "common"
+    }
+  ]
+}

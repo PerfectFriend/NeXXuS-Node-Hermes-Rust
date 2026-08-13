@@ -1,0 +1,81 @@
+{
+  "component": "main_menu_ui",
+  "cycle": 1,
+  "middleware": [
+    "fmod",
+    "wwise"
+  ],
+  "fmod": {
+    "banks": [
+      "Master.bank",
+      "Music_main_menu_ui.bank",
+      "SFX_main_menu_ui.bank"
+    ],
+    "events": [
+      {
+        "name": "music/main_menu_ui/base",
+        "parameters": [
+          "Intensity"
+        ]
+      },
+      {
+        "name": "music/main_menu_ui/exploration",
+        "parameters": [
+          "Intensity"
+        ]
+      },
+      {
+        "name": "music/main_menu_ui/tension",
+        "parameters": [
+          "Intensity"
+        ]
+      },
+      {
+        "name": "music/main_menu_ui/danger",
+        "parameters": [
+          "Intensity"
+        ]
+      },
+      {
+        "name": "music/main_menu_ui/victory",
+        "parameters": [
+          "Intensity"
+        ]
+      }
+    ],
+    "parameters": {
+      "Intensity": {
+        "min": 0,
+        "max": 4,
+        "description": "0=Base, 1=Exploration, 2=Tension, 3=Danger, 4=Victory"
+      }
+    }
+  },
+  "wwise": {
+    "soundbanks": [
+      "Init.bnk",
+      "Music_main_menu_ui.bnk",
+      "SFX_main_menu_ui.bnk"
+    ],
+    "switches": {
+      "MusicState": [
+        "Base",
+        "Exploration",
+        "Tension",
+        "Danger",
+        "Victory"
+      ]
+    },
+    "rtpcs": {
+      "MusicIntensity": {
+        "min": 0,
+        "max": 100
+      }
+    },
+    "events": [
+      "Play_Music_main_menu_ui",
+      "Stop_Music_main_menu_ui",
+      "Set_Music_State_main_menu_ui"
+    ]
+  }
+}
