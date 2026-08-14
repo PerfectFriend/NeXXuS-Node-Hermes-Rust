@@ -19,6 +19,14 @@ from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PrivateKey
 
+
+def auto_detect_cycle() -> int:
+    """Auto-detect the current cycle based on 4-hour intervals since 2026-01-01."""
+    epoch = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    now = datetime.now(timezone.utc)
+    cycle = int((now - epoch).total_seconds() / 14400)  # 4 hours = 14400 seconds
+    return cycle
+
 @dataclass
 class Agent:
     id: str
@@ -298,15 +306,21 @@ DJ студийонок Витальевич — аудио для game READY.
 
 def main():
     parser = argparse.ArgumentParser(description="Encrypted Communication Protocol")
-    parser.add_argument("--cycle", type=int, required=True, help="Cycle number")
+    parser.add_argument("--cycle", type=int, help="Cycle number (auto-detected if omitted)")
     parser.add_argument("--round", action="store_true", help="Run one 10-min round")
     parser.add_argument("--briefing", action="store_true", help="Send cycle briefing only")
     parser.add_argument("--verify-callback", action="store_true", help="Process verification callback")
     parser.add_argument("--report-file", type=str, help="Filter report JSON file for callback")
     args = parser.parse_args()
-    
-    comm = EncryptedComm(args.cycle)
-    
+
+    # Auto-detect cycle if not provided
+    cycle = args.cycle
+    if cycle is None:
+        cycle = auto_detect_cycle()
+        print(f"���� Auto-detected cycle: {cycle}")
+
+    comm = EncryptedComm(cycle)
+
     if args.briefing:
         comm.send_briefing()
     elif args.round:
@@ -317,7 +331,8 @@ def main():
         comm.verification_callback(report)
     else:
         print("Use --round, --briefing, or --verify-callback --report-file")
-    
+        sys.exit(1)
+
     sys.exit(0)
 
 

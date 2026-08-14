@@ -177,7 +177,8 @@ def main():
     elif args.daemon:
         poller.run_daemon(args.interval)
     else:
-        print("Use --poll-once or --daemon")
+        # Default to single poll iteration for cron/agent compatibility
+        poller.poll_once()
     
     sys.exit(0)
 

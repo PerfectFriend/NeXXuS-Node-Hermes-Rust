@@ -1,7 +1,7 @@
 {
   "component": "main_menu_ui",
   "cycle": "1",
-  "timestamp": "2026-08-14T06:37:17.966139",
+  "timestamp": "2026-08-14T06:38:53.537798",
   "targets": [
     "android",
     "ios",
@@ -23,28 +23,28 @@
       "success": false,
       "output_path": "",
       "error": "tauri build failed: [WinError 2] Не удается найти указанный файл",
-      "duration_sec": 0.00451
+      "duration_sec": 0.004513
     },
     {
       "target": "ios",
       "success": false,
       "output_path": "",
       "error": "iOS build requires macOS / Capacitor project",
-      "duration_sec": 0.0
+      "duration_sec": 0.001007
     },
     {
       "target": "web",
       "success": false,
       "output_path": "",
       "error": "npm build failed: [WinError 2] Не удается найти указанный файл",
-      "duration_sec": 0.002
+      "duration_sec": 0.001993
     },
     {
       "target": "desktop",
       "success": false,
       "output_path": "",
       "error": "tauri build failed: [WinError 2] Не удается найти указанный файл",
-      "duration_sec": 0.002
+      "duration_sec": 0.001999
     },
     {
       "target": "embedded",
@@ -179,7 +179,7 @@
     "summary": {
       "component": "main_menu_ui",
       "cycle": "1",
-      "timestamp": "2026-08-14T06:37:17.966139",
+      "timestamp": "2026-08-14T06:38:53.537798",
       "total_targets": 5,
       "successful_builds": 0,
       "successful_tests": 0,
@@ -190,22 +190,22 @@
       "android": {
         "success": false,
         "output": "",
-        "duration": 0.00451
+        "duration": 0.004513
       },
       "ios": {
         "success": false,
         "output": "",
-        "duration": 0.0
+        "duration": 0.001007
       },
       "web": {
         "success": false,
         "output": "",
-        "duration": 0.002
+        "duration": 0.001993
       },
       "desktop": {
         "success": false,
         "output": "",
-        "duration": 0.002
+        "duration": 0.001999
       },
       "embedded": {
         "success": false,

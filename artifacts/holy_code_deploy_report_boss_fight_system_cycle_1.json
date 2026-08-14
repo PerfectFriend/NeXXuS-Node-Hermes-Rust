@@ -1,7 +1,7 @@
 {
   "component": "boss_fight_system",
   "cycle": "1",
-  "timestamp": "2026-08-14T06:37:17.854504",
+  "timestamp": "2026-08-14T06:52:48.265039",
   "targets": [
     "android",
     "ios",
@@ -22,8 +22,8 @@
       "target": "android",
       "success": false,
       "output_path": "",
-      "error": "tauri build failed: [WinError 2] Не удается найти указанный файл",
-      "duration_sec": 0.005
+      "error": "tauri build failed: npm notice run tauri-app@0.1.0 tauri\nnpm notice run tauri build --target aarch64-linux-android\n        Info Looking up installed tauri packages to check mismatched versions...\n     Running beforeBuildCommand `npm run build`\nnpm notice run tauri-app@0.1.0 build\nnpm notice run tsc && vite build\n Downloading crates ...\n  Downloaded android_system_properties v0.1.6\n  Downloaded cesu8 v1.1.0\n  Downloaded endi v1.1.1\n  Downloaded event-listener-strategy v0.5.4\n  Downloaded enumflags2_derive v0.7.12\n  Downloaded async-broadcast v0.7.2\n  Downloaded async-executor v1.14.0\n  Downloaded http-body v1.1.0\n  Downloaded futures-io v0.3.34\n  Downloaded futures-task v0.3.34\n  Downloaded futures-sink v0.3.34\n  Downloaded parking v2.2.1\n  Downloaded sync_wrapper v1.0.2\n  Downloaded atomic-waker v1.1.2\n  Downloaded futures-macro v0.3.34\n  Downloaded is-wsl v0.4.0\n  Downloaded memoffset v0.9.1\n  Downloaded tower-service v0.3.3\n  Downloaded try-lock v0.2.5\n  Downloaded errno v0.3.14\n  Downloaded is-docker v0.2.0\n  Downloaded jni-sys v0.4.1\n  Downloaded jni-sys-macros v0.4.1\n  Downloaded windows-result v0.4.1\n  Downloaded async-recursion v1.1.1\n  Downloaded tower-layer v0.3.3\n  Downloaded want v0.3.1\n  Downloaded proc-macro-crate v3.5.0\n  Downloaded futures-core v0.3.34\n  Downloaded sigchld v0.2.4\n  Downloaded zcheapstr v1.1.0\n  Downloaded jni-sys v0.3.1\n  Downloaded windows-strings v0.5.1\n  Downloaded windows-targets v0.42.2\n  Downloaded enumflags2 v0.7.12\n  Downloaded async-process v2.5.0\n  Downloaded blocking v1.6.2\n  Downloaded async-signal v0.2.14\n  Downloaded ipnet v2.12.1\n  Downloaded num_enum v0.7.6\n  Downloaded num_enum_derive v0.7.6\n  Downloaded ordered-stream v0.2.0\n  Downloaded piper v0.2.5\n  Downloaded rustversion v1.0.23\n  Downloaded signal-hook-registry v1.4.8\n  Downloaded slab v0.4.12\n  Downloaded tao-macros v0.1.4\n  Downloaded zbus_names v4.3.4\n  Downloaded async-channel v2.5.0\n  Downloaded async-io v2.6.0\n  Downloaded async-task v4.7.1\n  Downloaded concurrent-queue v2.5.0\n  Downloaded event-listener v5.4.2\n  Downloaded futures-channel v0.3.34\n  Downloaded async-trait v0.1.92\n  Downloaded zvariant_derive v5.14.0\n  Downloaded zvariant_utils v4.0.0\n  Downloaded async-lock v3.4.2\n  Downloaded futures-lite v2.6.1\n  Downloaded iana-time-zone v0.1.65\n  Downloaded zbus_macros v5.19.0\n  Downloaded polling v3.11.0\n  Downloaded signal-hook v0.3.18\n  Downloaded tempfile v3.27.0\n  Downloaded uds_windows v1.2.1\n  Downloaded windows-core v0.62.2\n  Downloaded httparse v1.10.1\n  Downloaded bytemuck v1.25.2\n  Downloaded toml_edit v0.25.13+spec-1.1.0\n  Downloaded ndk v0.9.0\n  Downloaded tower v0.5.3\n  Downloaded zvariant v5.14.0\n  Downloaded hyper-util v0.1.20\n  Downloaded jni v0.21.1\n  Downloaded tokio-util v0.7.19\n  Downloaded combine v4.6.7\n  Downloaded tower-http v0.6.11\n  Downloaded hyper v1.11.0\n  Downloaded reqwest v0.13.4\n  Downloaded futures-util v0.3.34\n  Downloaded zbus v5.19.0\n  Downloaded ndk-sys v0.6.0+11769913\n  Downloaded rustix v1.1.4\n  Downloaded windows_x86_64_msvc v0.42.2\n  Downloaded windows-sys v0.45.0\n  Downloaded linux-raw-sys v0.12.1\n  Downloaded http-body-util v0.1.5\n   Compiling winnow v1.0.4\n   Compiling serde_core v1.0.229\n   Compiling libc v0.2.189\n   Compiling toml_datetime v1.1.1+spec-1.1.0\n   Compiling serde v1.0.229\n   Compiling smallvec v1.15.2\n   Compiling cfg-if v1.0.4\n   Compiling stable_deref_trait v1.2.1\n   Compiling zerofrom v0.1.8\n   Compiling memchr v2.8.3\n   Compiling itoa v1.0.18\n   Compiling parking_lot_core v0.9.12\n   Compiling scopeguard v1.2.0\n   Compiling writeable v0.6.4\n   Compiling litemap v0.8.3\n   Compiling utf8_iter v1.0.4\n   Compiling siphasher v1.0.3\n   Compiling icu_properties_data v2.3.0\n   Compiling lock_api v0.4.14\n   Compiling icu_normalizer_data v2.3.0\n   Compiling log v0.4.33\n   Compiling yoke v0.8.3\n   Compiling phf_shared v0.13.1\n   Compiling once_cell v1.21.4\n   Compiling percent-encoding v2.3.2\n   Compiling futures-core v0.3.34\n   Compiling pin-project-lite v0.2.17\n   Compiling jni-sys-macros v0.4.1\n   Compiling thiserror v1.0.69\n   Compiling zerovec v0.11.7\n   Compiling zerotrie v0.2.5\n   Compiling zmij v1.0.23\n   Compiling jni-sys v0.3.1\n   Compiling new_debug_unreachable v1.0.6\n   Compiling serde_json v1.0.151\n   Compiling form_urlencoded v1.2.2\n   Compiling precomputed-hash v0.1.1\n   Compiling phf v0.13.1\n   Compiling bitflags v2.13.1\n   Compiling generic-array v0.14.7\n   Compiling powerfmt v0.2.0\n   Compiling time-core v0.1.9\n   Compiling base64 v0.22.1\n   Compiling typenum v1.20.1\n   Compiling num-conv v0.2.2\n   Compiling rustversion v1.0.23\n   Compiling aho-corasick v1.1.5\n   Compiling web_atoms v0.2.6\n   Compiling errno v0.3.14\n   Compiling jni-sys v0.4.1\n   Compiling socket2 v0.6.5\n   Compiling mio v1.2.2\n   Compiling typeid v1.0.3\n   Compiling signal-hook-registry v1.4.8\n   Compiling regex-syntax v0.8.11\n   Compiling unic-char-range v0.9.0\n   Compiling unic-common v0.9.0\n   Compiling parking_lot v0.12.5\n   Compiling tinystr v0.8.4\n   Compiling potential_utf v0.1.6\n   Compiling dtoa v1.0.11\n   Compiling icu_locale_core v2.3.0\n   Compiling icu_collections v2.3.0\n   Compiling string_cache v0.9.0\n   Compiling alloc-no-stdlib v2.0.4\n   Compiling toml_parser v1.1.3+spec-1.1.0\n   Compiling alloc-stdlib v0.2.4\n   Compiling dtoa-short v0.3.5\n   Compiling crossbeam-utils v0.8.22\n   Compiling unic-ucd-version v0.9.0\n   Compiling unic-char-property v0.9.0\n   Compiling tendril v0.5.1\n   Compiling erased-serde v0.4.10\n   Compiling thiserror v2.0.20\n   Compiling byteorder v1.5.0\n   Compiling toml v1.1.4+spec-1.1.0\n   Compiling toml v0.9.12+spec-1.1.0\n   Compiling toml_edit v0.25.13+spec-1.1.0\n   Compiling futures-task v0.3.34\n   Compiling slab v0.4.12\n   Compiling raw-window-handle v0.6.2\n   Compiling equivalent v1.0.2\n   Compiling fnv v1.0.7\n   Compiling hashbrown v0.17.1\n   Compiling httparse v1.10.1\n   Compiling cesu8 v1.1.0\n   Compiling futures-util v0.3.34\n   Compiling crypto-common v0.1.7\n   Compiling block-buffer v0.10.4\n   Compiling icu_provider v2.3.0\n   Compiling markup5ever v0.38.0\n   Compiling proc-macro-crate v3.5.0\n   Compiling tauri-utils v2.9.3\n   Compiling embed-resource v3.0.11\n   Compiling cargo_toml v0.22.3\n   Compiling tauri-winres v0.3.6\n   Compiling icu_normalizer v2.3.0\n   Compiling icu_properties v2.3.0\n   Compiling deranged v0.5.8\n   Compiling num_enum_derive v0.7.6\n   Compiling regex-automata v0.4.18\n   Compiling uuid v1.24.0\n   Compiling indexmap v2.14.0\n   Compiling bytes v1.12.1\n   Compiling cfb v0.7.3\n   Compiling num_enum v0.7.6\n   Compiling idna_adapter v1.2.2\n   Compiling http v1.5.0\n   Compiling tokio v1.53.1\n   Compiling idna v1.1.0\n   Compiling time v0.3.55\n   Compiling combine v4.6.7\n   Compiling jsonptr v0.6.3\n   Compiling dpi v0.1.2\n   Compiling url v2.5.8\n   Compiling http-body v1.1.0\n   Compiling serde_spanned v1.1.1\n   Compiling regex v1.13.1\n   Compiling getrandom v0.3.4\n   Compiling cookie v0.18.2\n   Compiling unic-ucd-ident v0.9.0\n   Compiling cssparser v0.36.0\n   Compiling brotli-decompressor v5.0.3\n   Compiling ndk-sys v0.6.0+11769913\n   Compiling quick-xml v0.41.0\n   Compiling servo_arc v0.4.3\n   Compiling derive_more v2.1.1\n   Compiling selectors v0.36.1\n   Compiling anyhow v1.0.104\n   Compiling try-lock v0.2.5\n   Compiling tower-service v0.3.3\n   Compiling same-file v1.0.6\n   Compiling bit-vec v0.8.0\n   Compiling toml_writer v1.1.2+spec-1.1.0\n   Compiling rustc-hash v2.1.3\n   Compiling walkdir v2.5.0\n   Compiling bit-set v0.8.0\n   Compiling plist v1.10.0\n   Compiling ndk v0.9.0\n   Compiling want v0.3.1\n   Compiling brotli v8.0.4\n   Compiling crossbeam-channel v0.5.16\n   Compiling urlpattern v0.3.0\n   Compiling serde-untagged v0.1.9\n   Compiling jni v0.21.1\n   Compiling json-patch v3.0.1\n   Compiling infer v0.19.0\n   Compiling serde_with v3.22.0\n   Compiling html5ever v0.38.0\n   Compiling digest v0.10.7\n   Compiling tauri-plugin v2.6.3\n   Compiling tauri-build v2.6.3\n   Compiling cpufeatures v0.2.17\n   Compiling tracing-core v0.1.36\n   Compiling futures-channel v0.3.34\n   Compiling sync_wrapper v1.0.2\n   Compiling ctor v0.8.0\n   Compiling tao-macros v0.1.4\n   Compiling atomic-waker v1.1.2\n   Compiling tower-layer v0.3.3\n   Compiling foldhash v0.2.0\n   Compiling dunce v1.0.5\n   Compiling semver v1.0.28\n   Compiling glob v0.3.4\n   Compiling tauri-runtime v2.11.3\n   Compiling tower v0.5.3\n   Compiling dom_query v0.27.0\n   Compiling tracing v0.1.44\n   Compiling wry v0.55.1\n   Compiling hyper v1.11.0\n   Compiling sha2 v0.10.9\n   Compiling option-ext v0.2.0\n   Compiling futures-sink v0.3.34\n   Compiling ipnet v2.12.1\n   Compiling dirs-sys v0.5.0\n   Compiling tokio-util v0.7.19\n   Compiling tauri-runtime-wry v2.11.4\n   Compiling tauri-codegen v2.6.3\n   Compiling hyper-util v0.1.20\n   Compiling tower-http v0.6.11\n   Compiling tao v0.35.3\n   Compiling http-body-util v0.1.5\n   Compiling serialize-to-javascript v0.1.2\n   Compiling dirs v6.0.0\n   Compiling reqwest v0.13.4\n   Compiling mime v0.3.17\n   Compiling heck v0.5.0\n   Compiling zerocopy v0.8.56\n   Compiling signal-hook v0.3.18\n   Compiling is-docker v0.2.0\n   Compiling is-wsl v0.4.0\n   Compiling rand_core v0.9.5\n   Compiling os_pipe v1.2.3\n   Compiling open v5.4.1\n   Compiling sigchld v0.2.4\n   Compiling encoding_rs v0.8.35\n   Compiling shared_child v1.1.1\n   Compiling tauri v2.11.5\n   Compiling tauri-macros v2.6.3\n   Compiling tauri-plugin-fs v2.5.1\n   Compiling ppv-lite86 v0.2.21\n   Compiling tauri-plugin-process v2.3.1\n   Compiling tauri-plugin-dialog v2.7.2\n   Compiling tauri-plugin-notification v2.3.3\n   Compiling tauri-plugin-opener v2.5.4\n   Compiling tauri-plugin-shell v2.3.5\n   Compiling rand_chacha v0.9.0\n   Compiling boss-fight-system v0.1.0 (C:\\LivingCode\\Projects\\LivingCode-boss_fight_system-001\\src-tauri)\n   Compiling rand v0.9.5\nerror: linker `cc` not found\n  |\n  = note: program not found\n\nerror: could not compile `boss-fight-system` (lib) due to 1 previous error\nfailed to build app: failed to build app\n       Error failed to build app: failed to build app\n",
+      "duration_sec": 113.144653
     },
     {
       "target": "ios",
@@ -34,17 +34,17 @@
     },
     {
       "target": "web",
-      "success": false,
-      "output_path": "",
-      "error": "npm build failed: [WinError 2] Не удается найти указанный файл",
-      "duration_sec": 0.001507
+      "success": true,
+      "output_path": "C:\\LivingCode\\artifacts\\build_boss_fight_system_cycle_1_web\\boss_fight_system-web-cycle1.zip",
+      "error": "",
+      "duration_sec": 1.954308
     },
     {
       "target": "desktop",
-      "success": false,
-      "output_path": "",
-      "error": "tauri build failed: [WinError 2] Не удается найти указанный файл",
-      "duration_sec": 0.002006
+      "success": true,
+      "output_path": "C:\\LivingCode\\artifacts\\build_boss_fight_system_cycle_1_desktop\\installers",
+      "error": "",
+      "duration_sec": 87.911061
     },
     {
       "target": "embedded",
@@ -79,8 +79,8 @@
       "passed": 0,
       "failed": 0,
       "coverage": 0.0,
-      "error": "Build failed",
-      "duration_sec": 0
+      "error": "Tests failed (zero bug policy): npm error Missing script: \"test\"\nnpm error\nnpm error To see a list of scripts, run:\nnpm error   npm run\nnpm error A complete log of this run can be found in: C:\\Users\\tomas\\AppData\\Local\\npm-cache\\_logs\\2026-08-14T04_52_47_651Z-debug-0.log\n",
+      "duration_sec": 0.161916
     },
     {
       "target": "desktop",
@@ -88,8 +88,8 @@
       "passed": 0,
       "failed": 0,
       "coverage": 0.0,
-      "error": "Build failed",
-      "duration_sec": 0
+      "error": "Tests failed (zero bug policy): npm error Missing script: \"test\"\nnpm error\nnpm error To see a list of scripts, run:\nnpm error   npm run\nnpm error A complete log of this run can be found in: C:\\Users\\tomas\\AppData\\Local\\npm-cache\\_logs\\2026-08-14T04_52_47_803Z-debug-0.log\n",
+      "duration_sec": 0.15005
     },
     {
       "target": "embedded",
@@ -139,16 +139,16 @@
       "target": "web",
       "success": false,
       "url": "",
-      "error": "No build output",
-      "duration_sec": 0.0
+      "error": null,
+      "duration_sec": 0.192099
     },
     {
       "store": "github",
       "target": "desktop",
       "success": false,
       "url": "",
-      "error": "No build output",
-      "duration_sec": 0.0
+      "error": null,
+      "duration_sec": 0.188176
     },
     {
       "store": "github",
@@ -171,17 +171,17 @@
       "target": "desktop",
       "success": false,
       "url": "",
-      "error": "No build output",
-      "duration_sec": 0.0
+      "error": "steamcmd not available",
+      "duration_sec": 0.021764
     }
   ],
   "telemetry": {
     "summary": {
       "component": "boss_fight_system",
       "cycle": "1",
-      "timestamp": "2026-08-14T06:37:17.854504",
+      "timestamp": "2026-08-14T06:52:48.265039",
       "total_targets": 5,
-      "successful_builds": 0,
+      "successful_builds": 2,
       "successful_tests": 0,
       "successful_deploys": 0,
       "overall_success": false
@@ -190,7 +190,7 @@
       "android": {
         "success": false,
         "output": "",
-        "duration": 0.005
+        "duration": 113.144653
       },
       "ios": {
         "success": false,
@@ -198,14 +198,14 @@
         "duration": 0.0
       },
       "web": {
-        "success": false,
-        "output": "",
-        "duration": 0.001507
+        "success": true,
+        "output": "C:\\LivingCode\\artifacts\\build_boss_fight_system_cycle_1_web\\boss_fight_system-web-cycle1.zip",
+        "duration": 1.954308
       },
       "desktop": {
-        "success": false,
-        "output": "",
-        "duration": 0.002006
+        "success": true,
+        "output": "C:\\LivingCode\\artifacts\\build_boss_fight_system_cycle_1_desktop\\installers",
+        "duration": 87.911061
       },
       "embedded": {
         "success": false,
@@ -233,14 +233,14 @@
         "passed": 0,
         "failed": 0,
         "coverage": 0.0,
-        "duration": 0
+        "duration": 0.161916
       },
       "desktop": {
         "success": false,
         "passed": 0,
         "failed": 0,
         "coverage": 0.0,
-        "duration": 0
+        "duration": 0.15005
       },
       "embedded": {
         "success": false,
@@ -274,12 +274,12 @@
       "github_web": {
         "success": false,
         "url": "",
-        "duration": 0.0
+        "duration": 0.192099
       },
       "github_desktop": {
         "success": false,
         "url": "",
-        "duration": 0.0
+        "duration": 0.188176
       },
       "github_embedded": {
         "success": false,
@@ -294,7 +294,7 @@
       "steam_desktop": {
         "success": false,
         "url": "",
-        "duration": 0.0
+        "duration": 0.021764
       }
     }
   },
