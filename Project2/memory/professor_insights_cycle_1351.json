@@ -1,7 +1,7 @@
 {
   "cycle": 1351,
   "project": 2,
-  "synced_at": "2026-08-14T05:26:59.023999+00:00",
+  "synced_at": "2026-08-14T05:29:03.351781+00:00",
   "insights": [
     {
       "topic": "Unknown",
@@ -17,7 +17,7 @@
         4
       ],
       "tags": [],
-      "timestamp": "2026-08-14T05:26:57.729050+00:00"
+      "timestamp": "2026-08-14T05:29:02.994612+00:00"
     },
     {
       "topic": "Unknown",
@@ -33,7 +33,7 @@
         4
       ],
       "tags": [],
-      "timestamp": "2026-08-14T05:26:57.730050+00:00"
+      "timestamp": "2026-08-14T05:29:02.994612+00:00"
     },
     {
       "topic": "Unknown",
@@ -49,7 +49,7 @@
         4
       ],
       "tags": [],
-      "timestamp": "2026-08-14T05:26:57.738566+00:00"
+      "timestamp": "2026-08-14T05:29:02.994612+00:00"
     },
     {
       "topic": "Graph Engineering Fundamentals",
@@ -68,7 +68,7 @@
         "learned",
         "textbook"
       ],
-      "timestamp": "2026-08-14T05:26:57.738566+00:00"
+      "timestamp": "2026-08-14T05:29:02.995618+00:00"
     },
     {
       "topic": "Autonomous Graph Evolution Protocols",
@@ -87,7 +87,7 @@
         "learned",
         "textbook"
       ],
-      "timestamp": "2026-08-14T05:26:57.738566+00:00"
+      "timestamp": "2026-08-14T05:29:02.995618+00:00"
     },
     {
       "topic": "Graph Evaluation vs Prompt Testing",
@@ -106,7 +106,7 @@
         "learned",
         "textbook"
       ],
-      "timestamp": "2026-08-14T05:26:57.738566+00:00"
+      "timestamp": "2026-08-14T05:29:02.995618+00:00"
     },
     {
       "topic": "Loop vs Graph vs Harness Engineering",
@@ -125,7 +125,7 @@
         "learned",
         "textbook"
       ],
-      "timestamp": "2026-08-14T05:26:57.738566+00:00"
+      "timestamp": "2026-08-14T05:29:02.995618+00:00"
     },
     {
       "topic": "Dataview Mastery",
@@ -144,7 +144,7 @@
         "learned",
         "textbook"
       ],
-      "timestamp": "2026-08-14T05:26:57.738566+00:00"
+      "timestamp": "2026-08-14T05:29:02.995618+00:00"
     },
     {
       "topic": "Graph View Configuration",
@@ -163,7 +163,7 @@
         "learned",
         "textbook"
       ],
-      "timestamp": "2026-08-14T05:26:57.738566+00:00"
+      "timestamp": "2026-08-14T05:29:02.995618+00:00"
     },
     {
       "topic": "Canvas & Visual Thinking",
@@ -182,7 +182,7 @@
         "learned",
         "textbook"
       ],
-      "timestamp": "2026-08-14T05:26:57.738566+00:00"
+      "timestamp": "2026-08-14T05:29:02.995618+00:00"
     },
     {
       "topic": "Plugin Development",
@@ -201,7 +201,7 @@
         "learned",
         "textbook"
       ],
-      "timestamp": "2026-08-14T05:26:57.738566+00:00"
+      "timestamp": "2026-08-14T05:29:02.995618+00:00"
     },
     {
       "topic": "Vault-LD & Semantic Web",
@@ -220,7 +220,7 @@
         "learned",
         "textbook"
       ],
-      "timestamp": "2026-08-14T05:26:57.738566+00:00"
+      "timestamp": "2026-08-14T05:29:02.995618+00:00"
     },
     {
       "topic": "MCP Server Patterns",
@@ -239,7 +239,7 @@
         "learned",
         "textbook"
       ],
-      "timestamp": "2026-08-14T05:26:57.738566+00:00"
+      "timestamp": "2026-08-14T05:29:02.995618+00:00"
     },
     {
       "topic": "Graphthulhu / Engraph Deep Dive",
@@ -258,7 +258,7 @@
         "learned",
         "textbook"
       ],
-      "timestamp": "2026-08-14T05:26:57.738566+00:00"
+      "timestamp": "2026-08-14T05:29:02.995618+00:00"
     },
     {
       "topic": "Agent Memory Architectures",
@@ -277,7 +277,7 @@
         "learned",
         "textbook"
       ],
-      "timestamp": "2026-08-14T05:26:57.738566+00:00"
+      "timestamp": "2026-08-14T05:29:02.995618+00:00"
     },
     {
       "topic": "Multi-Agent Orchestration",
@@ -296,7 +296,7 @@
         "learned",
         "textbook"
       ],
-      "timestamp": "2026-08-14T05:26:57.738566+00:00"
+      "timestamp": "2026-08-14T05:29:02.995618+00:00"
     },
     {
       "topic": "ROCm Setup for 780M",
@@ -315,7 +315,7 @@
         "learned",
         "textbook"
       ],
-      "timestamp": "2026-08-14T05:26:57.738566+00:00"
+      "timestamp": "2026-08-14T05:29:02.995618+00:00"
     },
     {
       "topic": "DirectML Optimization",
@@ -334,7 +334,7 @@
         "learned",
         "textbook"
       ],
-      "timestamp": "2026-08-14T05:26:57.738566+00:00"
+      "timestamp": "2026-08-14T05:29:02.995618+00:00"
     },
     {
       "topic": "ACE-Step on GPU",
@@ -353,7 +353,7 @@
         "learned",
         "textbook"
       ],
-      "timestamp": "2026-08-14T05:26:57.738566+00:00"
+      "timestamp": "2026-08-14T05:29:02.995618+00:00"
     },
     {
       "topic": "Qwen3-TTS DirectML",
@@ -372,7 +372,7 @@
         "learned",
         "textbook"
       ],
-      "timestamp": "2026-08-14T05:26:57.738566+00:00"
+      "timestamp": "2026-08-14T05:29:02.995618+00:00"
     },
     {
       "topic": "PyTorch DirectML Tuning",
@@ -391,7 +391,7 @@
         "learned",
         "textbook"
       ],
-      "timestamp": "2026-08-14T05:26:57.738566+00:00"
+      "timestamp": "2026-08-14T05:29:02.995618+00:00"
     },
     {
       "topic": "YOLO11n Optimization",
@@ -410,7 +410,7 @@
         "learned",
         "textbook"
       ],
-      "timestamp": "2026-08-14T05:26:57.738566+00:00"
+      "timestamp": "2026-08-14T05:29:02.995618+00:00"
     },
     {
       "topic": "RTSP Stream Handling",
@@ -429,7 +429,7 @@
         "learned",
         "textbook"
       ],
-      "timestamp": "2026-08-14T05:26:57.738566+00:00"
+      "timestamp": "2026-08-14T05:29:02.995618+00:00"
     },
     {
       "topic": "Telegram Bot Architecture",
@@ -448,7 +448,7 @@
         "learned",
         "textbook"
       ],
-      "timestamp": "2026-08-14T05:26:57.738566+00:00"
+      "timestamp": "2026-08-14T05:29:02.995618+00:00"
     },
     {
       "topic": "Static DHCP Leases for SuperGuard Devices",
@@ -467,7 +467,7 @@
         "learned",
         "textbook"
       ],
-      "timestamp": "2026-08-14T05:26:57.738566+00:00"
+      "timestamp": "2026-08-14T05:29:02.995618+00:00"
     },
     {
       "topic": "Go Service Architecture",
@@ -486,7 +486,7 @@
         "learned",
         "textbook"
       ],
-      "timestamp": "2026-08-14T05:26:57.738566+00:00"
+      "timestamp": "2026-08-14T05:29:02.995618+00:00"
     },
     {
       "topic": "v2ray/Tor/SimpleX Networking",
@@ -505,7 +505,7 @@
         "learned",
         "textbook"
       ],
-      "timestamp": "2026-08-14T05:26:57.738566+00:00"
+      "timestamp": "2026-08-14T05:29:02.995618+00:00"
     },
     {
       "topic": "BIP39 Auth & Invite Systems",
@@ -524,7 +524,7 @@
         "learned",
         "textbook"
       ],
-      "timestamp": "2026-08-14T05:26:57.738566+00:00"
+      "timestamp": "2026-08-14T05:29:02.995618+00:00"
     },
     {
       "topic": "License Server Design",
@@ -543,7 +543,7 @@
         "learned",
         "textbook"
       ],
-      "timestamp": "2026-08-14T05:26:57.738566+00:00"
+      "timestamp": "2026-08-14T05:29:02.995618+00:00"
     },
     {
       "topic": "MSYS Path Pitfalls",
@@ -562,7 +562,7 @@
         "learned",
         "textbook"
       ],
-      "timestamp": "2026-08-14T05:26:57.738566+00:00"
+      "timestamp": "2026-08-14T05:29:02.995618+00:00"
     },
     {
       "topic": "Windows Service Deployment",
@@ -581,7 +581,7 @@
         "learned",
         "textbook"
       ],
-      "timestamp": "2026-08-14T05:26:57.738566+00:00"
+      "timestamp": "2026-08-14T05:29:02.995618+00:00"
     },
     {
       "topic": "Git/Bash/PowerShell Interop",
@@ -600,7 +600,7 @@
         "learned",
         "textbook"
       ],
-      "timestamp": "2026-08-14T05:26:57.738566+00:00"
+      "timestamp": "2026-08-14T05:29:02.995618+00:00"
     },
     {
       "topic": "The Art of Computer Programming, Vol. 1: Fundamental Algorithms",
@@ -619,7 +619,7 @@
         "learned",
         "textbook"
       ],
-      "timestamp": "2026-08-14T05:26:57.738566+00:00"
+      "timestamp": "2026-08-14T05:29:02.995618+00:00"
     },
     {
       "topic": "The Art of Computer Programming, Vol. 2: Seminumerical Algorithms",
@@ -638,7 +638,7 @@
         "learned",
         "textbook"
       ],
-      "timestamp": "2026-08-14T05:26:57.738566+00:00"
+      "timestamp": "2026-08-14T05:29:02.995618+00:00"
     },
     {
       "topic": "The Art of Computer Programming, Vol. 3: Sorting and Searching",
@@ -657,7 +657,7 @@
         "learned",
         "textbook"
       ],
-      "timestamp": "2026-08-14T05:26:57.738566+00:00"
+      "timestamp": "2026-08-14T05:29:02.995618+00:00"
     },
     {
       "topic": "The Art of Computer Programming, Vol. 4A: Combinatorial Algorithms",
@@ -676,7 +676,7 @@
         "learned",
         "textbook"
       ],
-      "timestamp": "2026-08-14T05:26:57.738566+00:00"
+      "timestamp": "2026-08-14T05:29:02.995618+00:00"
     },
     {
       "topic": "The Art of Computer Programming, Vol. 4B: Combinatorial Algorithms",
@@ -695,7 +695,7 @@
         "learned",
         "textbook"
       ],
-      "timestamp": "2026-08-14T05:26:57.738566+00:00"
+      "timestamp": "2026-08-14T05:29:02.995618+00:00"
     },
     {
       "topic": "Concrete Mathematics (Graham, Knuth, Patashnik)",
@@ -714,7 +714,7 @@
         "learned",
         "textbook"
       ],
-      "timestamp": "2026-08-14T05:26:57.739566+00:00"
+      "timestamp": "2026-08-14T05:29:02.995618+00:00"
     },
     {
       "topic": "Introduction to Algorithms (CLRS)",
@@ -733,7 +733,7 @@
         "learned",
         "textbook"
       ],
-      "timestamp": "2026-08-14T05:26:57.739566+00:00"
+      "timestamp": "2026-08-14T05:29:02.995618+00:00"
     },
     {
       "topic": "Structure and Interpretation of Computer Programs (SICP)",
@@ -752,7 +752,7 @@
         "learned",
         "textbook"
       ],
-      "timestamp": "2026-08-14T05:26:57.739566+00:00"
+      "timestamp": "2026-08-14T05:29:02.995618+00:00"
     },
     {
       "topic": "Design Patterns (Gang of Four)",
@@ -771,7 +771,7 @@
         "learned",
         "textbook"
       ],
-      "timestamp": "2026-08-14T05:26:57.739566+00:00"
+      "timestamp": "2026-08-14T05:29:02.995618+00:00"
     },
     {
       "topic": "The Mythical Man-Month (Brooks)",
@@ -790,7 +790,7 @@
         "learned",
         "textbook"
       ],
-      "timestamp": "2026-08-14T05:26:57.739566+00:00"
+      "timestamp": "2026-08-14T05:29:02.995618+00:00"
     },
     {
       "topic": "Skill System Deep Dive",
@@ -809,7 +809,7 @@
         "learned",
         "textbook"
       ],
-      "timestamp": "2026-08-14T05:26:57.739566+00:00"
+      "timestamp": "2026-08-14T05:29:02.995618+00:00"
     },
     {
       "topic": "Cron Job Patterns",
@@ -828,7 +828,7 @@
         "learned",
         "textbook"
       ],
-      "timestamp": "2026-08-14T05:26:57.739566+00:00"
+      "timestamp": "2026-08-14T05:29:02.995618+00:00"
     },
     {
       "topic": "Gateway & Multi-Bot",
@@ -847,7 +847,7 @@
         "learned",
         "textbook"
       ],
-      "timestamp": "2026-08-14T05:26:57.739566+00:00"
+      "timestamp": "2026-08-14T05:29:02.995618+00:00"
     },
     {
       "topic": "sindresorhus/awesome",
@@ -866,7 +866,7 @@
         "learned",
         "textbook"
       ],
-      "timestamp": "2026-08-14T05:26:57.739566+00:00"
+      "timestamp": "2026-08-14T05:29:02.995618+00:00"
     },
     {
       "topic": "vinta/awesome-python",
@@ -885,7 +885,7 @@
         "learned",
         "textbook"
       ],
-      "timestamp": "2026-08-14T05:26:57.739566+00:00"
+      "timestamp": "2026-08-14T05:29:02.995618+00:00"
     },
     {
       "topic": "awesome-selfhosted/awesome-selfhosted",
@@ -904,7 +904,7 @@
         "learned",
         "textbook"
       ],
-      "timestamp": "2026-08-14T05:26:57.739566+00:00"
+      "timestamp": "2026-08-14T05:29:02.995618+00:00"
     },
     {
       "topic": "avelino/awesome-go",
@@ -923,7 +923,7 @@
         "learned",
         "textbook"
       ],
-      "timestamp": "2026-08-14T05:26:57.739566+00:00"
+      "timestamp": "2026-08-14T05:29:02.995618+00:00"
     },
     {
       "topic": "Shubhamsaboo/awesome-llm-apps",
@@ -942,7 +942,7 @@
         "learned",
         "textbook"
       ],
-      "timestamp": "2026-08-14T05:26:57.739566+00:00"
+      "timestamp": "2026-08-14T05:29:02.995618+00:00"
     },
     {
       "topic": "Hack-with-Github/Awesome-Hacking",
@@ -961,7 +961,7 @@
         "learned",
         "textbook"
       ],
-      "timestamp": "2026-08-14T05:26:57.739566+00:00"
+      "timestamp": "2026-08-14T05:29:02.995618+00:00"
     },
     {
       "topic": "jaywcjlove/awesome-mac",
@@ -980,7 +980,7 @@
         "learned",
         "textbook"
       ],
-      "timestamp": "2026-08-14T05:26:57.739566+00:00"
+      "timestamp": "2026-08-14T05:29:02.995618+00:00"
     },
     {
       "topic": "VoltAgent/awesome-design-md",
@@ -999,7 +999,7 @@
         "learned",
         "textbook"
       ],
-      "timestamp": "2026-08-14T05:26:57.739566+00:00"
+      "timestamp": "2026-08-14T05:29:02.995618+00:00"
     },
     {
       "topic": "punkpeye/awesome-mcp-servers",
@@ -1018,7 +1018,7 @@
         "learned",
         "textbook"
       ],
-      "timestamp": "2026-08-14T05:26:57.739566+00:00"
+      "timestamp": "2026-08-14T05:29:02.995618+00:00"
     },
     {
       "topic": "awesomedata/awesome-public-datasets",
@@ -1037,7 +1037,7 @@
         "learned",
         "textbook"
       ],
-      "timestamp": "2026-08-14T05:26:57.739566+00:00"
+      "timestamp": "2026-08-14T05:29:02.995618+00:00"
     },
     {
       "topic": "FortAwesome/Font-Awesome",
@@ -1056,7 +1056,7 @@
         "learned",
         "textbook"
       ],
-      "timestamp": "2026-08-14T05:26:57.739566+00:00"
+      "timestamp": "2026-08-14T05:29:02.995618+00:00"
     },
     {
       "topic": "enaqx/awesome-react",
@@ -1075,7 +1075,7 @@
         "learned",
         "textbook"
       ],
-      "timestamp": "2026-08-14T05:26:57.739566+00:00"
+      "timestamp": "2026-08-14T05:29:02.995618+00:00"
     },
     {
       "topic": "josephmisiti/awesome-machine-learning",
@@ -1094,7 +1094,7 @@
         "learned",
         "textbook"
       ],
-      "timestamp": "2026-08-14T05:26:57.739566+00:00"
+      "timestamp": "2026-08-14T05:29:02.995618+00:00"
     },
     {
       "topic": "vuejs/awesome-vue",
@@ -1113,7 +1113,7 @@
         "learned",
         "textbook"
       ],
-      "timestamp": "2026-08-14T05:26:57.739566+00:00"
+      "timestamp": "2026-08-14T05:29:02.995618+00:00"
     },
     {
       "topic": "binhnguyennus/awesome-scalability",
@@ -1132,7 +1132,7 @@
         "learned",
         "textbook"
       ],
-      "timestamp": "2026-08-14T05:26:57.739566+00:00"
+      "timestamp": "2026-08-14T05:29:02.995618+00:00"
     },
     {
       "topic": "fffaraz/awesome-cpp",
@@ -1151,7 +1151,7 @@
         "learned",
         "textbook"
       ],
-      "timestamp": "2026-08-14T05:26:57.739566+00:00"
+      "timestamp": "2026-08-14T05:29:02.995618+00:00"
     },
     {
       "topic": "prakhar1989/awesome-courses",
@@ -1170,7 +1170,7 @@
         "learned",
         "textbook"
       ],
-      "timestamp": "2026-08-14T05:26:57.739566+00:00"
+      "timestamp": "2026-08-14T05:29:02.995618+00:00"
     },
     {
       "topic": "Solido/awesome-flutter",
@@ -1189,7 +1189,7 @@
         "learned",
         "textbook"
       ],
-      "timestamp": "2026-08-14T05:26:57.739566+00:00"
+      "timestamp": "2026-08-14T05:29:02.995618+00:00"
     },
     {
       "topic": "xingshaocheng/architect-awesome",
@@ -1208,7 +1208,7 @@
         "learned",
         "textbook"
       ],
-      "timestamp": "2026-08-14T05:26:57.739566+00:00"
+      "timestamp": "2026-08-14T05:29:02.995618+00:00"
     },
     {
       "topic": "rust-unofficial/awesome-rust",
@@ -1227,7 +1227,7 @@
         "learned",
         "textbook"
       ],
-      "timestamp": "2026-08-14T05:26:57.739566+00:00"
+      "timestamp": "2026-08-14T05:29:02.995618+00:00"
     },
     {
       "topic": "wasabeef/awesome-android-ui",
@@ -1246,7 +1246,7 @@
         "learned",
         "textbook"
       ],
-      "timestamp": "2026-08-14T05:26:57.739566+00:00"
+      "timestamp": "2026-08-14T05:29:02.995618+00:00"
     },
     {
       "topic": "akullpp/awesome-java",
@@ -1265,7 +1265,7 @@
         "learned",
         "textbook"
       ],
-      "timestamp": "2026-08-14T05:26:57.739566+00:00"
+      "timestamp": "2026-08-14T05:29:02.995618+00:00"
     },
     {
       "topic": "docker/awesome-compose",
@@ -1284,7 +1284,7 @@
         "learned",
         "textbook"
       ],
-      "timestamp": "2026-08-14T05:26:57.739566+00:00"
+      "timestamp": "2026-08-14T05:29:02.995618+00:00"
     },
     {
       "topic": "deepseek-ai/awesome-deepseek-integration",
@@ -1303,7 +1303,7 @@
         "learned",
         "textbook"
       ],
-      "timestamp": "2026-08-14T05:26:57.739566+00:00"
+      "timestamp": "2026-08-14T05:29:02.995618+00:00"
     },
     {
       "topic": "bayardin/awesome-awesomeness",
@@ -1322,7 +1322,7 @@
         "learned",
         "textbook"
       ],
-      "timestamp": "2026-08-14T05:26:57.739566+00:00"
+      "timestamp": "2026-08-14T05:29:02.995618+00:00"
     },
     {
       "topic": "enaqx/awesome-pentest",
@@ -1341,7 +1341,7 @@
         "learned",
         "textbook"
       ],
-      "timestamp": "2026-08-14T05:26:57.739566+00:00"
+      "timestamp": "2026-08-14T05:29:02.995618+00:00"
     },
     {
       "topic": "awesomeWM/awesome",
@@ -1360,7 +1360,7 @@
         "learned",
         "textbook"
       ],
-      "timestamp": "2026-08-14T05:26:57.739566+00:00"
+      "timestamp": "2026-08-14T05:29:02.995618+00:00"
     },
     {
       "topic": "nuxt/awesome",
@@ -1379,7 +1379,7 @@
         "learned",
         "textbook"
       ],
-      "timestamp": "2026-08-14T05:26:57.739566+00:00"
+      "timestamp": "2026-08-14T05:29:02.995618+00:00"
     },
     {
       "topic": "chartjs/awesome",
@@ -1398,7 +1398,7 @@
         "learned",
         "textbook"
       ],
-      "timestamp": "2026-08-14T05:26:57.739566+00:00"
+      "timestamp": "2026-08-14T05:29:02.995618+00:00"
     },
     {
       "topic": "vuetifyjs/awesome",
@@ -1417,7 +1417,7 @@
         "learned",
         "textbook"
       ],
-      "timestamp": "2026-08-14T05:26:57.739566+00:00"
+      "timestamp": "2026-08-14T05:29:02.995618+00:00"
     },
     {
       "topic": "Profile & Config Management",
@@ -1436,7 +1436,7 @@
         "learned",
         "textbook"
       ],
-      "timestamp": "2026-08-14T05:26:57.739566+00:00"
+      "timestamp": "2026-08-14T05:29:02.995618+00:00"
     },
     {
       "topic": "pen.dev — Design in IDE, Land in Code",
@@ -1455,7 +1455,7 @@
         "learned",
         "textbook"
       ],
-      "timestamp": "2026-08-14T05:26:57.739566+00:00"
+      "timestamp": "2026-08-14T05:29:02.995618+00:00"
     },
     {
       "topic": "Penpot — Open-Source Design Platform",
@@ -1474,7 +1474,7 @@
         "learned",
         "textbook"
       ],
-      "timestamp": "2026-08-14T05:26:57.739566+00:00"
+      "timestamp": "2026-08-14T05:29:02.995618+00:00"
     },
     {
       "topic": "Design Systems as Code (lib.pen / Penpot components)",
@@ -1493,7 +1493,7 @@
         "learned",
         "textbook"
       ],
-      "timestamp": "2026-08-14T05:26:57.739566+00:00"
+      "timestamp": "2026-08-14T05:29:02.995618+00:00"
     },
     {
       "topic": "AI-Assisted Design-to-Code Workflows",
@@ -1512,7 +1512,7 @@
         "learned",
         "textbook"
       ],
-      "timestamp": "2026-08-14T05:26:57.739566+00:00"
+      "timestamp": "2026-08-14T05:29:02.995618+00:00"
     },
     {
       "topic": "Claude + Obsidian Second Brain Architectures (10 Repos)",
@@ -1531,7 +1531,7 @@
         "learned",
         "textbook"
       ],
-      "timestamp": "2026-08-14T05:26:57.739566+00:00"
+      "timestamp": "2026-08-14T05:29:02.995618+00:00"
     },
     {
       "topic": "Karpathy LLM Wiki Pattern Implementation",
@@ -1550,7 +1550,7 @@
         "learned",
         "textbook"
       ],
-      "timestamp": "2026-08-14T05:26:57.739566+00:00"
+      "timestamp": "2026-08-14T05:29:02.995618+00:00"
     },
     {
       "topic": "Skills Architecture for Obsidian",
@@ -1569,7 +1569,7 @@
         "learned",
         "textbook"
       ],
-      "timestamp": "2026-08-14T05:26:57.739566+00:00"
+      "timestamp": "2026-08-14T05:29:02.995618+00:00"
     },
     {
       "topic": "MCP Bridge for Live Vault Access",
@@ -1588,7 +1588,7 @@
         "learned",
         "textbook"
       ],
-      "timestamp": "2026-08-14T05:26:57.739566+00:00"
+      "timestamp": "2026-08-14T05:29:02.995618+00:00"
     },
     {
       "topic": "Scheduled Vault Maintenance Agents",
@@ -1607,7 +1607,7 @@
         "learned",
         "textbook"
       ],
-      "timestamp": "2026-08-14T05:26:57.739566+00:00"
+      "timestamp": "2026-08-14T05:29:02.995618+00:00"
     },
     {
       "topic": "X: 2087188706201338092",
@@ -1626,7 +1626,7 @@
         "learned",
         "textbook"
       ],
-      "timestamp": "2026-08-14T05:26:57.739566+00:00"
+      "timestamp": "2026-08-14T05:29:02.995618+00:00"
     },
     {
       "topic": "X: 2087066798608752671",
@@ -1645,7 +1645,7 @@
         "learned",
         "textbook"
       ],
-      "timestamp": "2026-08-14T05:26:57.739566+00:00"
+      "timestamp": "2026-08-14T05:29:02.995618+00:00"
     },
     {
       "topic": "X: 2087163793558126997",
@@ -1664,7 +1664,7 @@
         "learned",
         "textbook"
       ],
-      "timestamp": "2026-08-14T05:26:57.739566+00:00"
+      "timestamp": "2026-08-14T05:29:02.995618+00:00"
     }
   ],
   "total_insights": 88
