@@ -40,7 +40,7 @@ class RoutingDecision:
     fallback_chain: List[str]
     timestamp: str
 
-# === NODE REGISTRY (6 узлов Tailscale) ===
+# === NODE REGISTRY (6 узлов Tailscale) ==="
 NODES = [
     ModelNode(
         node_id="lenovo",
@@ -79,10 +79,10 @@ NODES = [
         node_id="unsloth-studio",
         name="Unsloth Studio (Fine-tuning Farm)",
         tailscale_host="unsloth-studio",
-        models=["unsloth-qwen2.5", "unsloth-llama3", "unsloth-mistral", "unsloth-phi3"],
-        primary_model="unsloth-qwen2.5",
-        fallback_models=["unsloth-llama3", "unsloth-mistral"],
-        role="fine-tuning,quantization,benchmark",
+        models=["nemotron-3-ultra-550b-A55b", "unsloth-qwen2.5", "unsloth-llama3", "unsloth-mistral", "unsloth-phi3"],
+        primary_model="nemotron-3-ultra-550b-A55b",
+        fallback_models=["unsloth-qwen2.5", "unsloth-llama3", "unsloth-mistral", "unsloth-phi3"],
+        role="fine-tuning,quantization,benchmark,architect,coder,reasoner",
         gpu="4x H100",
         vram_gb=320
     ),
@@ -90,10 +90,10 @@ NODES = [
         node_id="ubuntu-server",
         name="Ubuntu Server (Inference Cluster)",
         tailscale_host="ubuntu-server",
-        models=["vllm", "sglang", "gpustack", "tgi", "ollama"],
-        primary_model="vllm",
-        fallback_models=["sglang", "gpustack"],
-        role="inference-serving,batch-processing,cluster",
+        models=["nemotron-3-ultra-550b-A55b", "vllm", "sglang", "gpustack", "tgi", "ollama"],
+        primary_model="nemotron-3-ultra-550b-A55b",
+        fallback_models=["vllm", "sglang", "gpustack", "tgi", "ollama"],
+        role="inference-serving,batch-processing,cluster,architect,coder,reasoner",
         gpu="8x H100",
         vram_gb=640
     ),
@@ -110,7 +110,7 @@ NODES = [
     ),
 ]
 
-# === TASK TO ROLE MAPPING ===
+# === TASK TO ROLE MAPPING ==="
 TASK_ROLE_MAP = {
     "architecture": "architect",
     "refactor": "architect",
@@ -212,18 +212,18 @@ class ModelRegistry:
     def health_check_all(self) -> Dict:
         """Health check all 6 nodes"""
         print(f"\n{'='*60}")
-        print(f"🤖 MODEL REGISTRY — Health Check All Nodes")
+        print(f"���🤖 MODEL REGISTRY — Health Check All Nodes")
         print(f"{'='*60}")
         
         results = []
         healthy_count = 0
         
         for node in NODES:
-            print(f"\n  🔍 Checking {node.name} ({node.tailscale_host})...")
+            print(f"\n  �� 🔍 Checking {node.name} ({node.tailscale_host})...")
             health = self.check_node_health(node)
             results.append(health)
             
-            icon = {"healthy": "✅", "degraded": "⚠️", "unhealthy": "❌"}.get(health["status"], "❓")
+            icon = {"healthy": "��✅", "degraded": "��⚠��️", "unhealthy": "����❌"}.get(health["status"], "������❓")
             print(f"     {icon} Status: {health['status']} | Latency: {health['latency_ms']}ms | Model: {health['primary_model']}")
             
             if health["status"] == "healthy":
@@ -239,7 +239,7 @@ class ModelRegistry:
         }
         
         print(f"\n{'='*60}")
-        print(f"📊 SUMMARY: {healthy_count}/{len(NODES)} healthy")
+        print(f"���������📊 SUMMARY: {healthy_count}/{len(NODES)} healthy")
         print(f"{'='*60}")
         
         return summary
@@ -247,7 +247,7 @@ class ModelRegistry:
     def test_fallback_chains(self) -> Dict:
         """Test that fallback chains work"""
         print(f"\n{'='*60}")
-        print(f"🔄 TESTING FALLBACK CHAINS")
+        print(f"���������🔄 TESTING FALLBACK CHAINS")
         print(f"{'='*60}")
         
         results = []
@@ -256,17 +256,17 @@ class ModelRegistry:
             if node.tailscale_host == "localhost":
                 continue
             
-            print(f"\n  🔗 Testing fallback chain for {node.name}...")
+            print(f"\n  ���� �� �� 🔗 Testing fallback chain for {node.name}...")
             chain_ok = True
             
             # Test primary
             primary_ok = self._test_model_on_node(node, node.primary_model)
-            print(f"     Primary ({node.primary_model}): {'✅' if primary_ok else '❌'}")
+            print(f"     Primary ({node.primary_model}): {'������✅' if primary_ok else '������❌'}")
             
             # Test fallbacks
             for fallback in node.fallback_models:
                 fallback_ok = self._test_model_on_node(node, fallback)
-                print(f"     Fallback ({fallback}): {'✅' if fallback_ok else '❌'}")
+                print(f"     Fallback ({fallback}): {'������✅' if fallback_ok else '������❌'}")
                 if not fallback_ok:
                     chain_ok = False
             
@@ -288,7 +288,7 @@ class ModelRegistry:
     def warm_cache(self, top_prompts: int = 10) -> Dict:
         """Warm up cache with common prompts"""
         print(f"\n{'='*60}")
-        print(f"🔥 WARMING CACHE with top {top_prompts} prompts")
+        print(f"���������🔥 WARMING CACHE with top {top_prompts} prompts")
         print(f"{'='*60}")
         
         common_prompts = [
@@ -312,7 +312,7 @@ class ModelRegistry:
                 warmed += 1
         
         self._save_cache()
-        print(f"  ✅ Warmed {warmed} cache entries")
+        print(f"  ��� � � ✅ Warmed {warmed} cache entries")
         return {"warmed": warmed, "cache_size": len(self.cache)}
     
     def route_task(self, task: str, project: int = 1, use_cache: bool = True) -> Optional[RoutingDecision]:
@@ -321,7 +321,7 @@ class ModelRegistry:
         cache_key = f"prompt:{hash(task)}"
         if use_cache and cache_key in self.cache:
             cached = self.cache[cache_key]
-            print(f"  📦 Cache hit for: {task[:50]}...")
+            print(f"  ���� �� �� 📦 Cache hit for: {task[:50]}...")
             return RoutingDecision(**cached)
         
         # Determine required role
@@ -342,28 +342,67 @@ class ModelRegistry:
         if not suitable_nodes:
             suitable_nodes = NODES
         
-        # Select node (prefer healthy, then by VRAM for heavy tasks)
-        selected_node = suitable_nodes[0]
+        # PREFER NEMOTRON 3 ULTRA 550b A55b FOR ALL TASKS
+        # First, try to find a healthy node that has the nemotron-3-ultra-550b-A55b model
+        target_model = "nemotron-3-ultra-550b-A55b"
+        selected_node = None
         for node in suitable_nodes:
             # Check cache for node health
             health_key = f"health:{node.node_id}"
             if health_key in self.cache:
-                if self.cache[health_key].get("status") == "healthy":
+                health_info = self.cache[health_key]
+                if health_info.get("status") == "healthy" and target_model in node.models:
                     selected_node = node
                     break
+            else:
+                # If not in cache, check health now (but we don't want to do heavy checks here, so we'll skip and rely on cache)
+                # We'll do a quick online check only
+                if node.tailscale_host == "localhost" or self.run_cmd(f"tailscale ping -c 1 {node.tailscale_host} 2>&1", timeout=2)[0]:
+                    if target_model in node.models:
+                        selected_node = node
+                        break
         
-        # Build fallback chain
-        fallback_chain = [selected_node.primary_model] + selected_node.fallback_models
-        # Add other nodes' primary models
-        for node in suitable_nodes[1:]:
-            fallback_chain.append(f"{node.node_id}:{node.primary_model}")
+        # If we found a node with the target model and it's healthy (or at least online), use it
+        if selected_node is not None:
+            selected_model = target_model
+            reason = f"Preferred model '{target_model}' -> {selected_node.name}"
+        else:
+            # Fallback to original logic: select node (prefer healthy, then by VRAM for heavy tasks)
+            selected_node = suitable_nodes[0]
+            for node in suitable_nodes:
+                # Check cache for node health
+                health_key = f"health:{node.node_id}"
+                if health_key in self.cache:
+                    if self.cache[health_key].get("status") == "healthy":
+                        selected_node = node
+                        break
+            
+            # Build fallback chain
+            fallback_chain = [selected_node.primary_model] + selected_node.fallback_models
+            # Add other nodes' primary models
+            for node in suitable_nodes[1:]:
+                fallback_chain.append(f"{node.node_id}:{node.primary_model}")
+            
+            selected_model = selected_node.primary_model
+            reason = f"Role '{required_role}' -> {selected_node.name} ({selected_node.primary_model})"
+        
+        # Build fallback chain for the selected case
+        if selected_model == target_model:
+            # Fallback chain: first the target model, then the node's fallbacks, then other nodes' primaries
+            fallback_chain = [target_model] + selected_node.fallback_models
+            for node in suitable_nodes:
+                if node.node_id != selected_node.node_id:
+                    fallback_chain.append(f"{node.node_id}:{node.primary_model}")
+        else:
+            # Already built above in the fallback case
+            pass
         
         decision = RoutingDecision(
             task=task,
             project=project,
             selected_node=selected_node.node_id,
-            selected_model=selected_node.primary_model,
-            reason=f"Role '{required_role}' -> {selected_node.name} ({selected_node.primary_model})",
+            selected_model=selected_model,
+            reason=reason,
             fallback_chain=fallback_chain,
             timestamp=datetime.now(timezone.utc).isoformat()
         )
@@ -383,7 +422,6 @@ class ModelRegistry:
             "roles_supported": list(set(r for n in NODES for r in n.role.split(","))),
             "models_total": sum(len(n.models) for n in NODES),
         }
-
 
 def main():
     parser = argparse.ArgumentParser(description="Model Registry — Living Code")
@@ -421,7 +459,6 @@ def main():
         print("Use --health-check, --test-fallback-chains, --warm-cache, --route --task, or --status")
     
     sys.exit(0)
-
 
 if __name__ == "__main__":
     main()

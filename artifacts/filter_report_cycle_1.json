@@ -1,67 +1,84 @@
 {
-  "cycle": "1",
+  "cycle": 1,
   "protocol": "strict",
-  "timestamp": "2026-08-13T04:25:57.100932+00:00",
-  "components": [
+  "timestamp": "2026-08-14T00:14:10.235235+00:00",
+  "analyses": [
     {
-      "name": "boss_fight_system",
-      "project": 2,
-      "classification": "READY",
-      "reason": "Tests 92% passed, ready for deployment verification",
+      "project": 1,
+      "session_path": "C:\\LivingCode\\Projects\\cybertarot",
+      "classification": "ARCHIVED",
+      "reason": "Test coverage 70% below 80% threshold",
       "metrics": {
         "has_evolution_summary": true,
-        "test_coverage": 0.92,
+        "test_coverage": 0.7,
         "has_uncommitted_changes": false,
         "git_clean": true
       },
-      "files_analyzed": 47,
-      "lines_of_code": 3241,
-      "test_coverage": 0.92,
-      "last_modified": "2026-08-13T04:20:00+02:00",
-      "verifier_notes": "Владыка Павлович: верификация пройдена. Художник Георгиевич — на баннеры."
+      "files_analyzed": 20,
+      "lines_of_code": 1797,
+      "test_coverage": 0.7,
+      "last_modified": "2026-08-14 02:06:45 +0200",
+      "verifier_notes": "Владыка Павлович: тесты не проходят. Нужен рефакторинг или экстинкция."
     },
     {
-      "name": "main_menu_ui",
       "project": 2,
-      "classification": "READY",
-      "reason": "Tests 88% passed, ready for deployment verification",
+      "session_path": "C:\\LivingCode\\Projects\\elemental-life",
+      "classification": "ARCHIVED",
+      "reason": "No evolution summary for this cycle",
       "metrics": {
-        "has_evolution_summary": true,
-        "test_coverage": 0.88,
-        "has_uncommitted_changes": false,
-        "git_clean": true
+        "has_evolution_summary": false,
+        "test_coverage": 0.0,
+        "has_uncommitted_changes": true,
+        "git_clean": false
       },
-      "files_analyzed": 23,
-      "lines_of_code": 1567,
-      "test_coverage": 0.88,
-      "last_modified": "2026-08-13T04:15:00+02:00",
-      "verifier_notes": "Владыка Павлович: верификация пройдена. Художник Георгиевич — на баннеры."
+      "files_analyzed": 40,
+      "lines_of_code": 6801,
+      "test_coverage": 0.0,
+      "last_modified": "2026-08-13 16:03:33 +0200",
+      "verifier_notes": "Владыка Павлович: сессия не завершила эволюцию. В архив."
+    },
+    {
+      "project": 3,
+      "session_path": "C:\\LivingCode\\Projects\\elemental-life-2",
+      "classification": "ARCHIVED",
+      "reason": "No evolution summary for this cycle",
+      "metrics": {
+        "has_evolution_summary": false,
+        "test_coverage": 0.0,
+        "has_uncommitted_changes": true,
+        "git_clean": false
+      },
+      "files_analyzed": 2,
+      "lines_of_code": 928,
+      "test_coverage": 0.0,
+      "last_modified": "2026-08-13 16:03:33 +0200",
+      "verifier_notes": "Владыка Павлович: сессия не завершила эволюцию. В архив."
+    },
+    {
+      "project": 4,
+      "session_path": "C:\\LivingCode\\Projects\\superguard",
+      "classification": "ARCHIVED",
+      "reason": "No evolution summary for this cycle",
+      "metrics": {
+        "has_evolution_summary": false,
+        "test_coverage": 0.0,
+        "has_uncommitted_changes": true,
+        "git_clean": false
+      },
+      "files_analyzed": 66,
+      "lines_of_code": 14925,
+      "test_coverage": 0.0,
+      "last_modified": "unknown",
+      "verifier_notes": "Владыка Павлович: сессия не завершила эволюцию. В архив."
     }
   ],
   "verification": {
-    "verified_components": [
-      {
-        "project": 2,
-        "tests_repassed": true,
-        "security_issues": 0,
-        "todo_fixme_count": 0,
-        "verified": true,
-        "verifier": "Владыка Павлович"
-      },
-      {
-        "project": 2,
-        "tests_repassed": true,
-        "security_issues": 0,
-        "todo_fixme_count": 0,
-        "verified": true,
-        "verifier": "Владыка Павлович"
-      }
-    ]
+    "verified_components": []
   },
   "summary": {
     "frozen": 0,
-    "ready": 2,
-    "archived": 2
+    "ready": 0,
+    "archived": 4
   },
   "match_pct": 94
 }

@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import './index.css';
 import { initI18n } from './i18n';
 
-import { GEOMETRY_LEVELS, type GeometryKey } from './engine/engine';
+import { GEOMETRY_LEVELS, type GeometryKey, type PresetKey } from './engine/engine';
 
 import { useSimulation } from './hooks/useSimulation';
 import { useIdentity } from './hooks/useIdentity';
@@ -21,6 +21,8 @@ import { LoadingSplash } from './components/LoadingSplash';
 import { WalletScreen } from './components/WalletScreen';
 import { SequenceEditor } from './components/SequenceEditor';
 import { ToastContainer } from './components/Toast';
+import { InstagramImportModal } from './components/InstagramImportModal';
+import { NewGameDialog } from './components/NewGameDialog';
 import { rewardLevelCompletion } from './wallet/elemental';
 
 // Initialize i18n on app load
@@ -38,8 +40,11 @@ export default function App() {
 
   const { profile, createIdentity, markLevelCompleted, saveSession, clearIdentity } = useIdentity();
 
-  // Secret sequence unlocks registration or pin
-  const handleSecretUnlock = useCallback(() => {
+    // New Game Dialog state
+    const [showNewGameDialog, setShowNewGameDialog] = useState(false);
+
+    // Secret sequence unlocks registration or pin
+    const handleSecretUnlock = useCallback(() => {
     if (profile) {
       setShowPinEntry(true);
     } else {
@@ -71,18 +76,31 @@ export default function App() {
   const sim = useSimulation(identitySeed, secret.recordTap);
 
   const {
-    mode, geometry, setGeometry, seed, setSeed,
-    radius, cellSize, preset, params,
-    running, speed, tick, field,
-    waterHistory, waterDrift, waterStats, counts, totalCells,
-    levelIndex, dropletsLeft, winStreak, puzzleWon, puzzleFailed,
-    handleCellClick, applyPreset, switchMode, reset,
-    startLevel, goToNextLevel, retryLevel, setParam,
-    viewport, setViewport, setRunning, setSpeed, setBrush, doStep, brush,
-  } = sim;
+      mode, geometry, setGeometry, seed, setSeed,
+      radius, cellSize, preset, params,
+      running, speed, tick, field,
+      waterHistory, waterDrift, waterStats, counts, totalCells,
+      levelIndex, dropletsLeft, winStreak, puzzleWon, puzzleFailed,
+      handleCellClick, applyPreset, switchMode, reset,
+      goToNextLevel, retryLevel, setParam,
+      viewport, setViewport, setRunning, setSpeed, setBrush, doStep, brush,
+    } = sim;
 
-  const currentLevel = GEOMETRY_LEVELS[geometry]?.[levelIndex];
-  const gridRef = useRef<GridCanvasHandle>(null);
+    const currentLevel = GEOMETRY_LEVELS[geometry]?.[levelIndex];
+    const gridRef = useRef<GridCanvasHandle>(null);
+
+    // New Game Dialog handler
+      const handleStartNewGame = useCallback((_geometry: GeometryKey, preset?: PresetKey, mode?: 'sandbox' | 'puzzle') => {
+        setShowNewGameDialog(false);
+        if (mode === 'puzzle') {
+          switchMode('puzzle');
+        } else {
+          if (preset) {
+            applyPreset(preset);
+          }
+          reset(seed);
+        }
+      }, [switchMode, applyPreset, reset, seed]);
 
   // Fullscreen
   const [showSettings, setShowSettings] = useState(false);
@@ -213,11 +231,10 @@ export default function App() {
       setScreen('splash');
     }, [setViewport, setRunning, uiFullscreen, exitFullscreen]);
 
-  // New game
-  const handleNewGame = useCallback(() => {
-    if (mode === 'puzzle') startLevel(0, 1);
-    else reset(seed);
-  }, [mode, startLevel, reset, seed]);
+  // New game - show dialog instead of directly resetting
+    const handleNewGame = useCallback(() => {
+      setShowNewGameDialog(true);
+    }, []);
 
   // Geometry switch
   const handleGeometrySelect = useCallback((g: GeometryKey) => { if (g !== geometry) setGeometry(g); }, [geometry, setGeometry]);
@@ -403,10 +420,15 @@ export default function App() {
         )}
 
         <InstagramImportModal
-          isOpen={showInstagramImport}
-          onClose={() => setShowInstagramImport(false)}
-          onLevelGenerated={handleInstagramLevelGenerated}
-        />
-      </div>
-      );
+                  isOpen={showInstagramImport}
+                  onClose={() => setShowInstagramImport(false)}
+                  onLevelGenerated={handleInstagramLevelGenerated}
+                />
+                <NewGameDialog
+                  isOpen={showNewGameDialog}
+                  onClose={() => setShowNewGameDialog(false)}
+                  onStartGame={handleStartNewGame}
+                />
+              </div>
+              );
     }

@@ -1,0 +1,84 @@
+{
+  "cycle": 2,
+  "protocol": "strict",
+  "timestamp": "2026-08-14T00:19:34.114265+00:00",
+  "analyses": [
+    {
+      "project": 1,
+      "session_path": "C:\\LivingCode\\Projects\\cybertarot",
+      "classification": "ARCHIVED",
+      "reason": "Test coverage 70% below 80% threshold",
+      "metrics": {
+        "has_evolution_summary": true,
+        "test_coverage": 0.7,
+        "has_uncommitted_changes": false,
+        "git_clean": true
+      },
+      "files_analyzed": 20,
+      "lines_of_code": 1797,
+      "test_coverage": 0.7,
+      "last_modified": "2026-08-14 02:06:45 +0200",
+      "verifier_notes": "Владыка Павлович: тесты не проходят. Нужен рефакторинг или экстинкция."
+    },
+    {
+      "project": 2,
+      "session_path": "C:\\LivingCode\\Projects\\elemental-life",
+      "classification": "ARCHIVED",
+      "reason": "No evolution summary for this cycle",
+      "metrics": {
+        "has_evolution_summary": false,
+        "test_coverage": 0.0,
+        "has_uncommitted_changes": true,
+        "git_clean": false
+      },
+      "files_analyzed": 40,
+      "lines_of_code": 6801,
+      "test_coverage": 0.0,
+      "last_modified": "2026-08-13 16:03:33 +0200",
+      "verifier_notes": "Владыка Павлович: сессия не завершила эволюцию. В архив."
+    },
+    {
+      "project": 3,
+      "session_path": "C:\\LivingCode\\Projects\\elemental-life-2",
+      "classification": "ARCHIVED",
+      "reason": "No evolution summary for this cycle",
+      "metrics": {
+        "has_evolution_summary": false,
+        "test_coverage": 0.0,
+        "has_uncommitted_changes": true,
+        "git_clean": false
+      },
+      "files_analyzed": 2,
+      "lines_of_code": 928,
+      "test_coverage": 0.0,
+      "last_modified": "2026-08-13 16:03:33 +0200",
+      "verifier_notes": "Владыка Павлович: сессия не завершила эволюцию. В архив."
+    },
+    {
+      "project": 4,
+      "session_path": "C:\\LivingCode\\Projects\\superguard",
+      "classification": "ARCHIVED",
+      "reason": "No evolution summary for this cycle",
+      "metrics": {
+        "has_evolution_summary": false,
+        "test_coverage": 0.0,
+        "has_uncommitted_changes": true,
+        "git_clean": false
+      },
+      "files_analyzed": 66,
+      "lines_of_code": 14925,
+      "test_coverage": 0.0,
+      "last_modified": "unknown",
+      "verifier_notes": "Владыка Павлович: сессия не завершила эволюцию. В архив."
+    }
+  ],
+  "verification": {
+    "verified_components": []
+  },
+  "summary": {
+    "frozen": 0,
+    "ready": 0,
+    "archived": 4
+  },
+  "match_pct": 0
+}

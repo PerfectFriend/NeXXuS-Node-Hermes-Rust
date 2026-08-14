@@ -1,0 +1,79 @@
+{
+  "git_sync": {
+    "repos": [
+      {
+        "repo": "LivingCode Root",
+        "success": false,
+        "output": "error: cannot pull with rebase: You have unstaged changes.\nerror: Please commit or stash them.\n"
+      },
+      {
+        "repo": "Project1",
+        "success": false,
+        "output": "Path not found"
+      },
+      {
+        "repo": "Project2",
+        "success": false,
+        "output": "Path not found"
+      },
+      {
+        "repo": "Project3",
+        "success": false,
+        "output": "Path not found"
+      },
+      {
+        "repo": "Project4",
+        "success": false,
+        "output": "Path not found"
+      },
+      {
+        "repo": "Vault",
+        "success": false,
+        "output": "error: cannot pull with rebase: You have unstaged changes.\nerror: additionally, your index contains uncommitted changes.\nerror: Please commit or stash them.\n"
+      },
+      {
+        "repo": "Grimoire",
+        "success": false,
+        "output": "error: cannot pull with rebase: You have unstaged changes.\nerror: Please commit or stash them.\n"
+      }
+    ],
+    "all_ok": false
+  },
+  "tailscale": {
+    "nodes": [
+      {
+        "node": "lenovo",
+        "online": false
+      },
+      {
+        "node": "dell",
+        "online": false
+      },
+      {
+        "node": "totomoto",
+        "online": false
+      },
+      {
+        "node": "unsloth-studio",
+        "online": false
+      },
+      {
+        "node": "ubuntu-server",
+        "online": false
+      }
+    ],
+    "all_online": false
+  },
+  "model_registry": {
+    "success": true,
+    "output": "\n============================================================\n🤖 MODEL REGISTRY — Health Check All Nodes\n============================================================\n\n  🔍 Checking Lenovo (Torquemada) (lenovo)...\n     ❌ Status: unhealthy | Latency: 20.08ms | Model: nemotron-3-ultra\n\n  🔍 Checking Dell (Tomas) (dell)...\n     ❌ Status: unhealthy | Latency: 17.07ms | Model: qwen2.5-14b\n\n  🔍 Checking totomoto (Audio Master) (totomoto)...\n     ❌ Status: unhealthy | Latency: 17.56ms | Model: ace-step\n\n  🔍 Checking Unsloth Studio (Fine-tuning Farm) (unsloth-studio)...\n     ❌ Status: unhealthy | Latency: 16.55ms | Model: unsloth-qwen2.5\n\n  🔍 Checking Ubuntu Server (Inference Cluster) (ubuntu-server)...\n     ❌ Status: unhealthy | Latency: 17.07ms | Model: vllm\n\n  🔍 Checking Local (This Machine) (localhost)...\n     ✅ Status: healthy | Latency: 0ms | Model: nemotron-3-ultra-free\n\n============================================================\n📊 SUMMARY: 1/6 healthy\n============================================================\n{\n  \"total_nodes\": 6,\n  \"healthy_nodes\": 1,\n  \"degraded_nodes\": 0,\n  \"unhealthy_nodes\": 5,\n  \"timestamp\": \"2026-08-14T04:38:15.616116+00:00\",\n  \"nodes\": [\n    {\n      \"node_id\": \"lenovo\",\n      \"name\": \"Lenovo (Torquemada)\",\n      \"online\": false,\n      \"model_healthy\": false,\n      \"status\": \"unhealthy\",\n      \"latency_ms\": 20.08,\n      \"primary_model\": \"nemotron-3-ultra\",\n      \"checked_at\": \"2026-08-14T04:38:15.547871+00:00\"\n    },\n    {\n      \"node_id\": \"dell\",\n      \"name\": \"Dell (Tomas)\",\n      \"online\": false,\n      \"model_healthy\": false,\n      \"status\": \"unhealthy\",\n      \"latency_ms\": 17.07,\n      \"primary_model\": \"qwen2.5-14b\",\n      \"checked_at\": \"2026-08-14T04:38:15.564939+00:00\"\n    },\n    {\n      \"node_id\": \"totomoto\",\n      \"name\": \"totomoto (Audio Master)\",\n      \"online\": false,\n      \"model_healthy\": false,\n      \"status\": \"unhealthy\",\n      \"latency_ms\": 17.56,\n      \"primary_model\": \"ace-step\",\n      \"checked_at\": \"2026-08-14T04:38:15.582497+00:00\"\n    },\n    {\n      \"node_id\": \"unsloth-studio\",\n      \"name\": \"Unsloth Studio (Fine-tuning Farm)\",\n      \"online\": false,\n      \"model_healthy\": false,\n      \"status\": \"unhealthy\",\n      \"latency_ms\": 16.55,\n      \"primary_model\": \"unsloth-qwen2.5\",\n      \"checked_at\": \"2026-08-14T04:38:15.599046+00:00\"\n    },\n    {\n      \"node_id\": \"ubuntu-server\",\n      \"name\": \"Ubuntu Server (Inference Cluster)\",\n      \"online\": false,\n      \"model_healthy\": false,\n      \"status\": \"unhealthy\",\n      \"latency_ms\": 17.07,\n      \"primary_model\": \"vllm\",\n      \"checked_at\": \"2026-08-14T04:38:15.616116+00:00\"\n    },\n    {\n      \"node_id\": \"local\",\n      \"name\": \"Local (This Machine)\",\n      \"online\": true,\n      \"model_healthy\": true,\n      \"status\": \"healthy\",\n      \"latency_ms\": 0,\n      \"primary_model\": \"nemotron-3-ultra-free\",\n      \"checked_at\": \"2026-08-14T04:38:15.616116+00:00\"\n    }\n  ]\n}\n"
+  },
+  "chronicle": true,
+  "briefing": {
+    "success": true,
+    "output": "📢 Briefing sent to 5 agents\n"
+  },
+  "overall_success": false,
+  "cycle": 1351,
+  "timestamp": "2026-08-14T04:38:15.786803+00:00"
+}

@@ -1,0 +1,15 @@
+{
+  "component": "boss_fight_system",
+  "cycle": 1,
+  "style": "brand",
+  "langs": [
+    "ru",
+    "en",
+    "zh"
+  ],
+  "readme": true,
+  "create_repos": true,
+  "push_success": true,
+  "timestamp": "2026-08-14T02:49:52.367960+00:00",
+  "project_dir": "C:\\LivingCode\\projects\\LivingCode-boss_fight_system-001"
+}

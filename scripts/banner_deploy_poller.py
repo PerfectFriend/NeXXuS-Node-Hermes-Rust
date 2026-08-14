@@ -13,12 +13,49 @@ from pathlib import Path
 from datetime import datetime, timezone
 
 class BannerDeployPoller:
-    def __init__(self, cycle: int):
-        self.cycle = cycle
+    def __init__(self, cycle: int = None):
         self.root = Path("C:/LivingCode")
         self.artifacts_dir = self.root / "artifacts"
+        # Auto-detect cycle if not provided
+        if cycle is None:
+            cycle = self._detect_latest_cycle()
+        self.cycle = cycle
         self.processed_file = self.artifacts_dir / f"banner_poller_processed_cycle_{cycle:03d}.json"
         self.processed = self._load_processed()
+
+    def _detect_latest_cycle(self) -> int:
+        """Detect the latest cycle from filter report files."""
+        import re
+        report_files = list(self.artifacts_dir.glob("filter_report_cycle_*.json"))
+        if not report_files:
+            # Fallback: calculate cycle from time (4-hour cycles since epoch)
+            # Using minutes since 2026-01-01 / 240 (4 hours)
+            from datetime import datetime, timezone
+            epoch = datetime(2026, 1, 1, tzinfo=timezone.utc)
+            now = datetime.now(timezone.utc)
+            cycle = int((now - epoch).total_seconds() / 240)
+            print(f"  ������  No filter reports found, calculated cycle: {cycle}")
+            return cycle
+        
+        # Extract cycle numbers from filenames
+        cycles = []
+        for f in report_files:
+            match = re.search(r'filter_report_cycle_(\d+)\.json', f.name)
+            if match:
+                cycles.append(int(match.group(1)))
+        
+        if cycles:
+            latest = max(cycles)
+            print(f"  ��� Auto-detected latest cycle: {latest}")
+            return latest
+        
+        # Fallback
+        from datetime import datetime, timezone
+        epoch = datetime(2026, 1, 1, tzinfo=timezone.utc)
+        now = datetime.now(timezone.utc)
+        cycle = int((now - epoch).total_seconds() / 240)
+        print(f"  ������  Could not parse cycle from filenames, calculated: {cycle}")
+        return cycle
     
     def _load_processed(self) -> set:
         if self.processed_file.exists():
@@ -127,12 +164,12 @@ class BannerDeployPoller:
 
 def main():
     parser = argparse.ArgumentParser(description="Banner Deploy Poller")
-    parser.add_argument("--cycle", type=int, required=True, help="Cycle number")
+    parser.add_argument("--cycle", type=int, default=None, help="Cycle number (auto-detected if not provided)")
     parser.add_argument("--poll-once", action="store_true", help="Single poll iteration")
     parser.add_argument("--daemon", action="store_true", help="Run as daemon")
     parser.add_argument("--interval", type=int, default=300, help="Poll interval (seconds)")
     args = parser.parse_args()
-    
+
     poller = BannerDeployPoller(args.cycle)
     
     if args.poll_once:

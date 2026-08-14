@@ -1,0 +1,302 @@
+{
+  "component": "main_menu_ui",
+  "cycle": "1",
+  "timestamp": "2026-08-14T06:37:17.966139",
+  "targets": [
+    "android",
+    "ios",
+    "web",
+    "desktop",
+    "embedded"
+  ],
+  "stores": [
+    "google",
+    "apple",
+    "github",
+    "fdroid",
+    "steam"
+  ],
+  "zero_bug_policy": true,
+  "build_results": [
+    {
+      "target": "android",
+      "success": false,
+      "output_path": "",
+      "error": "tauri build failed: [WinError 2] Не удается найти указанный файл",
+      "duration_sec": 0.00451
+    },
+    {
+      "target": "ios",
+      "success": false,
+      "output_path": "",
+      "error": "iOS build requires macOS / Capacitor project",
+      "duration_sec": 0.0
+    },
+    {
+      "target": "web",
+      "success": false,
+      "output_path": "",
+      "error": "npm build failed: [WinError 2] Не удается найти указанный файл",
+      "duration_sec": 0.002
+    },
+    {
+      "target": "desktop",
+      "success": false,
+      "output_path": "",
+      "error": "tauri build failed: [WinError 2] Не удается найти указанный файл",
+      "duration_sec": 0.002
+    },
+    {
+      "target": "embedded",
+      "success": false,
+      "output_path": "",
+      "error": "No embedded build configuration found",
+      "duration_sec": 0.0
+    }
+  ],
+  "test_results": [
+    {
+      "target": "android",
+      "success": false,
+      "passed": 0,
+      "failed": 0,
+      "coverage": 0.0,
+      "error": "Build failed",
+      "duration_sec": 0
+    },
+    {
+      "target": "ios",
+      "success": false,
+      "passed": 0,
+      "failed": 0,
+      "coverage": 0.0,
+      "error": "Build failed",
+      "duration_sec": 0
+    },
+    {
+      "target": "web",
+      "success": false,
+      "passed": 0,
+      "failed": 0,
+      "coverage": 0.0,
+      "error": "Build failed",
+      "duration_sec": 0
+    },
+    {
+      "target": "desktop",
+      "success": false,
+      "passed": 0,
+      "failed": 0,
+      "coverage": 0.0,
+      "error": "Build failed",
+      "duration_sec": 0
+    },
+    {
+      "target": "embedded",
+      "success": false,
+      "passed": 0,
+      "failed": 0,
+      "coverage": 0.0,
+      "error": "Build failed",
+      "duration_sec": 0
+    }
+  ],
+  "deploy_results": [
+    {
+      "store": "google",
+      "target": "android",
+      "success": false,
+      "url": "",
+      "error": "No build output",
+      "duration_sec": 0.0
+    },
+    {
+      "store": "apple",
+      "target": "ios",
+      "success": false,
+      "url": "",
+      "error": "No build output",
+      "duration_sec": 0.0
+    },
+    {
+      "store": "github",
+      "target": "android",
+      "success": false,
+      "url": "",
+      "error": "No build output",
+      "duration_sec": 0.0
+    },
+    {
+      "store": "github",
+      "target": "ios",
+      "success": false,
+      "url": "",
+      "error": "No build output",
+      "duration_sec": 0.0
+    },
+    {
+      "store": "github",
+      "target": "web",
+      "success": false,
+      "url": "",
+      "error": "No build output",
+      "duration_sec": 0.0
+    },
+    {
+      "store": "github",
+      "target": "desktop",
+      "success": false,
+      "url": "",
+      "error": "No build output",
+      "duration_sec": 0.0
+    },
+    {
+      "store": "github",
+      "target": "embedded",
+      "success": false,
+      "url": "",
+      "error": "No build output",
+      "duration_sec": 0.0
+    },
+    {
+      "store": "fdroid",
+      "target": "android",
+      "success": false,
+      "url": "",
+      "error": "No build output",
+      "duration_sec": 0.0
+    },
+    {
+      "store": "steam",
+      "target": "desktop",
+      "success": false,
+      "url": "",
+      "error": "No build output",
+      "duration_sec": 0.0
+    }
+  ],
+  "telemetry": {
+    "summary": {
+      "component": "main_menu_ui",
+      "cycle": "1",
+      "timestamp": "2026-08-14T06:37:17.966139",
+      "total_targets": 5,
+      "successful_builds": 0,
+      "successful_tests": 0,
+      "successful_deploys": 0,
+      "overall_success": false
+    },
+    "builds": {
+      "android": {
+        "success": false,
+        "output": "",
+        "duration": 0.00451
+      },
+      "ios": {
+        "success": false,
+        "output": "",
+        "duration": 0.0
+      },
+      "web": {
+        "success": false,
+        "output": "",
+        "duration": 0.002
+      },
+      "desktop": {
+        "success": false,
+        "output": "",
+        "duration": 0.002
+      },
+      "embedded": {
+        "success": false,
+        "output": "",
+        "duration": 0.0
+      }
+    },
+    "tests": {
+      "android": {
+        "success": false,
+        "passed": 0,
+        "failed": 0,
+        "coverage": 0.0,
+        "duration": 0
+      },
+      "ios": {
+        "success": false,
+        "passed": 0,
+        "failed": 0,
+        "coverage": 0.0,
+        "duration": 0
+      },
+      "web": {
+        "success": false,
+        "passed": 0,
+        "failed": 0,
+        "coverage": 0.0,
+        "duration": 0
+      },
+      "desktop": {
+        "success": false,
+        "passed": 0,
+        "failed": 0,
+        "coverage": 0.0,
+        "duration": 0
+      },
+      "embedded": {
+        "success": false,
+        "passed": 0,
+        "failed": 0,
+        "coverage": 0.0,
+        "duration": 0
+      }
+    },
+    "deploys": {
+      "google_android": {
+        "success": false,
+        "url": "",
+        "duration": 0.0
+      },
+      "apple_ios": {
+        "success": false,
+        "url": "",
+        "duration": 0.0
+      },
+      "github_android": {
+        "success": false,
+        "url": "",
+        "duration": 0.0
+      },
+      "github_ios": {
+        "success": false,
+        "url": "",
+        "duration": 0.0
+      },
+      "github_web": {
+        "success": false,
+        "url": "",
+        "duration": 0.0
+      },
+      "github_desktop": {
+        "success": false,
+        "url": "",
+        "duration": 0.0
+      },
+      "github_embedded": {
+        "success": false,
+        "url": "",
+        "duration": 0.0
+      },
+      "fdroid_android": {
+        "success": false,
+        "url": "",
+        "duration": 0.0
+      },
+      "steam_desktop": {
+        "success": false,
+        "url": "",
+        "duration": 0.0
+      }
+    }
+  },
+  "overall_success": false
+}

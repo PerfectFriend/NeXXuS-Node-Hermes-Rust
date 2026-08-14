@@ -90,12 +90,18 @@ def get_component_source_path(component: str, cycle: str) -> Optional[Path]:
         project_path = LIVINGCODE_ROOT / f"Project{project_num}" / component
         if project_path.exists():
             return project_path
-    
+
+    # Check projects directory (banner_deploy output)
+    cycle_int = int(cycle) if cycle.isdigit() else 1
+    project_path = LIVINGCODE_ROOT / "projects" / f"LivingCode-{component}-{cycle_int:03d}"
+    if project_path.exists():
+        return project_path
+
     # Check artifacts for exported component
     artifact_path = ARTIFACTS_DIR / f"component_{component}_cycle_{cycle}"
     if artifact_path.exists():
         return artifact_path
-    
+
     return None
 
 

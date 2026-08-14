@@ -217,14 +217,28 @@ class ProfessorSync:
         self.chronicle_path.write_text(content + entry, encoding='utf-8')
 
 
+def auto_detect_cycle() -> int:
+    """Auto-detect the current cycle based on 4-hour intervals since 2026-01-01."""
+    from datetime import datetime, timezone
+    epoch = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    now = datetime.now(timezone.utc)
+    cycle = int((now - epoch).total_seconds() / 14400)  # 4 hours = 14400 seconds
+    return cycle
+
 def main():
     parser = argparse.ArgumentParser(description="Professor Sync — Living Code")
     parser.add_argument("--project", type=int, choices=[1,2,3,4], help="Specific project")
     parser.add_argument("--all", action="store_true", help="Sync to all 4 projects")
-    parser.add_argument("--cycle", type=int, required=True, help="Cycle number")
+    parser.add_argument("--cycle", type=int, help="Cycle number (auto-detected if omitted)")
     args = parser.parse_args()
     
-    sync = ProfessorSync(args.cycle)
+    # Auto-detect cycle if not provided
+    cycle = args.cycle
+    if cycle is None:
+        cycle = auto_detect_cycle()
+        print(f"����‍���� Auto-detected cycle: {cycle}")
+    
+    sync = ProfessorSync(cycle)
     
     if args.all:
         sync.sync_all()
