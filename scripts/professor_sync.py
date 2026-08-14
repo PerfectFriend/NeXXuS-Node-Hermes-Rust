@@ -183,8 +183,8 @@ class ProfessorSync:
             "timestamp": datetime.now(timezone.utc).isoformat()
         }
         
-        report_file = self.root / "artifacts" / f"professor_sync_cycle_{self.cycle:03d}.json"
-        self.root.artifacts.mkdir(parents=True, exist_ok=True)
+        report_file = (self.root / "artifacts") / f"professor_sync_cycle_{self.cycle:03d}.json"
+        (self.root / "artifacts").mkdir(parents=True, exist_ok=True)
         report_file.write_text(json.dumps(summary, indent=2, ensure_ascii=False), encoding='utf-8')
         
         print(f"\n{'='*60}")
