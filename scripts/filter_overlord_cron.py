@@ -22,7 +22,7 @@ def main():
     
     # Run the main script with --cycle
     cmd = [sys.executable, "filter_overlord.py", "--scan-all", "--cycle", str(cycle)] + args
-    result = subprocess.run(cmd, cwd="C:/LivingCode/scripts")
+    result = subprocess.run(cmd, cwd="/home/thomas/LivingCode/scripts")
     sys.exit(result.returncode)
 
 if __name__ == "__main__":

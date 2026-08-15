@@ -41,7 +41,7 @@ def main():
     ]
     
     print(f"Running: {' '.join(cmd)}")
-    result = subprocess.run(cmd, cwd="C:/LivingCode/scripts")
+    result = subprocess.run(cmd, cwd="/home/thomas/LivingCode/scripts")
     return result.returncode
 
 if __name__ == "__main__":

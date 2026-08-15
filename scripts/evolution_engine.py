@@ -74,7 +74,7 @@ class EvolutionEngine:
         self.cycles = cycles
         self.cycle_id = cycle_id
         self.push_private = push_private
-        self.root = Path(f"C:/LivingCode/Projects/{self.project_name}")
+        self.root = Path(f"/home/thomas/LivingCode/Projects/{self.project_name}")
         # Ensure the directory exists (it should from earlier copying)
         self.root.mkdir(parents=True, exist_ok=True)
         self.results: List[SubcycleResult] = []

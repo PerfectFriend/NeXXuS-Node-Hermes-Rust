@@ -6,8 +6,8 @@ Fast, reliable, no VRAM issues. 512×768 → 2048×3072
 
 import sys
 from pathlib import Path
-from PIL import Image, ImageFilter, ImageEnhance
 
+from PIL import Image, ImageEnhance, ImageFilter
 
 UPSCALE_FACTOR = 4
 SHARPEN_RADIUS = 1.5
@@ -52,7 +52,7 @@ def upscale_image(input_path: Path, output_path: Path) -> bool:
             print(f"    ✓ Saved: {output_path.name} ({size_kb}KB, {new_w}×{new_h})")
             return True
 
-    except Exception as e:
+    except (OSError, Image.DecompressionBombError, Image.UnidentifiedImageError) as e:
         print(f"    ✗ Error: {e}")
         return False
 

@@ -4,11 +4,11 @@ CyberTarot — Post-process
 Adds sacred geometry border, color correction, watermark to final cards.
 """
 
-import sys
-import os
-from pathlib import Path
-from PIL import Image, ImageDraw, ImageFont, ImageEnhance, ImageFilter
 import argparse
+import sys
+from pathlib import Path
+
+from PIL import Image, ImageDraw, ImageEnhance, ImageFont
 
 BORDER_COLOR = "#E8B94A"  # Gold
 BORDER_WIDTH = 8
@@ -72,7 +72,7 @@ def add_watermark(img: Image.Image, text: str = WATERMARK_TEXT,
     # Try to use a nice font
     try:
         font = ImageFont.truetype("arial.ttf", 18)
-    except:
+    except Exception:
         font = ImageFont.load_default()
 
     # Position bottom-right with margin
@@ -112,7 +112,7 @@ def process_image(input_path: Path, output_path: Path) -> bool:
             output_path.parent.mkdir(parents=True, exist_ok=True)
             img.save(output_path, "PNG", optimize=True)
             return True
-    except Exception as e:
+    except (OSError, Image.DecompressionBombError, Image.UnidentifiedImageError) as e:
         print(f"  ✗ Error processing {input_path.name}: {e}")
         return False
 

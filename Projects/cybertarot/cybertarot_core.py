@@ -6,8 +6,9 @@ Uses model: nemotron-3-ultra
 """
 
 from dataclasses import dataclass
-from typing import Optional, List, Dict, Any
-from datetime import datetime
+from datetime import datetime, timezone
+from typing import Any
+
 
 @dataclass
 class CybertarotState:
@@ -15,23 +16,23 @@ class CybertarotState:
     cycle: int
     subcycle: int
     status: str
-    metrics: Dict[str, float]
+    metrics: dict[str, float]
     timestamp: str
 
 class CybertarotEngine:
     """Engine for project cybertarot - clean architecture, zero bugs"""
     
-    def __init__(self, config: Optional[Dict] = None):
+    def __init__(self, config: dict | None = None):
         self.config = config or {}
         self.state = CybertarotState(
             cycle=11,
             subcycle=2,
             status="EVOLVING",
             metrics={},
-            timestamp=datetime.now().isoformat()
+            timestamp=datetime.now(timezone.utc).isoformat()
         )
     
-    def evolve(self) -> Dict[str, Any]:
+    def evolve(self) -> dict[str, Any]:
         """One evolution step"""
         self.state.subcycle += 1
         self.state.metrics['evolution_step'] = self.state.subcycle

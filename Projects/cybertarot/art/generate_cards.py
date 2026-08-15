@@ -12,11 +12,12 @@ Usage:
 """
 
 import json
-import sys
+import logging
 import os
+import sys
 import time
-import urllib.request
 import urllib.error
+import urllib.request
 from pathlib import Path
 
 # --- Config ---
@@ -133,8 +134,10 @@ def poll_result(prompt_id: str, timeout: int = 300) -> dict | None:
                 data = json.loads(resp.read())
             if prompt_id in data:
                 return data[prompt_id]
-        except Exception:
-            pass
+        except (urllib.error.URLError, json.JSONDecodeError, OSError) as e:
+            # Log for debugging but continue polling
+            logger = logging.getLogger(__name__)
+            logger.debug(f"Poll error: {e}")
         time.sleep(2)
     return None
 
@@ -169,7 +172,7 @@ def generate_card(card_id: str, card_data: dict, model_key: str = "sd15") -> boo
             return False
 
         print(f"    Submitted: {prompt_id}")
-        print(f"    Waiting for generation...")
+        print("    Waiting for generation...")
 
         history = poll_result(prompt_id, timeout=600)
         if not history:
@@ -178,7 +181,7 @@ def generate_card(card_id: str, card_data: dict, model_key: str = "sd15") -> boo
 
         # Extract output image
         outputs = history.get("outputs", {})
-        for node_id, node_output in outputs.items():
+        for node_output in outputs.values():
             if "images" in node_output:
                 for img in node_output["images"]:
                     filename = img["filename"]
@@ -191,7 +194,7 @@ def generate_card(card_id: str, card_data: dict, model_key: str = "sd15") -> boo
         print(f"    ✗ No image in outputs: {outputs}")
         return False
 
-    except Exception as e:
+    except (urllib.error.URLError, json.JSONDecodeError, OSError) as e:
         print(f"    ✗ Error: {e}")
         return False
 
@@ -213,7 +216,7 @@ def main():
             dev = stats.get("devices", [{}])[0]
             print(f"ComfyUI: {stats.get('system', {}).get('comfyui_version', '?')}")
             print(f"GPU: {dev.get('name', '?')} | VRAM free: {dev.get('vram_free', 0) // (1024**3):.1f}GB")
-        except Exception as e:
+        except (urllib.error.URLError, json.JSONDecodeError, OSError) as e:
             print(f"✗ ComfyUI not reachable at {COMFY_URL}: {e}")
             sys.exit(1)
 
@@ -221,7 +224,7 @@ def main():
     with open(PROMPTS_FILE, "r", encoding="utf-8") as f:
         prompts = json.load(f)
 
-    print(f"\n=== CyberTarot Card Generator ===")
+    print("\n=== CyberTarot Card Generator ===")
     print(f"Cards: {len(prompts)} | Model: {args.model}")
 
     if args.only:

@@ -135,32 +135,57 @@ class DJStudioPoller:
 
 
 def auto_detect_cycle() -> int:
-    """Auto-detect the latest cycle from filter reports in artifacts directory."""
+    """Auto-detect the current active cycle from professor_sync or cycle_start files."""
     root = Path("C:/LivingCode")
     artifacts_dir = root / "artifacts"
-
+    
+    # First priority: professor_sync_cycle_XXX.json (current active cycle)
+    if artifacts_dir.exists():
+        for f in artifacts_dir.glob("professor_sync_cycle_*.json"):
+            match = re.search(r"cycle_(\d+)\.json$", f.name)
+            if match:
+                try:
+                    with open(f) as fp:
+                        data = json.load(fp)
+                    if "cycle" in data:
+                        return data["cycle"]
+                except:
+                    pass
+    
+    # Second priority: cycle_start_XXX.json
+    if artifacts_dir.exists():
+        for f in artifacts_dir.glob("cycle_start_*.json"):
+            match = re.search(r"cycle_start_(\d+)\.json$", f.name)
+            if match:
+                try:
+                    with open(f) as fp:
+                        data = json.load(fp)
+                    if "cycle" in data:
+                        return data["cycle"]
+                except:
+                    pass
+    
+    # Third priority: filter reports (latest cycle with data)
     cycles = set()
-
-    # Check artifacts for filter_report_cycle_XXX.json
     if artifacts_dir.exists():
         for f in artifacts_dir.glob("filter_report_cycle_*.json"):
             match = re.search(r"cycle_(\d+)\.json$", f.name)
             if match:
                 cycles.add(int(match.group(1)))
-
+    
     if cycles:
         return max(cycles)
-
-    # Fallback: check for any cycle_XXX pattern in artifacts
+    
+    # Fallback: any cycle_XXX pattern
     if artifacts_dir.exists():
         for f in artifacts_dir.glob("*cycle_*.json"):
             match = re.search(r"cycle_(\d+)\.json$", f.name)
             if match:
                 cycles.add(int(match.group(1)))
-
+    
     if cycles:
         return max(cycles)
-
+    
     return None
 
 

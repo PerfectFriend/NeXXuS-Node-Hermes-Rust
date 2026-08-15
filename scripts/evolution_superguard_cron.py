@@ -22,7 +22,7 @@ def main():
 
     # Run the main script with --cycle-id
     cmd = [sys.executable, "evolution_engine.py", "--project", "superguard", "--cycle-id", str(cycle)] + args
-    result = subprocess.run(cmd, cwd="C:/LivingCode/scripts")
+    result = subprocess.run(cmd, cwd="/home/thomas/LivingCode/scripts")
     sys.exit(result.returncode)
 
 if __name__ == "__main__":

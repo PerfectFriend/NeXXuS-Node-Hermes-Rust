@@ -321,11 +321,24 @@ def main():
 
     comm = EncryptedComm(cycle)
 
+    # Default to --round if no action specified (for cron compatibility)
+    action = None
     if args.briefing:
-        comm.send_briefing()
+        action = "briefing"
     elif args.round:
-        comm.run_round()
+        action = "round"
     elif args.verify_callback and args.report_file:
+        action = "verify_callback"
+    elif not any([args.briefing, args.round, args.verify_callback]):
+        # No action flag provided — default to round for cron jobs
+        action = "round"
+        print("�����  No action flag provided, defaulting to --round")
+
+    if action == "briefing":
+        comm.send_briefing()
+    elif action == "round":
+        comm.run_round()
+    elif action == "verify_callback":
         with open(args.report_file) as f:
             report = json.load(f)
         comm.verification_callback(report)

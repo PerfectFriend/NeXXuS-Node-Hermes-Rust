@@ -20,7 +20,7 @@ def main():
     args = sys.argv[1:]
 
     cmd = [sys.executable, "evolution_engine.py", "--project", "godmode-coder", "--cycle-id", str(cycle)] + args
-    result = subprocess.run(cmd, cwd="C:/LivingCode/scripts")
+    result = subprocess.run(cmd, cwd="/home/thomas/LivingCode/scripts")
     sys.exit(result.returncode)
 
 if __name__ == "__main__":

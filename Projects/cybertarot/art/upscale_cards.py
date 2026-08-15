@@ -10,9 +10,11 @@ Usage:
 """
 
 import json
-import sys
+import logging
 import os
+import sys
 import time
+import urllib.error
 import urllib.request
 from pathlib import Path
 
@@ -100,7 +102,7 @@ def upscale_image(image_path: Path, output_dir: Path, model: str = UPSCALE_MODEL
     try:
         with urllib.request.urlopen(req, timeout=30) as resp:
             result = json.loads(resp.read())
-    except Exception as e:
+    except (urllib.error.URLError, json.JSONDecodeError, OSError) as e:
         print(f"    ✗ Submit failed: {e}")
         return False
 
@@ -110,7 +112,7 @@ def upscale_image(image_path: Path, output_dir: Path, model: str = UPSCALE_MODEL
         return False
 
     print(f"    Submitted: {prompt_id}")
-    print(f"    Upscaling (may take 1-3 min)...")
+    print("    Upscaling (may take 1-3 min)...")
 
     # Poll
     deadline = time.time() + 600
@@ -120,7 +122,7 @@ def upscale_image(image_path: Path, output_dir: Path, model: str = UPSCALE_MODEL
                 hist = json.loads(r.read())
             if prompt_id in hist:
                 outputs = hist[prompt_id].get("outputs", {})
-                for nid, nout in outputs.items():
+                for nout in outputs.values():
                     if "images" in nout:
                         for img in nout["images"]:
                             url = f"{COMFY_URL}/view?filename={img['filename']}&subfolder={img.get('subfolder','')}&type=output"
@@ -129,13 +131,15 @@ def upscale_image(image_path: Path, output_dir: Path, model: str = UPSCALE_MODEL
                             size = output_file.stat().st_size
                             print(f"    ✓ Saved: {output_file} ({size // 1024}KB)")
                             return True
-                print(f"    ✗ No image in outputs")
+                print("    ✗ No image in outputs")
                 return False
-        except Exception:
-            pass
+        except (urllib.error.URLError, json.JSONDecodeError, OSError) as e:
+            # Log for debugging but continue polling
+            logger = logging.getLogger(__name__)
+            logger.debug(f"Poll error: {e}")
         time.sleep(3)
 
-    print(f"    ✗ Timeout")
+    print("    ✗ Timeout")
     return False
 
 
@@ -159,9 +163,9 @@ def main():
         dev = stats.get("devices", [{}])[0]
         print(f"ComfyUI: {stats['system']['comfyui_version']}")
         print(f"GPU: {dev['name']} | VRAM free: {dev.get('vram_free', 0) // (1024**3):.1f}GB")
-    except Exception as e:
-        print(f"✗ ComfyUI not reachable: {e}")
-        sys.exit(1)
+    except (urllib.error.URLError, json.JSONDecodeError, OSError) as e:
+            print(f"✗ ComfyUI not reachable: {e}")
+            sys.exit(1)
 
     # Find images
     if args.only:
