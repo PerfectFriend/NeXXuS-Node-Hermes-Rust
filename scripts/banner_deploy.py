@@ -20,7 +20,7 @@ class BannerDeploy:
         self.langs = langs.split(",")
         self.readme = readme
         self.create_repos = create_repos
-        self.root = Path("C:/LivingCode")
+        self.root = Path("/home/thomas/LivingCode")
         self.artifacts_dir = self.root / "artifacts"
         self.projects_dir = self.root / "projects"
 

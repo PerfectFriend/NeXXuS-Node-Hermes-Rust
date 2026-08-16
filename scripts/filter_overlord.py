@@ -34,7 +34,7 @@ class FilterOverlord:
     def __init__(self, cycle: int, protocol: str = "strict"):
         self.cycle = cycle
         self.protocol = protocol
-        self.root = Path("C:/LivingCode")
+        self.root = Path("/home/thomas/LivingCode")
         self.artifacts_dir = self.root / "artifacts"
         self.artifacts_dir.mkdir(parents=True, exist_ok=True)
         self.analyses: List[SessionAnalysis] = []
@@ -252,7 +252,7 @@ class FilterOverlord:
 
     def update_chronicle(self, analyses: List[SessionAnalysis]):
         """Update chronicle.md with filter decisions"""
-        chronicle_path = Path("C:/Vault/Evolution/chronicle.md")
+        chronicle_path = Path("/home/thomas/Documents/ObsidianVault/Evolution/chronicle.md")
         chronicle_path.parent.mkdir(parents=True, exist_ok=True)
 
         entry = f"\n## {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M')} — Filter Overlord Verification (Cycle {self.cycle})\n\n"
@@ -327,7 +327,7 @@ class FilterOverlord:
         print(f"\n  ��� Report saved: {report_file}")
 
         # Match with predictions (from encrypted_comm log)
-        pred_file = Path(f"C:/LivingCode/logs/encrypted_comm_cycle_{self.cycle}.jsonl")
+        pred_file = Path(f"/home/thomas/LivingCode/logs/encrypted_comm_cycle_{self.cycle}.jsonl")
         match_pct = 0
         if pred_file.exists():
             # Simplified: just report that comparison happened

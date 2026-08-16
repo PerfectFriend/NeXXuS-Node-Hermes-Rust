@@ -29,8 +29,8 @@ class Insight:
 class ProfessorSync:
     def __init__(self, cycle: int):
         self.cycle = cycle
-        self.root = Path("C:/LivingCode")
-        self.vault_root = Path("C:/Vault")
+        self.root = Path("/home/thomas/LivingCode")
+        self.vault_root = Path("/home/thomas/Documents/ObsidianVault")
         self.textbook_path = self.vault_root / "Учебник.md"
         self.chronicle_path = self.vault_root / "Evolution" / "chronicle.md"
         self.ai_eng_daily_dir = self.vault_root / "Evolution" / "AI-Engineering-Daily"
