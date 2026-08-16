@@ -12,8 +12,8 @@ from typing import Dict
 
 class VaultGitSync:
     def __init__(self):
-        self.vault_root = Path("C:/Vault")
-        self.living_code_root = Path("C:/LivingCode")
+        self.vault_root = Path("/home/thomas/Documents/ObsidianVault")
+        self.living_code_root = Path("/home/thomas/LivingCode")
     
     def run_cmd(self, cmd: str, cwd: Path = None, timeout: int = 120) -> tuple:
         try:
@@ -78,7 +78,7 @@ class VaultGitSync:
             ("Project2", self.living_code_root / "Project2"),
             ("Project3", self.living_code_root / "Project3"),
             ("Project4", self.living_code_root / "Project4"),
-            ("Grimoire", Path("C:/Users/tomas/the-grimoire")),
+            ("Grimoire", Path("/home/thomas/the-grimoire")),
         ]
         
         results = []

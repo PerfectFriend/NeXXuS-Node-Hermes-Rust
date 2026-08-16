@@ -1,0 +1,81 @@
+{
+  "component": "superguard",
+  "cycle": 1,
+  "middleware": [
+    "fmod",
+    "wwise"
+  ],
+  "fmod": {
+    "banks": [
+      "Master.bank",
+      "Music_superguard.bank",
+      "SFX_superguard.bank"
+    ],
+    "events": [
+      {
+        "name": "music/superguard/base",
+        "parameters": [
+          "Intensity"
+        ]
+      },
+      {
+        "name": "music/superguard/exploration",
+        "parameters": [
+          "Intensity"
+        ]
+      },
+      {
+        "name": "music/superguard/tension",
+        "parameters": [
+          "Intensity"
+        ]
+      },
+      {
+        "name": "music/superguard/danger",
+        "parameters": [
+          "Intensity"
+        ]
+      },
+      {
+        "name": "music/superguard/victory",
+        "parameters": [
+          "Intensity"
+        ]
+      }
+    ],
+    "parameters": {
+      "Intensity": {
+        "min": 0,
+        "max": 4,
+        "description": "0=Base, 1=Exploration, 2=Tension, 3=Danger, 4=Victory"
+      }
+    }
+  },
+  "wwise": {
+    "soundbanks": [
+      "Init.bnk",
+      "Music_superguard.bnk",
+      "SFX_superguard.bnk"
+    ],
+    "switches": {
+      "MusicState": [
+        "Base",
+        "Exploration",
+        "Tension",
+        "Danger",
+        "Victory"
+      ]
+    },
+    "rtpcs": {
+      "MusicIntensity": {
+        "min": 0,
+        "max": 100
+      }
+    },
+    "events": [
+      "Play_Music_superguard",
+      "Stop_Music_superguard",
+      "Set_Music_State_superguard"
+    ]
+  }
+}

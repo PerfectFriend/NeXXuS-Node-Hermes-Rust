@@ -29,8 +29,8 @@ class DJStudio:
     def __init__(self, cycle: int, component: str):
         self.cycle = cycle
         self.component = component
-        self.root = Path("C:/LivingCode")
-        self.totomoto_root = Path("C:/LivingCode/totomoto_audio")  # Remote via Tailscale
+        self.root = Path("/home/thomas/LivingCode")
+        self.totomoto_root = Path("/home/thomas/LivingCode/totomoto_audio")  # Remote via Tailscale
         self.assets_dir = self.root / "assets" / "audio" / component
         self.assets_dir.mkdir(parents=True, exist_ok=True)
         self.generated_assets: List[AudioAsset] = []

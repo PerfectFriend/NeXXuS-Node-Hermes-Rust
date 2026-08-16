@@ -1,0 +1,81 @@
+{
+  "component": "cybertarot",
+  "cycle": 1,
+  "middleware": [
+    "fmod",
+    "wwise"
+  ],
+  "fmod": {
+    "banks": [
+      "Master.bank",
+      "Music_cybertarot.bank",
+      "SFX_cybertarot.bank"
+    ],
+    "events": [
+      {
+        "name": "music/cybertarot/base",
+        "parameters": [
+          "Intensity"
+        ]
+      },
+      {
+        "name": "music/cybertarot/exploration",
+        "parameters": [
+          "Intensity"
+        ]
+      },
+      {
+        "name": "music/cybertarot/tension",
+        "parameters": [
+          "Intensity"
+        ]
+      },
+      {
+        "name": "music/cybertarot/danger",
+        "parameters": [
+          "Intensity"
+        ]
+      },
+      {
+        "name": "music/cybertarot/victory",
+        "parameters": [
+          "Intensity"
+        ]
+      }
+    ],
+    "parameters": {
+      "Intensity": {
+        "min": 0,
+        "max": 4,
+        "description": "0=Base, 1=Exploration, 2=Tension, 3=Danger, 4=Victory"
+      }
+    }
+  },
+  "wwise": {
+    "soundbanks": [
+      "Init.bnk",
+      "Music_cybertarot.bnk",
+      "SFX_cybertarot.bnk"
+    ],
+    "switches": {
+      "MusicState": [
+        "Base",
+        "Exploration",
+        "Tension",
+        "Danger",
+        "Victory"
+      ]
+    },
+    "rtpcs": {
+      "MusicIntensity": {
+        "min": 0,
+        "max": 100
+      }
+    },
+    "events": [
+      "Play_Music_cybertarot",
+      "Stop_Music_cybertarot",
+      "Set_Music_State_cybertarot"
+    ]
+  }
+}
