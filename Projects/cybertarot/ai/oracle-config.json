@@ -1,0 +1,17 @@
+{
+  "model": "qwen3:8b",
+  "temperature": 0.9,
+  "top_p": 0.95,
+  "top_k": 40,
+  "seed_strategy": "hash(cards_ids + date + user_session)",
+  "max_tokens": 800,
+  "repeat_penalty": 1.15,
+  "num_ctx": 4096,
+  "format": "json",
+  "fallback_chain": [
+    "ollama",
+    "api",
+    "mock"
+  ],
+  "cache_ttl_hours": 24
+}

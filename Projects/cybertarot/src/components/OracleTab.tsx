@@ -56,6 +56,10 @@ export function OracleTab({ t, spreadSize, setSpreadSize, drawn, draw, interpret
           </div>
         </div>
       )}
+        <div className="mt-4 p-3 rounded-lg bg-yellow-900/30 border border-yellow-700/50 text-xs text-yellow-200/70 text-center">
+      ⚠️ CyberTarot — это развлекательное приложение. Толкования генерируются AI и не являются прогнозом судьбы или профессиональной консультацией.
     </div>
+
+</div>
   );
 }

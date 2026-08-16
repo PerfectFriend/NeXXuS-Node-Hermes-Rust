@@ -1,16 +1,16 @@
 // CyberTarot — Interpretation service
-// Phase 1: mock implementation. Phase 2: swap for Qwen3/Ollama API.
+// 3-tier fallback: Ollama → API → Mock
 
 import type { DrawnCard, InterpretationResult, Locale } from "@/types";
+import { ollamaInterpret } from "@/services/ollama";
 
-export async function interpret(
+const API_URL = import.meta.env.VITE_API_URL || "";
+
+function mockInterpret(
   cards: DrawnCard[],
   locale: Locale,
   positions: string[]
-): Promise<InterpretationResult> {
-  // Phase 1: deterministic mock from keywords
-  // Phase 2: POST to /api/interpret with cards + locale, get AI response
-
+): InterpretationResult {
   const perCard = cards.map((c, i) => {
     const meaning = c.orientation === "reversed"
       ? c.keywords.reversed[locale] || c.keywords.reversed.en
@@ -19,13 +19,72 @@ export async function interpret(
     return { position: posLabel, text: `${c.name[locale] || c.name.en} — ${meaning}.` };
   });
 
-  const summary = cards.length === 1
-    ? perCard[0].text
-    : `${perCard[0].text} ${perCard[1]?.text ?? ""} ${perCard[2]?.text ?? ""}`;
-
+  const summary = perCard.map(pc => pc.text).join(" ");
   const reflectionPrompt = locale === "ru"
     ? "Что эти карты говорят о вашем текущем пути?"
     : "What do these cards say about your current path?";
 
   return { summary, perCard, reflectionPrompt };
+}
+
+function getCached(cards: DrawnCard[], locale: Locale): InterpretationResult | null {
+  const date = new Date().toDateString();
+  const key = `ct_interp_${cards.map(c => c.id + c.orientation).join(",")}_${locale}_${date}`;
+  try {
+    const cached = localStorage.getItem(key);
+    if (cached) return JSON.parse(cached);
+  } catch {}
+  return null;
+}
+
+function setCache(cards: DrawnCard[], locale: Locale, result: InterpretationResult) {
+  const date = new Date().toDateString();
+  const key = `ct_interp_${cards.map(c => c.id + c.orientation).join(",")}_${locale}_${date}`;
+  try {
+    localStorage.setItem(key, JSON.stringify(result));
+  } catch {}
+}
+
+export async function interpret(
+  cards: DrawnCard[],
+  locale: Locale,
+  positions: string[]
+): Promise<InterpretationResult> {
+  // 1. Check cache
+  const cached = getCached(cards, locale);
+  if (cached) return cached;
+
+  // 2. Try Ollama (local, 30s timeout)
+  const ollamaResult = await ollamaInterpret(cards, locale, positions);
+  if (ollamaResult && ollamaResult.summary) {
+    setCache(cards, locale, ollamaResult);
+    return ollamaResult;
+  }
+
+  // 3. Try API (if configured, 15s timeout)
+  if (API_URL) {
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 15000);
+      const resp = await fetch(`${API_URL}/api/interpret`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cards, locale, positions }),
+        signal: controller.signal,
+      });
+      clearTimeout(timeout);
+      if (resp.ok) {
+        const result = await resp.json();
+        if (result.summary) {
+          setCache(cards, locale, result);
+          return result;
+        }
+      }
+    } catch {}
+  }
+
+  // 4. Fallback to mock
+  const mock = mockInterpret(cards, locale, positions);
+  setCache(cards, locale, mock);
+  return mock;
 }

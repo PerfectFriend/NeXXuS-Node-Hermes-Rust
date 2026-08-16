@@ -72,7 +72,7 @@ def add_watermark(img: Image.Image, text: str = WATERMARK_TEXT,
     # Try to use a nice font
     try:
         font = ImageFont.truetype("arial.ttf", 18)
-    except Exception:
+    except OSError:
         font = ImageFont.load_default()
 
     # Position bottom-right with margin
