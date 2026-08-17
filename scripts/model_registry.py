@@ -141,7 +141,7 @@ TASK_ROLE_MAP = {
 
 class ModelRegistry:
     def __init__(self):
-        self.root = Path("C:/LivingCode")
+        self.root = Path("/home/thomas/LivingCode")
         self.cache_dir = self.root / "cache" / "model_registry"
         self.cache_dir.mkdir(parents=True, exist_ok=True)
         self.cache_file = self.cache_dir / "routing_cache.json"

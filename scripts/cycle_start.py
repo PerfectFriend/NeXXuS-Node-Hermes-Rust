@@ -117,10 +117,10 @@ class CycleStart:
     def send_briefing(self) -> Dict:
         """Trigger encrypted_comm briefing"""
         print("  📢 Sending cycle briefing via encrypted_comm...")
-        script = self.grimoire_root / "scripts" / "encrypted_comm.py"
-       
-        success, out, err = self.run_cmd(f'python "{script}" --briefing --cycle {self.cycle}', cwd=self.grimoire_root, timeout=30)
-       
+        script = Path("/home/thomas/.hermes/scripts/encrypted_comm.py")
+        
+        success, out, err = self.run_cmd(f'python "{script}" --briefing --cycle {self.cycle}', timeout=30)
+        
         return {"success": success, "output": out[:200] if out else err[:200]}
    
     def run(self) -> Dict:

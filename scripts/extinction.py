@@ -15,8 +15,8 @@ from typing import Dict, List
 class ExtinctionCheck:
     def __init__(self, min_days: int = 7):
         self.min_days = min_days
-        self.root = Path("C:/Users/tomas/the-grimoire/ru")
-        self.vault_root = Path("C:/Vault")
+        self.root = Path("/home/thomas/the-grimoire/ru")
+        self.vault_root = Path("/home/thomas/Documents/ObsidianVault")
         self.pulse_history = self.vault_root / "Evolution" / "pulse-history.csv"
         self.evolution_dir = self.vault_root / "Evolution"
         self.archive_dir = self.evolution_dir / "archive"
