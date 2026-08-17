@@ -1,0 +1,26 @@
+# Добавь этот блок в ~/.hermes/config.yaml после раздела model:
+
+providers:
+  - name: ollama
+    type: openai_compatible
+    base_url: http://127.0.0.1:11434/v1
+    api_key: "ollama"
+    models:
+      - qwen2.5-coder:7b
+      - deepseek-coder-v2:16b
+      - qwen2.5:14b
+      - hf.co/unsloth/Qwen3.8-27B-GGUF:UD-Q2_K_XL
+      - gemma4:26b
+
+  - name: lemonade
+    type: openai_compatible
+    base_url: http://127.0.0.1:8000/v1
+    api_key: "lemonade"
+    models:
+      - DeepSeek-Qwen3-8B-GGUF
+      - Whisper-Large-v3-Turbo
+      - kokoro-v1
+      - ACE-Step-Music
+      - SDXL-Turbo
+      - Qwen3.6-35B-A3B-MTP-GGUF
+      - Flux-2-Klein-9B-GGUF

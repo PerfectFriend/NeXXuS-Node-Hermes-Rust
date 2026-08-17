@@ -1,0 +1,78 @@
+{
+  "git_sync": {
+    "repos": [
+      {
+        "repo": "LivingCode Root",
+        "success": false,
+        "output": "error: cannot pull with rebase: You have unstaged changes.\nerror: Please commit or stash them.\n"
+      },
+      {
+        "repo": "Project1",
+        "success": false,
+        "output": "error: cannot pull with rebase: You have unstaged changes.\nerror: Please commit or stash them.\n"
+      },
+      {
+        "repo": "Project2",
+        "success": false,
+        "output": "error: cannot pull with rebase: You have unstaged changes.\nerror: Please commit or stash them.\n"
+      },
+      {
+        "repo": "Project3",
+        "success": false,
+        "output": "error: cannot pull with rebase: You have unstaged changes.\nerror: Please commit or stash them.\n"
+      },
+      {
+        "repo": "Project4",
+        "success": false,
+        "output": "error: cannot pull with rebase: You have unstaged changes.\nerror: Please commit or stash them.\n"
+      },
+      {
+        "repo": "Vault",
+        "success": true,
+        "output": "Current branch main is up to date.\n"
+      },
+      {
+        "repo": "Grimoire",
+        "success": false,
+        "output": "error: cannot pull with rebase: You have unstaged changes.\nerror: Please commit or stash them.\n"
+      }
+    ],
+    "all_ok": false
+  },
+  "tailscale": {
+    "nodes": [
+      {
+        "node": "lenovo",
+        "online": false
+      },
+      {
+        "node": "dell",
+        "online": false
+      },
+      {
+        "node": "totomoto",
+        "online": true
+      },
+      {
+        "node": "unsloth-studio",
+        "online": false
+      },
+      {
+        "node": "ubuntu-server",
+        "online": false
+      }
+    ],
+    "all_online": false
+  },
+  "model_registry": {
+    "success": false
+  },
+  "chronicle": true,
+  "briefing": {
+    "success": false,
+    "output": "/bin/sh: 1: C:\\Users\\tomas\\AppData\\Local\\hermes\\hermes-agent\\venv\\Scripts\\python.exe: not found\n"
+  },
+  "overall_success": false,
+  "cycle": 12325,
+  "timestamp": "2026-08-17T07:23:17.055837+00:00"
+}
