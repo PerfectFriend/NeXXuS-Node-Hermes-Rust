@@ -1,0 +1,186 @@
+{
+  "queue": [
+    {
+      "name": "elemental-life-new",
+      "source": "/home/thomas/Backup/Projects/elemental-life-new",
+      "priority": 2,
+      "added_at": "2026-08-16T23:30:00"
+    },
+    {
+      "name": "elemental-life-github",
+      "source": "/home/thomas/Backup/Projects/elemental-life-github",
+      "priority": 4,
+      "added_at": "2026-08-16T23:30:00"
+    },
+    {
+      "name": "life_elements_game",
+      "source": "/home/thomas/Backup/Projects/life_elements_game",
+      "priority": 5,
+      "added_at": "2026-08-16T23:30:00"
+    },
+    {
+      "name": "RemixTarot1",
+      "source": "/home/thomas/Backup/Projects/RemixTarot1",
+      "priority": 6,
+      "added_at": "2026-08-16T23:30:00"
+    },
+    {
+      "name": "RemixTarot2",
+      "source": "/home/thomas/Backup/Projects/RemixTarot2",
+      "priority": 7,
+      "added_at": "2026-08-16T23:30:00"
+    },
+    {
+      "name": "Tarot",
+      "source": "/home/thomas/Backup/Projects/Tarot",
+      "priority": 8,
+      "added_at": "2026-08-16T23:30:00"
+    },
+    {
+      "name": "Tarot 3",
+      "source": "/home/thomas/Backup/Projects/Tarot 3",
+      "priority": 9,
+      "added_at": "2026-08-16T23:30:00"
+    },
+    {
+      "name": "Tarot 4",
+      "source": "/home/thomas/Backup/Projects/Tarot 4",
+      "priority": 10,
+      "added_at": "2026-08-16T23:30:00"
+    },
+    {
+      "name": "Tarot 5",
+      "source": "/home/thomas/Backup/Projects/Tarot 5",
+      "priority": 11,
+      "added_at": "2026-08-16T23:30:00"
+    },
+    {
+      "name": "Manicure",
+      "source": "/home/thomas/Backup/Projects/Manicure",
+      "priority": 12,
+      "added_at": "2026-08-16T23:30:00"
+    },
+    {
+      "name": "Mana",
+      "source": "/home/thomas/Backup/Projects/Mana",
+      "priority": 13,
+      "added_at": "2026-08-16T23:30:00"
+    },
+    {
+      "name": "ManaForge",
+      "source": "/home/thomas/Backup/Projects/ManaForge",
+      "priority": 14,
+      "added_at": "2026-08-16T23:30:00"
+    },
+    {
+      "name": "MatrixX",
+      "source": "/home/thomas/Backup/Projects/MatrixX",
+      "priority": 15,
+      "added_at": "2026-08-16T23:30:00"
+    },
+    {
+      "name": "N2",
+      "source": "/home/thomas/Backup/Projects/N2",
+      "priority": 16,
+      "added_at": "2026-08-16T23:30:00"
+    },
+    {
+      "name": "N3",
+      "source": "/home/thomas/Backup/Projects/N3",
+      "priority": 17,
+      "added_at": "2026-08-16T23:30:00"
+    },
+    {
+      "name": "Nexus",
+      "source": "/home/thomas/Backup/Projects/Nexus",
+      "priority": 18,
+      "added_at": "2026-08-16T23:30:00"
+    },
+    {
+      "name": "PXNode",
+      "source": "/home/thomas/Backup/Projects/PXNode",
+      "priority": 19,
+      "added_at": "2026-08-16T23:30:00"
+    },
+    {
+      "name": "RadioArmageddonFM",
+      "source": "/home/thomas/Backup/Projects/RadioArmageddonFM",
+      "priority": 20,
+      "added_at": "2026-08-16T23:30:00"
+    },
+    {
+      "name": "node",
+      "source": "/home/thomas/Backup/Projects/node",
+      "priority": 21,
+      "added_at": "2026-08-16T23:30:00"
+    },
+    {
+      "name": "paranoidx-sdk",
+      "source": "/home/thomas/Backup/Projects/paranoidx-sdk",
+      "priority": 22,
+      "added_at": "2026-08-16T23:30:00"
+    },
+    {
+      "name": "remix_simplex_audit",
+      "source": "/home/thomas/Backup/Projects/remix_simplex_audit",
+      "priority": 23,
+      "added_at": "2026-08-16T23:30:00"
+    },
+    {
+      "name": "victoria-audit",
+      "source": "/home/thomas/Backup/Projects/victoria-audit",
+      "priority": 24,
+      "added_at": "2026-08-16T23:30:00"
+    },
+    {
+      "name": "emulator-launcher-gui",
+      "source": "/home/thomas/Backup/Projects/emulator-launcher-gui",
+      "priority": 25,
+      "added_at": "2026-08-16T23:30:00"
+    },
+    {
+      "name": "narde",
+      "source": "/home/thomas/Backup/Projects/narde",
+      "priority": 26,
+      "added_at": "2026-08-16T23:30:00"
+    },
+    {
+      "name": "Isle",
+      "source": "/home/thomas/Backup/Projects/Isle",
+      "priority": 27,
+      "added_at": "2026-08-16T23:30:00"
+    },
+    {
+      "name": "GlobeVis",
+      "source": "/home/thomas/Backup/Projects/GlobeVis",
+      "priority": 28,
+      "added_at": "2026-08-16T23:30:00"
+    },
+    {
+      "name": "ChainZap",
+      "source": "/home/thomas/Backup/Projects/ChainZap",
+      "priority": 29,
+      "added_at": "2026-08-16T23:30:00"
+    },
+    {
+      "name": "ArmsgeddonFM",
+      "source": "/home/thomas/Backup/Projects/ArmsgeddonFM",
+      "priority": 30,
+      "added_at": "2026-08-16T23:30:00"
+    }
+  ],
+  "active": [
+    "elemental-life",
+    "elemental-life-2",
+    "LivingCode-main_menu_ui-001",
+    "elemental-life-game-by-toto",
+    "cybertarot"
+  ],
+  "completed": [
+    "boss_fight_system",
+    {
+      "name": "superguard",
+      "promoted_at": "20260816_232832"
+    }
+  ]
+}

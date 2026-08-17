@@ -1,0 +1,29 @@
+2026-08-17 00:47:34,914 [INFO] ============================================================
+2026-08-17 00:47:34,914 [INFO] Starting Living Code Agent Watchdog
+2026-08-17 00:47:34,914 [INFO] Watching: /home/thomas/LivingCode/events
+2026-08-17 00:47:34,914 [INFO] ============================================================
+2026-08-17 00:47:34,914 [INFO] Processing stale event: searcher.done.test.json
+2026-08-17 00:47:34,914 [INFO] Triggering: searcher.done -> python /home/thomas/LivingCode/scripts/coder_trigger.py --project superguard --cycle 999
+2026-08-17 00:47:34,915 [INFO] Watchdog running. Press Ctrl+C to stop.
+2026-08-17 00:47:35,040 [WARNING] Unknown event type: coder.started in coder.started.superguard.cycle_999.json
+2026-08-17 00:48:47,459 [INFO] ============================================================
+2026-08-17 00:48:47,459 [INFO] Starting Living Code Agent Watchdog
+2026-08-17 00:48:47,459 [INFO] Watching: /home/thomas/LivingCode/events
+2026-08-17 00:48:47,459 [INFO] ============================================================
+2026-08-17 00:48:47,459 [INFO] Processing stale event: coder.done.test.json
+2026-08-17 00:48:47,460 [INFO] Triggering: coder.done -> python /home/thomas/LivingCode/scripts/auditor_trigger.py --project superguard --cycle 999
+2026-08-17 00:48:47,461 [INFO] Watchdog running. Press Ctrl+C to stop.
+2026-08-17 01:16:19,237 [INFO] ============================================================
+2026-08-17 01:16:19,237 [INFO] Starting Living Code Agent Watchdog
+2026-08-17 01:16:19,237 [INFO] Watching: /home/thomas/LivingCode/events
+2026-08-17 01:16:19,237 [INFO] ============================================================
+2026-08-17 01:16:19,238 [INFO] Watchdog running. Press Ctrl+C to stop.
+2026-08-17 01:16:25,247 [ERROR] Error processing searcher.done.test.json: 'project'
+2026-08-17 01:17:34,777 [INFO] ============================================================
+2026-08-17 01:17:34,777 [INFO] Starting Living Code Agent Watchdog
+2026-08-17 01:17:34,777 [INFO] Watching: /home/thomas/LivingCode/events
+2026-08-17 01:17:34,777 [INFO] ============================================================
+2026-08-17 01:17:34,777 [INFO] Processing stale event: searcher.done.test.json
+2026-08-17 01:17:34,777 [ERROR] Error processing searcher.done.test.json: 'project'
+2026-08-17 01:17:34,778 [INFO] Watchdog running. Press Ctrl+C to stop.
+2026-08-17 01:17:45,238 [INFO] Triggering: searcher.done -> python /home/thomas/LivingCode/scripts/coder_trigger.py --project superguard --cycle 999

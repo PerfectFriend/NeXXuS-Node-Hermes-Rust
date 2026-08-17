@@ -1,0 +1,16 @@
+{
+  "node_id": "totomoto",
+  "hostname": "totomoto",
+  "tailscale_ip": "100.x.y.z",
+  "services": {
+    "ollama": "http://127.0.0.1:11434",
+    "task_api": "http://127.0.0.1:8080"
+  },
+  "capabilities": ["coder", "auditor", "searcher", "producer", "professor", "inquisitor", "supervisor", "light_llm"],
+  "gpu": "RTX 3060 12GB",
+  "ram_gb": 32,
+  "max_concurrent_jobs": 3,
+  "current_load": 0,
+  "status": "online",
+  "last_heartbeat": "2026-08-17T10:30:00Z"
+}

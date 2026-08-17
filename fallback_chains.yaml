@@ -1,0 +1,95 @@
+# Model Fallback Chains for Living Code Agents
+# Based on ACTUALLY INSTALLED models (Ollama + Lemonade)
+# Hardware: AMD 780M iGPU (2-4GB VRAM), 32GB RAM
+
+chains:
+  # Code generation & implementation
+  coder:
+    - "qwen2.5-coder:7b"                    # Primary (Ollama): 4.7GB, excellent code
+    - "DeepSeek-Qwen3-8B-GGUF"              # Fallback 1 (Lemonade): 4.89GB, good code
+    - "deepseek-coder-v2:16b"               # Fallback 2 (Ollama): 8.9GB, complex tasks
+    - "qwen2.5:14b"                         # Fallback 3 (Ollama): 9GB, general
+    - "hf.co/unsloth/Qwen3.8-27B-GGUF:UD-Q2_K_XL"  # Fallback 4 (Ollama): 11GB
+    - "gemma4:26b"                          # Fallback 5 (Ollama): 17GB
+
+  # Code review & quality audit
+  auditor:
+    - "qwen2.5:14b"                         # Primary (Ollama): strong reasoning
+    - "hf.co/unsloth/Qwen3.8-27B-GGUF:UD-Q2_K_XL"  # Fallback 1: deep analysis
+    - "gemma4:26b"                          # Fallback 2: complex analysis
+    - "DeepSeek-Qwen3-8B-GGUF"              # Fallback 3 (Lemonade): code-focused
+
+  # Web research & information gathering
+  searcher:
+    - "hf.co/unsloth/Qwen3.8-27B-GGUF:UD-Q2_K_XL"  # Primary (Ollama): long context
+    - "qwen2.5:14b"                         # Fallback 1: good synthesis
+    - "gemma4:26b"                          # Fallback 2: deep reasoning
+
+  # Deep technical learning & knowledge synthesis
+  professor:
+    - "hf.co/unsloth/Qwen3.8-27B-GGUF:UD-Q2_K_XL"  # Primary: best reasoning
+    - "qwen2.5:14b"                         # Fallback 1: long context
+    - "gemma4:26b"                          # Fallback 2
+
+  # Visual asset generation (prompts for ComfyUI/SDXL)
+  artist:
+    - "qwen2.5:14b"                         # Primary: good prompt engineering
+    - "hf.co/unsloth/Qwen3.8-27B-GGUF:UD-Q2_K_XL"  # Fallback: complex prompts
+
+  # Music composition & lyrics
+  musician:
+    - "qwen2.5:14b"                         # Primary: lyrics, structure
+    - "DeepSeek-Qwen3-8B-GGUF"              # Fallback
+
+  # Text-to-Speech
+  tts:
+    - "kokoro-v1"                           # Primary (Lemonade): fast, multi-voice
+    - "ACE-Step-Music"                      # Fallback (Lemonade): can do vocals
+
+  # Speech-to-Text
+  stt:
+    - "Whisper-Large-v3-Turbo"              # Primary (Lemonade): best accuracy, fast
+    - "Whisper-Large-v3"                    # Fallback: if available
+
+  # Image Generation
+  image_gen:
+    - "SDXL-Turbo"                          # Primary (Lemonade): 6.46GB, fast
+    - "Flux-2-Klein-9B-GGUF"               # Fallback (Lemonade): 17.7GB, quality
+
+  # Music Generation
+  music_gen:
+    - "ACE-Step-Music"                      # Primary (Lemonade): 10.5GB
+
+  # General purpose / fallback for any agent
+  general:
+    - "qwen2.5-coder:7b"
+    - "qwen2.5:14b"
+    - "DeepSeek-Qwen3-8B-GGUF"
+    - "hf.co/unsloth/Qwen3.8-27B-GGUF:UD-Q2_K_XL"
+
+# Node-specific overrides for distributed compute
+node_overrides:
+  unsloth-studio:
+    # Has RTX 4090 24GB - can run heavier models
+    coder:
+      - "hf.co/unsloth/Qwen3.8-27B-GGUF:UD-Q2_K_XL"
+      - "gemma4:26b"
+      - "deepseek-coder-v2:16b"
+    auditor:
+      - "gemma4:26b"
+      - "hf.co/unsloth/Qwen3.8-27B-GGUF:UD-Q2_K_XL"
+    professor:
+      - "gemma4:26b"
+      - "hf.co/unsloth/Qwen3.8-27B-GGUF:UD-Q2_K_XL"
+  
+  dell:
+    # CPU-only or lighter GPU - prefer smaller models
+    coder:
+      - "qwen2.5-coder:7b"
+      - "DeepSeek-Qwen3-8B-GGUF"
+      - "qwen2.5:3b"
+    tts:
+      - "kokoro-v1"
+    stt:
+      - "Whisper-Large-v3-Turbo"
+      - "Whisper-Base"

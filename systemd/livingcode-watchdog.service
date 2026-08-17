@@ -1,0 +1,18 @@
+[Unit]
+Description=Living Code Agent Watchdog
+After=network-online.target tailscale.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=thomas
+WorkingDirectory=/home/thomas/LivingCode
+ExecStart=/home/thomas/LivingCode/.venv/bin/python /home/thomas/LivingCode/scripts/agent_watchdog.py
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+Environment=PYTHONPATH=/home/thomas/LivingCode
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,34 @@
+{
+  "run_id": "20260717-R1",
+  "project_root": "c:/Temp/elemental-life-game-by-toto",
+  "cycle": 20,
+  "max_cycles": 20,
+  "status": "awaiting_user",
+  "active_layer": "shared",
+  "focus_paths": [
+    "app/src/main/java/com/toto/elementallife/ops/",
+    "app/src/main/java/com/toto/elementallife/unlock/"
+  ],
+  "frozen_paths": [
+    "app/src/main/java/com/toto/elementallife/unlock/UnlockSequence.kt",
+    "app/src/main/java/com/toto/elementallife/ops/api/",
+    "app/src/main/java/com/toto/elementallife/ops/engines/MockNetworkEngine.kt"
+  ],
+  "next_steps": [
+    "B009-real-tor",
+    "B010-real-openvpn",
+    "B011-real-v2ray",
+    "SOCKS-probe",
+    "real-simplex-core"
+  ],
+  "blockers": [],
+  "last_deploy": {
+    "type": "assembleDebug",
+    "apk": "app/build/outputs/apk/debug/app-debug.apk",
+    "tests": "testDebugUnitTest PASS",
+    "size_bytes": 20551132
+  },
+  "token_budget_notes": "skip frozen; research max 3 sources/cycle",
+  "product_notes": "L1 cover + L2 ops lab; stubs for real engines in R2",
+  "report": "EVOLUTION/reports/run-20260717-R1.md"
+}

@@ -1,0 +1,12 @@
+{
+  "name": "apk-downloader-server",
+  "version": "1.0.0",
+  "description": "Helper Express server to stream APK and ZIP files from Google AI Studio",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}

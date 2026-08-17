@@ -1,0 +1,10 @@
+Download server running at http://localhost:3000
+Ready to serve APK and ZIP files.
+[2026-07-21T07:29:29.591Z] HEAD /download/release.apk
+Streaming APK of size: 3.54 MB
+[2026-07-21T07:29:29.629Z] HEAD /download/release.zip
+Streaming ZIP of size: 3.49 MB
+[2026-07-21T07:29:52.706Z] HEAD /download/release.apk
+Streaming APK of size: 21.74 MB
+[2026-07-21T07:29:52.777Z] HEAD /download/release.zip
+Streaming ZIP of size: 20.85 MB
