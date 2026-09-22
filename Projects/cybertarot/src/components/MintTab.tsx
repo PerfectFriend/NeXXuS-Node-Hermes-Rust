@@ -1,3 +1,4 @@
+
 import { Wand2, Layers } from "lucide-react";
 import type { LocaleConfig, MintedCard, Rarity } from "@/types";
 import { RARITIES } from "@/data/game";

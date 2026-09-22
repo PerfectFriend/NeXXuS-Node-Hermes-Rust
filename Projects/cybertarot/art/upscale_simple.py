@@ -1,3 +1,4 @@
+# HOT
 #!/usr/bin/env python3
 """
 CyberTarot — Simple 4x Upscaler (Lanczos + Unsharp Mask)

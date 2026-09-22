@@ -1,3 +1,4 @@
+# HOT
 # CyberTarot — Полный технический аудит
 **Дата:** 2026-08-12  
 **Аудитор:** Hermes Agent (GodModeCoder)  

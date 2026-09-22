@@ -1,3 +1,4 @@
+# HOT
 # CyberTarot AI Engine — Rule Package
 
 ## Model choice

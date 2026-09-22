@@ -1,3 +1,4 @@
+# HOT
 #!/usr/bin/env python3
 """
 CyberTarot — Card Art Generator via ComfyUI REST API

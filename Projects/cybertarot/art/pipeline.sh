@@ -1,3 +1,4 @@
+# HOT
 #!/bin/bash
 # ============================================================
 # CyberTarot Nightly Art Pipeline — Multi-stage

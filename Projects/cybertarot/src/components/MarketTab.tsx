@@ -1,3 +1,4 @@
+
 import { Store, Gem } from "lucide-react";
 import type { MintedCard } from "@/types";
 import { RARITIES } from "@/data/game";

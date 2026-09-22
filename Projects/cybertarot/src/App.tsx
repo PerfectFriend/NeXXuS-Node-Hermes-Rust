@@ -1,3 +1,4 @@
+
 import { Coins, Droplets, Users, Copy, Check } from "lucide-react";
 import type { Locale } from "@/types";
 import { LOCALES } from "@/data/game";

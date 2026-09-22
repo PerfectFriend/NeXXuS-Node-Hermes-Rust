@@ -1,3 +1,4 @@
+
 // CyberTarot — Type Definitions
 
 export type Locale = "en" | "ru" | "es" | "zh" | "hi" | "ar" | "pt" | "ja" | "fr" | "de";

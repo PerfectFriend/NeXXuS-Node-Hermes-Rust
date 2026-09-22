@@ -1,5 +1,4 @@
-// CyberTarot — Interpretation service
-// 3-tier fallback: Ollama → API → Mock
+
 
 import type { DrawnCard, InterpretationResult, Locale } from "@/types";
 import { ollamaInterpret } from "@/services/ollama";

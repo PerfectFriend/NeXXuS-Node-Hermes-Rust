@@ -1,4 +1,4 @@
-// ManaWell — колодец маны: механика нарастающего вознаграждения с риском пересыхания
+
 //
 // Правила:
 // 1. Первое получение: 1 мана
@@ -140,7 +140,10 @@ export function formatTimeLeft(ms: number, locale: string = "en"): string {
   const h = Math.floor(totalMin / 60);
   const m = totalMin % 60;
   const s = Math.floor((ms % 60000) / 1000);
-  if (h > 0) return `${h}ч ${m}м`;
-  if (m > 0) return `${m}м ${s}с`;
-  return `${s}с`;
+  // Единицы локализованы: ru → «ч/м/с», остальные → «h/m/s»
+  const isRu = locale === "ru";
+  const u = (ru: string, en: string) => (isRu ? ru : en);
+  if (h > 0) return `${h}${u("ч", "h")} ${m}${u("м", "m")}`;
+  if (m > 0) return `${m}${u("м", "m")} ${s}${u("с", "s")}`;
+  return `${s}${u("с", "s")}`;
 }

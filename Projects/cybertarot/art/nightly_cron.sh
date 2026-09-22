@@ -1,3 +1,4 @@
+# HOT
 #!/bin/bash
 # CyberTarot — Nightly Art Factory launcher
 # Запускается по cron: поднимает ComfyUI → ждёт → генерирует → закрывает

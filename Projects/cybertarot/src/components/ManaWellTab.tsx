@@ -1,3 +1,4 @@
+
 // ManaWellTab — визуализация колодца маны с таймерами и кнопкой сбора
 
 import { useState, useEffect } from "react";

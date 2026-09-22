@@ -1,3 +1,4 @@
+
 import { Gem } from "lucide-react";
 import type { CardData, Rarity, Orientation } from "@/types";
 import { RARITIES } from "@/data/game";

@@ -1,3 +1,4 @@
+# HOT
 // magic-jetton.tact
 // STRUCTURAL SKELETON — NOT compiled, NOT audited, NOT production code.
 // Hands off the entrypoints + storage shape to a Tact developer via opencode.

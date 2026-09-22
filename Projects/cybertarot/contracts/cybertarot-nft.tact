@@ -1,3 +1,4 @@
+# HOT
 // cybertarot-nft.tact
 // STRUCTURAL SKELETON — NOT compiled, NOT audited, NOT production code.
 // Standard: TON TIP-4 NFT (collection + item contract pair).

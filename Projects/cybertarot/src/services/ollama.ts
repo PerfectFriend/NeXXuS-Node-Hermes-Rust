@@ -1,7 +1,7 @@
-// CyberTarot — Ollama Client
+
 // Connects to local Ollama for AI tarot interpretations
 
-import type { InterpretationResult, DrawnCard, Locale } from "@/types";
+import type { DrawnCard, InterpretationResult, Locale } from "@/types";
 
 const OLLAMA_URL = import.meta.env.VITE_OLLAMA_URL || "http://localhost:11434";
 const MODEL = "qwen3:8b";

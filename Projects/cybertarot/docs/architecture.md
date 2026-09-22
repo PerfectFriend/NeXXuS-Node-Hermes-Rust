@@ -1,3 +1,4 @@
+# HOT
 # CyberTarot — System Architecture
 
 ## High-level flow

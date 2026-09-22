@@ -1,3 +1,4 @@
+# HOT
 # CyberTarot — handoff package for opencode
 
 Prototype built by Claude. This package hands off everything needed to move

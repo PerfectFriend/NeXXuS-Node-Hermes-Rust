@@ -1,3 +1,4 @@
+# HOT
 """
 Living Code Project cybertarot Core Module
 Cycle 11 Subcycle 2

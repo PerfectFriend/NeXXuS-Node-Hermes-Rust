@@ -1,5 +1,3 @@
-// useTarot — main game state hook with localStorage persistence
-// ManaWell: нарастающее вознаграждение, пересыхание, привязка игрока
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import type { DrawnCard, Locale, MintedCard, Rarity } from "@/types";
@@ -172,8 +170,8 @@ export function useTarot() {
 
   return {
     locale, setLocale,
-    balance,
-    collection,
+    balance, setBalance,
+    collection, setCollection,
     refCode,
     well,
     wellFilled,

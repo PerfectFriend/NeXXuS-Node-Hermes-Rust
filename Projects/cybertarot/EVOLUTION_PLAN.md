@@ -1,3 +1,4 @@
+# HOT
 # CyberTarot — План эволюции до RC (Release Candidate)
 **Дата:** 2026-08-12  
 **Автор:** Hermes Agent (GodModeCoder)  

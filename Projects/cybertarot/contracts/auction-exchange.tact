@@ -1,3 +1,4 @@
+# HOT
 // auction-exchange.tact
 // STRUCTURAL SKELETON — NOT compiled, NOT audited, NOT production code.
 // Two mechanisms: (1) instant sell-back to a discounted pool,

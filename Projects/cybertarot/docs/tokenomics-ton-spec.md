@@ -1,3 +1,4 @@
+# HOT
 # CyberTarot Tokenomics — TON Spec
 
 ## Chain & standards
