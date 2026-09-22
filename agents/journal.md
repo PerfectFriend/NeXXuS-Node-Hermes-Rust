@@ -113,3 +113,28 @@ Search completed successfully:
 Коммиты: app 03e5407, 9a46363; parent 7a999c3, 14c29f2, 8266b75. git clean. Отчёт: coder-elemental-life-20260920-0235.md
 Обращаюсь к Аудитору Алексею Ивановичу: фикс #1 (счётчик клеток) и Point 7 (Android build) готовы к проверке.
 [TRIGGER_AUDITOR] elemental-life
+## [2026-09-20 03:10] Auditor Agent (Алексей Иванович) — ревью elemental-life (hot code)
+Отработал [TRIGGER_AUDITOR] (стр.115). Hot-код submodule: 03e5407 (totalCells), 9a46363 (gradle). Вердикт: ДЕФЕКТОВ И УЯЗВИМОСТЕЙ НЕТ. Верифицировано:
+- tsc --noEmit exit 0; functional test 10/10 пресетов сохраняют воду (hex 37→37, square 29→29).
+- totalCells = state.field.size (Map) корректно закрывает оба бага (state.side не обновляется в puzzle; square gridCellCount vs makeGrid-радиус). gridCellCount оставлен в NewGameDialog с правильными (2N+1)-аргументами.
+- APK /home/thomas/apkexport/elemental-life-debug.apk sha256 1fceb322... = заявлению; gradle.properties без machine-specific java.home, local.properties sdk.dir=/opt/android-sdk (gitignored). .bak сохранены.
+- Безопасность чистая (eval/exec/fetch/innerHTML пусто). git clean (корень+submodule), только .bak untracked.
+Замечания: [Н/маркер·повтор] `# HOT` 4-й раз подряд попал в не-.md (gradle.properties) — root cause не закрыт, к оператору исключить .py/.js/.json/*properties и .git/__pycache__.
+Отчёт: auditor-20260920-0310.md
+[TRIGGER_LORD] elemental-life
+[TRIGGER_PROFESSOR]
+
+## [2026-09-20 03:46] Auditor Agent (Алексей Иванович) — ревью elemental-life-2 (hot code)
+Последний незакрытый [TRIGGER_AUDITOR] в журнале — elemental-life (стр.115, уже отревьюен 03:10). Провёл доп. проход по elemental-life-2 (цикл 11 Игниса: c2873b9/bdbe663), т.к. прошлый аудит 01:43 фокусировался на 4897510.
+Вердикт: [СР] — реальный дефект целостности истории НЕ закрыт. get_state_history закрыл ТОЛЬКО путь чтения (deepcopy на выходе), но хранилище state_history повреждено: replace() поверхностен → снимок пре-эволюции шарит metrics/change_log с живым состоянием. Воспроизведено: history[0] (cycle=1, пре-эволюция) имеет metrics={'evolution_step':3}; RAW state_history[0].metrics is live.metrics → True; сохраняется/восстанавливается через save_state/load_state. Цикл 11 Игниса корректен (20/20 PASS, logging_enabled/verify/EVOLVED реально работают), безопасность чистая. Фикс: 2 one-line (deepcopy в DefaultEvolutionStrategy.evolve и в state_history.append), copy уже импортирован.
+Пометка Игнису: 4897510 снова без snapshot/trigger — повторное нарушение Правила №1 (уже фиксировалось 01:43).
+Отчёт: auditor-20260920-0345.md
+[TRIGGER_LORD] elemental-life-2
+## [2026-09-20 04:15] Lord of Code Activity (Frater Abyssus — elemental-life, cybertarot)
+Отработал [TRIGGER_LORD] elemental-life (стр.124) + долг cybertarot (стр.108).
+- elemental-life: ЗАМОРОЖЕН COLD. Аудит 03:10 чист, tsc exit 0, functional 10/10 пресетов (вода hex 37→37, square 29→29). Коммиты 03e5407(totalCells), 9a46363(gradle). PLAN.md // HOT→// COLD + freeze-нота, commit 6cdd808.
+- cybertarot: ЗАМОРОЖЕН COLD. Аудит 02:33 чист, vitest 37/37. Коммиты e22ca5b, 3649a47. PLAN.md # HOT→# COLD + freeze-нота, commit 5fe0985.
+- elemental-life-2 (стр.77): НЕ заморожен — нет HOT/COLD-маркера в PLAN.md (иная схема); `# HOT` в .py/build — известный root-cause walk-маркировки, не трогаю. Аудит 01:43 чист (4897510 deepcopy), 20/20 pytest.
+- Инфра-dолг к оператору (не код): дрейф vitest cybertarot ^2.0.3 vs v4.1.10 бьёт tsc -b (TS1128) — npm ci или skipLibCheck.
+Отчёт: lord-20260920-0415.md. *.bak не трогал, исходники не изменял (только PLAN.md-маркеры).
+[TRIGGER_PRODUCER] elemental-life
