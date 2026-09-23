@@ -1,4 +1,5 @@
-# AI Video Surveillance with YOLO 2026 — [NEW]
+# HOT
+# AI Video Surveillance with YOLO 2026 — [DEPLOYED]
 
 ## 📚 Sources
 - [ForaSoft: YOLO & ByteTrack 2026](https://www.forasoft.com/blog/article/ai-video-surveillance-yolo-deepsort-guide) — July 16, 2026
@@ -32,9 +33,9 @@
 - False alarm reduction — VLM understanding + YOLO detection
 
 ## 🔗 Related in Textbook
-- [LLM Inference Optimization 2026](LLM-Inference-Optimization-2026.md) — 🔴 [NEW]
-- [ROCm AMD 780M Setup](ROCm-AMD-780M-Local-LLM-Setup-2026.md) — 🔴 [NEW]
-- [MCP Model Context Protocol](MCP-Model-Context-Protocol-2026.md) — 🔴 [NEW]
+- [LLM Inference Optimization 2026](LLM-Inference-Optimization-2026.md) — 🟢 [DEPLOYED]
+- [ROCm AMD 780M Setup](ROCm-AMD-780M-Local-LLM-Setup-2026.md) — 🟢 [DEPLOYED]
+- [MCP Model Context Protocol](MCP-Model-Context-Protocol-2026.md) — 🟢 [DEPLOYED]
 
 ---
-*Added: 2026-08-17 | Status: 🔴 NEW | Source: ForaSoft, GitHub repos, academic papers*
+*Added: 2026-08-17 | Status: 🟢 STUDIED | Source: ForaSoft, GitHub repos, academic papers*

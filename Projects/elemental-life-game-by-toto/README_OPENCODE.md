@@ -1,3 +1,4 @@
+# HOT
 # HANDOVER & ARCHITECTURAL REPORT FOR OPENCODE (DEEPSEEK V4 FLASH) 🚀⚙️
 
 ## Спецификация передачи проекта в OpenSource сообщество

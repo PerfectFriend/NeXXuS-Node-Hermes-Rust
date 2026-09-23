@@ -6,11 +6,31 @@
     "ollama": "http://127.0.0.1:11434",
     "task_api": "http://127.0.0.1:8080"
   },
-  "capabilities": ["coder", "auditor", "searcher", "producer", "professor", "inquisitor", "supervisor", "light_llm"],
+  "capabilities": [
+    "coder",
+    "auditor",
+    "searcher",
+    "producer",
+    "professor",
+    "inquisitor",
+    "supervisor",
+    "light_llm"
+  ],
   "gpu": "RTX 3060 12GB",
   "ram_gb": 32,
   "max_concurrent_jobs": 3,
   "current_load": 0,
   "status": "online",
-  "last_heartbeat": "2026-08-17T10:30:00Z"
+  "last_heartbeat": "2026-08-18T19:59:32.607463+00:00",
+  "cpu_percent": 5.5,
+  "ram_percent": 44.4,
+  "ram_used_gb": 6.8,
+  "ram_total_gb": 15.4,
+  "disk_percent": 83.0,
+  "disk_free_gb": 53.8,
+  "gpu_percent": 0,
+  "gpu_mem_percent": 0,
+  "ollama_models": [],
+  "lemonade_models": [],
+  "active_jobs": 15
 }

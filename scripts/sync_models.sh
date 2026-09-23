@@ -1,3 +1,4 @@
+# HOT
 #!/usr/bin/env bash
 # Model Sync — Sync Ollama models across Tailscale nodes
 # Run weekly or when new model needed

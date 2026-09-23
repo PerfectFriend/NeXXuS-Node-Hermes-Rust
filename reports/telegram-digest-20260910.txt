@@ -1,0 +1,13 @@
+ТЕЛЕГРАМ-ДАЙДЖЕСТ: 18 топиков за 24 часа
+
+ТОП-3:
+1. ollama/ollama — локальный LLM-раннер теперь поддерживает Kimi-K2.6, GLM-5.1, DeepSeek. Готовый к использованию с AMD 780M.
+2. OpenHands/OpenHands — платформа AI-инжиниринга, лидер SWE-bench. Фреймворк для агентского кодинга.
+3. Context-Mode — 98% снижение контекста + память сессии + маршрутизация MCP через 17 платформ.
+
+ОСТАЛЬНЫЕ: 15 топиков по AI/LLM/AMD/hardware/privacy (см. отчет: /home/thomas/LivingCode/reports/searcher-20260910-1300.md)
+
+ФАЙЛЫ: 18 записей в ObsidianVault с status: 🔴 Не изучено, тег #researcher:2026-09-10
+Журнал: /home/thomas/LivingCode/agents/journal.md добавлен триггер
+
+Источники: GitHub Trending, Reddit r/LocalLLaMA, SysAdmins.ru, AI Weekly

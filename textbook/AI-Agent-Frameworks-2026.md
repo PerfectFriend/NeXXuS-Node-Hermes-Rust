@@ -1,4 +1,6 @@
-# AI Agent Frameworks 2026 — [NEW]
+# HOT
+# AI Agent Frameworks 2026 — 
+## [STUDIED] Updated 2026-08-18: Added trends section, updated priority list based on latest research. 
 
 ## 📚 Sources
 - [awesome-ai-agents-2026 (ARUNAGIRINATHAN-K)](https://github.com/ARUNAGIRINATHAN-K/awesome-ai-agents-2026) — 2 days ago
@@ -26,18 +28,27 @@
 4. **Agent Resource Discovery** — Google's open spec for publishing AI capabilities
 5. **Harness engineering** — Evals, memory, permissions, observability as first-class
 
+## 🆕 NEW Trends 2026 (Aug)
+1. **Embodied AI systems engineering** — requiring lifecycle governance and human-AI teaming (arXiv:2605.10653) [STUDIED]
+2. **Agentic AI for structured, repetitive work** — near-term gains in data-intensive synthesis (arXiv:2604.09633) [STUDIED]
+3. **Local-First Control Planes** — persistent assistants, multi-channel delivery (GitHub: local-ai-coding-guide) [NEW]
+4. **AI-generated code outpaces human review** — longitudinal study shows AI writing faster than humans can review (arXiv:2607.01904) [NEW]
+5. **Developer well-being in GenAI era** — continuous learning intensifies, need for sustainable practices (arXiv:2605.22349) [NEW]
+
 ## 📋 Priority for Living Code
 - **HIGH**: LangGraph integration for SuperGuard/Elemental Life orchestration
 - **HIGH**: MCP servers for Obsidian, GitHub, Telegram, file system
 - **MEDIUM**: Spec Kit for SDD in GodModeCoder graph evolution
 - **MEDIUM**: OpenClaw patterns for autonomous coding loops
 - **LOW**: CrewAI/AutoGen for comparison only
+- **NEW**: Embodied AI and Agentic AI trends for future integration (monitor)
+- **NEW**: Local-First AI agents for personal automation pipelines (experiment)
 
 ## 🔗 Related in Textbook
 - [Graph Engineering Protocol v3.0](Graph-Engineering-Protocol.md) — 🟢
 - [MCP Integration](MCP-Integration.md) — 🟢
 - [Spec Kit Deep Dive](Spec-Kit-Deep-Dive.md) — 🟢
-- [OpenClaw Autonomous Coding](OpenClaw-Autonomous-Coding.md) — 🔴 [NEW]
+- [OpenClaw Autonomous Coding](OpenClaw-Autonomous-Coding.md) — 🟢 [DEPLOYED]
 
 ---
-*Added: 2026-08-17 | Status: 🔴 NEW | Source: GitHub awesome lists, framework comparisons*
+*Added: 2026-08-17 | Status: 🔴 NEW → 🟡 [STUDIED] | Source: GitHub awesome lists, framework comparisons, arXiv papers, local-ai-coding-guide*

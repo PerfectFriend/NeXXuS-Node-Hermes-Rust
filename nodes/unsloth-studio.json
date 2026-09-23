@@ -1,0 +1,18 @@
+# HOT
+{
+  "node_id": "unsloth-studio",
+  "hostname": "unsloth-studio",
+  "tailscale_ip": "100.x.y.z",
+  "services": {
+    "ollama": "http://127.0.0.1:11434",
+    "lemonade": "http://127.0.0.1:8000",
+    "task_api": "http://127.0.0.1:8080"
+  },
+  "capabilities": ["heavy_llm", "training", "audio_tts", "audio_stt", "music_gen", "image_gen", "coder", "auditor", "searcher", "producer", "artist", "musician"],
+  "gpu": "RTX 4090 24GB",
+  "ram_gb": 64,
+  "max_concurrent_jobs": 4,
+  "current_load": 0,
+  "status": "online",
+  "last_heartbeat": "2026-08-17T12:55:00Z"
+}

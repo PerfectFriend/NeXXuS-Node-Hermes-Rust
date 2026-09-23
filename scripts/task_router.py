@@ -1,3 +1,4 @@
+# HOT
 #!/usr/bin/env python3
 """
 Task Router — Routes tasks to optimal node in Tailscale mesh

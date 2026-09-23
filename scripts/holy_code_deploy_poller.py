@@ -1,3 +1,4 @@
+# HOT
 #!/usr/bin/env python3
 # Living Code Ecosystem — Holy Code Deploy Poller
 # Версия: 1.1
@@ -17,7 +18,7 @@ from datetime import datetime, timezone
 class HolyCodeDeployPoller:
     def __init__(self, cycle: int):
         self.cycle = cycle
-        self.root = Path("C:/LivingCode")
+        self.root = Path("/home/thomas/LivingCode")
         self.artifacts_dir = self.root / "artifacts"
         self.releases_dir = self.root / "releases"
         self.processed_file = self.artifacts_dir / f"holy_poller_processed_cycle_{cycle:03d}.json"

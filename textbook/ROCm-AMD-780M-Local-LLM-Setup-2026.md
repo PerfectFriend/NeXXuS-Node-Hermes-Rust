@@ -1,4 +1,5 @@
-# ROCm AMD 780M Local LLM Setup 2026 — [NEW]
+# HOT
+# ROCm AMD 780M Local LLM Setup 2026 — [DEPLOYED]
 
 ## 📚 Sources
 - [MindStudio: Run Local AI on AMD](https://www.mindstudio.ai/blog/run-local-ai-amd-rocm-lm-studio-ollama-comfyui) — June 2026

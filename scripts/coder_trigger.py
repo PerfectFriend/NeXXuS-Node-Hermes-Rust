@@ -1,3 +1,4 @@
+# HOT
 #!/usr/bin/env python3
 """
 Coder Trigger — Called when searcher.done event fires

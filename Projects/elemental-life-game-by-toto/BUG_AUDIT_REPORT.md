@@ -1,3 +1,4 @@
+# HOT
 # BUG AUDIT REPORT — ELEMENTAL LIFE GAME BY ToTo
 
 **Path:** `c:\Temp\elemental-life-game-by-toto`  

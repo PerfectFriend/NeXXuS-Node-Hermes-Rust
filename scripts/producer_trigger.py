@@ -1,3 +1,4 @@
+# HOT
 #!/usr/bin/env python3
 """
 Producer Trigger — Called when auditor.done event fires

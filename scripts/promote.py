@@ -1,3 +1,4 @@
+# HOT
 #!/usr/bin/env python3
 """
 Promote completed project to CompleteProjects, pull next from queue.

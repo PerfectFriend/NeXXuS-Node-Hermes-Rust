@@ -1,3 +1,4 @@
+// HOT
 // Smoke-тест игрового движка. Запуск: node tests/engine.smoke.test.mjs
 // Проверяет, что модуль engine.js работает изолированно (без React/UI)
 // и что закон сохранения воды держится на всех пресетах ОБЕИХ геометрий
@@ -40,4 +41,3 @@ if (!allOk) {
   process.exit(1);
 }
 console.log('\nAll smoke tests passed.');
-

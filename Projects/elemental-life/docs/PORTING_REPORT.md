@@ -1,3 +1,4 @@
+// HOT
 # Отчёт о портировании Elemental Life на Android (Capacitor)
 
 ## Дата: 2025-08-14 (обновлено автоматически cron-job)

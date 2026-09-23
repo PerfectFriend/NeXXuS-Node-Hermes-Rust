@@ -1,3 +1,4 @@
+# HOT
 #!/usr/bin/env python3
 # Living Code Ecosystem — Pulse Watchdog (Hourly Health Check)
 # Версия: 1.0

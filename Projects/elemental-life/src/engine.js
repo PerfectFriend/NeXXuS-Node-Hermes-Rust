@@ -1,3 +1,5 @@
+// HOT
+
 /**
  * ЭЛЕМЕНТАРНАЯ ЖИЗНЬ — игровое ядро (platform-agnostic engine)
  *

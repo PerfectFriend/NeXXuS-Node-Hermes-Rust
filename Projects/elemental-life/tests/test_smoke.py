@@ -1,3 +1,4 @@
+# HOT
 import pytest
 
 def test_project_structure():

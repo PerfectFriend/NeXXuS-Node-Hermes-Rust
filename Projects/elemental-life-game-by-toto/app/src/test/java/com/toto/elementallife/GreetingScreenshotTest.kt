@@ -1,3 +1,4 @@
+# HOT
 package com.toto.elementallife
 
 import androidx.compose.ui.test.junit4.createComposeRule

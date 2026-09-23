@@ -1,3 +1,4 @@
+# HOT
 package com.toto.elementallife
 
 import android.content.Context

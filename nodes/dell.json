@@ -1,0 +1,17 @@
+# HOT
+{
+  "node_id": "dell",
+  "hostname": "dell",
+  "tailscale_ip": "100.x.y.z",
+  "services": {
+    "ollama": "http://127.0.0.1:11434",
+    "task_api": "http://127.0.0.1:8080"
+  },
+  "capabilities": ["light_llm", "coder", "auditor", "searcher", "producer"],
+  "gpu": "Integrated",
+  "ram_gb": 16,
+  "max_concurrent_jobs": 2,
+  "current_load": 0,
+  "status": "online",
+  "last_heartbeat": "2026-08-17T12:55:00Z"
+}

@@ -1,3 +1,4 @@
+# HOT
 # Spec Kit Deep Dive: Executable Specifications & Specify CLI
 
 ## 📚 Source
@@ -35,7 +36,7 @@ SDD **inverts the traditional power structure**: specifications don't serve code
 - `/speckit.converge` - Assess codebase against spec/plan/tasks
 - `/speckit.taskstoissues` - Convert tasks to GitHub issues
 
-## 🏛️ The Constitution (9 Articles)
+### 🏛️ The Constitution (9 Articles)
 
 The constitution acts as architectural DNA:
 
@@ -49,26 +50,26 @@ The constitution acts as architectural DNA:
 8. **Anti-Abstraction** - Use framework directly, single model representation
 9. **Integration-First Testing** - Real databases, actual services, contract tests mandatory
 
-## 🔧 Specify CLI Features
+### 🔧 Specify CLI Features
 
-### Extensions System
+#### Extensions System
 - Add new capabilities beyond core SDD commands
 - `specify extension search` / `specify extension add <name>`
 - Examples: Jira integration, code review, V-Model test traceability
 
-### Presets System
+#### Presets System
 - Customize how Spec Kit works without adding capabilities
 - Override templates/commands from core + extensions
 - Examples: compliance formats, Agile/Kanban/Waterfall adaptation, security gates
 - Multiple presets can be stacked with priority
 
-### Bundles
+#### Bundles
 - Role-based setups (PM, BA, Security, Developer)
 - Package curated extensions + presets + workflows
 - `specify bundle install <bundle-id>`
 - Four example bundles in `examples/bundles/`
 
-## 💡 Template-Driven Quality Constraints
+#### 💡 Template-Driven Quality Constraints
 
 The templates constrain LLM behavior for better outcomes:
 
@@ -80,7 +81,7 @@ The templates constrain LLM behavior for better outcomes:
 6. **Test-First Thinking** - Contracts → tests → implementation order
 7. **Prevent Speculative Features** - No "might need" features
 
-## 🎯 Relevance to Living Code Projects
+### 🎯 Relevance to Living Code Projects
 
 | Project | Application |
 |---------|-------------|
@@ -89,53 +90,53 @@ The templates constrain LLM behavior for better outcomes:
 | **CyberTarot** | Spec-first tarot logic; Extensions for ritual workflows |
 | **ParanoidX** | Sovereign systems need immutable constitution; Library-first for crypto modules |
 
-## 🔗 Integration with Living Code
+### 🔗 Integration with Living Code
 
-### For GodModeCoder / Graph Evolution
+#### For GodModeCoder / Graph Evolution
 - Use `/speckit.constitution` to encode graph evolution principles
 - Spec-driven fitness functions (executable specs)
 - Extension for evolutionary graph visualization
 
-### For Hermes Agent Skills
+#### For Hermes Agent Skills
 - Spec Kit as a skill template for new Hermes skills
 - Constitution = skill architecture principles
 - Bundles = role-based skill setups (coder, auditor, artist)
 
-### For Obsidian Vault
+#### For Obsidian Vault
 - Preset for Obsidian-flavored markdown specs
 - Extension for wikilink/graph view integration
 - Bundle for "Second Brain Architect" role
 
-## 📋 Practical Code Patterns
+### 📋 Practical Code Patterns
 
-### Initialize with Constitution
+#### Initialize with Constitution
 ```bash
 specify init superguard-monitoring --integration copilot
 cd superguard-monitoring
 /speckit.constitution "Security-first surveillance. Immutable config. Zero-trust networking. Real-time alerts via Telegram. Edge inference on AMD 780M."
 ```
 
-### Create Feature Spec
+#### Create Feature Spec
 ```bash
 /speckit.specify "Automated camera health monitoring with YOLOv11n detection. 
 Cameras report status every 30s. On detection failure → alert → auto-restart RTSP.
 Static DHCP leases for all devices. Config driven by YAML in Obsidian vault."
 ```
 
-### Generate Plan
+#### Generate Plan
 ```bash
 /speckit.plan "Go service with gRPC. YOLOv11n via ONNX Runtime DirectML on AMD 780M. 
 Obsidian vault as config source (MCP bridge). Telegram Bot API for alerts. 
 SQLite for metrics. Prometheus scrape endpoint. Systemd service."
 ```
 
-### Execute Implementation
+#### Execute Implementation
 ```bash
 /speckit.tasks
 /speckit.implement
 ```
 
-## 🚀 Next Steps for Living Code
+### 🚀 Next Steps for Living Code
 
 1. **Create Spec Kit Extension** for Living Code patterns (graph evolution, agent orchestration)
 2. **Build Constitution Template** for each active project
@@ -143,7 +144,8 @@ SQLite for metrics. Prometheus scrape endpoint. Systemd service."
 4. **Add to Professor Sync** - Insights from Spec Kit → project memory
 5. **Create Bundle** - "Living Code Developer" role bundle
 
-## 📖 Related Topics in Textbook
+### 📖 Related Topics in Textbook
+
 - [Graph Engineering Protocol v3.0](Graph%20Engineering%20Protocol.md) — 🟢
 - [Self-Evolving Graphs](Self-Evolving%20Graphs.md) — 🟢
 - [MCP & Agent Integration](MCP%20Integration.md) — 🟢
@@ -151,7 +153,9 @@ SQLite for metrics. Prometheus scrape endpoint. Systemd service."
 - [JointJS AI Workflow Builder](JointJS-AI-Workflow-Builder-Production.md) — 🔴
 - [withoneai/cli](withoneai-CLI-Universal-API.md) — 🔴
 - [OpenSRE](OpenSRE-AI-SRE-Production.md) — 🔴
+- [LLM Inference Optimization 2026](LLM-Inference-Optimization-2026.md) — 🟢 [DEPLOYED]
+- [Spec-Driven Development 2026](Spec-Driven-Development-Spec-Kit.md) — 🟢 [DEPLOYED]
 
 ---
 
-*Studied: 2026-08-16 | Status: 🟢 STUDIED | Source: GitHub spec-kit repo, docs, blog, spec-driven.md*
+*Studied: 2026-08-16 | Status: 🟢 DEPLOYED | Source: GitHub spec-kit repo, docs, blog, spec-driven.md*

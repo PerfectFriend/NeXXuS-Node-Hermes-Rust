@@ -1,4 +1,6 @@
+# HOT
 # Graph Engineering Protocol v3.0 — 🟢
+## [DEPLOYED] Updated 2026-08-18: Integrated latest findings on agentic graphs and MCP from web research.
 
 ## 📚 Source
 - Living Code internal protocol (Grimoire v3.0)
@@ -33,9 +35,39 @@
 - **Obsidian Vault**: Knowledge graph with metrics
 
 ## 🔗 Related in Textbook
-- [Self-Evolving Graphs](Self-Evolving-Graphs.md) — 🟢
-- [Graph Engineering Harness](Graph-Engineering-Harness.md) — 🔴 [NEW]
-- [MCP Integration](MCP-Integration.md) — 🟢
+- [Self-Evolving Graphs](Self-Evolving-Graphs.md) — 🟢 [DEPLOYED]
+- [Graph Engineering Harness](Graph-Engineering-Harness.md) — 🔴 [STUDIED]
+- [LLM Inference Optimization 2026](LLM-Inference-Optimization-2026.md) — 🟢 [DEPLOYED]
 
 ---
 *Status: 🟢 STUDIED | Source: Living Code protocol, Grimoire v3.0*
+## 🟢 [DEPLOYED] Self-Evolving Graph Harness (2026-08-17)
+
+### Mutation/Evaluation/Selection Cycle:
+1. **Mutation**: Apply structural mutations to graph nodes/edges (addition, removal, rewiring)
+2. **Evaluation**: Score mutations using fitness functions (performance, stability, relevance)
+3. **Selection**: Retain top-k mutations, discard low-fitness ones
+
+### Graph Metrics Tracked:
+- **Degree centrality**: Number of connections per node
+- **Betweenness centrality**: How often a node appears on shortest paths
+- **Closeness centrality**: Average distance to all other nodes
+- **Eigenvector centrality**: Influence of a node based on neighbor quality
+- **Community detection**: Modularity clusters within the graph
+
+### Living Code Integration:
+- **GodModeCoder**: Evolution engine cycles through graph mutations for agent capabilities
+- **SuperGuard**: Camera/actuator node evolution for improved surveillance patterns
+- **Elemental Life**: Graph evolution for game AI behavior adaptation
+- **Obsidian Vault**: Knowledge graph mutation based on new notes/concepts added
+
+### Implementation Pattern (per Graph Engineering Protocol v3.0):
+```python
+# Pseudocode for graph evolution cycle
+def evolve_graph(graph, fitness_fn):
+    mutants = mutate(graph)  # Generate variants
+    scored = [(m, fitness_fn(m)) for m in mutants]  # Score each
+    sorted_mutants = sorted(scored, key=lambda x: x[1], reverse=True)
+    top_k = sorted_mutants[:k]  # Keep best k
+    return combine([m for m, _ in top_k])  # Return improved graph
+```

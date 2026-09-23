@@ -1,3 +1,4 @@
+# HOT
 #!/usr/bin/env python3
 # Living Code Ecosystem — Filter Overlord (Владыка)
 # Версия: 1.0

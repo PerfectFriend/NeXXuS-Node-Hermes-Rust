@@ -1,5 +1,6 @@
 # HOT
 node_modules/
+*.tsbuildinfo
 dist/
 art/cards/
 art/cards_hd/

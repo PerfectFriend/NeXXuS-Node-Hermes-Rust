@@ -1,3 +1,4 @@
+# HOT
 # Project 2 Chronicle
 
 

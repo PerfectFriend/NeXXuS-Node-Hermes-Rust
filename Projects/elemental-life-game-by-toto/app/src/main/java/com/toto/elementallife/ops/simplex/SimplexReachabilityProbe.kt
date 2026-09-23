@@ -1,3 +1,4 @@
+# HOT
 package com.toto.elementallife.ops.simplex
 
 import com.toto.elementallife.ops.api.ConnectivityProbe

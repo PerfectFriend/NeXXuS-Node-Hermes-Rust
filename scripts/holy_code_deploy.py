@@ -1,3 +1,4 @@
+# HOT
 #!/usr/bin/env python3
 """
 Holy Code Deploy — Full multi-target, multi-store deployment pipeline.
@@ -26,8 +27,8 @@ from datetime import datetime
 from typing import List, Dict, Optional
 from dataclasses import dataclass, asdict
 
-ARTIFACTS_DIR = Path(r"C:/LivingCode/artifacts")
-LIVINGCODE_ROOT = Path(r"C:/LivingCode")
+ARTIFACTS_DIR = Path("/home/thomas/LivingCode/artifacts")
+LIVINGCODE_ROOT = Path("/home/thomas/LivingCode")
 
 @dataclass
 class BuildResult:

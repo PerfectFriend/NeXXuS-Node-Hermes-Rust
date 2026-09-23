@@ -1,6 +1,18 @@
+// COLD
 # 🧬 Elemental Life
 
 > **Cellular automata life simulation with TON crypto wallet — where code evolves itself**
+
+## Статус (публикация 2026-09-20; реверификация продюсера 2026-09-24) — FROZEN (COLD)
+
+- **Состояние:** Стабильно. Код холодный (PLAN.md = `// COLD`), план закрыт (Points 1-7, 10 выполнены; Points 8-9 — ручное тестирование на устройстве, нет девайса, задокументировано в PORTING_REPORT), аудит чист, freeze Владыки Кода 6cdd808.
+- **Реверификация 2026-09-24 (Продюсер):** функциональный тест движка перепрогнан — exit 0, 10/10 пресетов обеих геометрий, закон сохранения воды (hex 37→37, square 29→29). APK `~/apkexport/elemental-life-debug.apk` хеш совпадает с заявлением (sha256 `1fceb322…`). Submodule-указатель в синхроне (HEAD = app = 9f2fe48); коммит 12c8e6e зафиксировал указатель из прерванного цикла (правило №4).
+- **Порт движка верифицирован функционально** (2026-09-20): `tests/engine.functional.test.mjs` транспилирует `engine.ts` и выполняет реальную симуляцию — 10 пресетов, обе геометрии, 500 тиков; закон сохранения воды (hex 37→37, square 29→29).
+- **Производительность:** hex 2611 клеток = 3.30 ms/тик (JS) / 4.15 ms/тик (порт) — target ≤50 ms. Починен `profile.js`.
+- **Android:** восстановлен exec-бит `android/gradlew` (755+).
+- **Коммиты вехи:** `8d66a5e`, `e68027a`, `3aaa1d9` (субмодуль + порт), parent `90c6a34`.
+
+---
 
 [![GitHub release](https://img.shields.io/github/v/release/PerfectFriend/elemental-life?style=for-the-badge)](https://github.com/PerfectFriend/elemental-life/releases)
 [![GitHub stars](https://img.shields.io/github/stars/PerfectFriend/elemental-life?style=for-the-badge)](https://github.com/PerfectFriend/elemental-life/stargazers)

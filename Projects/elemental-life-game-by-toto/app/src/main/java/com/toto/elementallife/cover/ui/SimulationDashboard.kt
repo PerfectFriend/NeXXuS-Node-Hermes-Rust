@@ -1,3 +1,4 @@
+# HOT
 package com.toto.elementallife.cover.ui
 
 import androidx.compose.animation.*

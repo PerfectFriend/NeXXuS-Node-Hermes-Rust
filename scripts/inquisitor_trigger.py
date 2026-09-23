@@ -1,3 +1,4 @@
+# HOT
 #!/usr/bin/env python3
 """
 Inquisitor Trigger — Called when supervisor detects issue
@@ -32,7 +33,7 @@ def main():
     
     event_file = EVENTS_DIR / f"inquisitor.started.{args.project}.{args.issue.replace(' ', '_')}.cycle_{args.cycle}.json"
     temp_file = event_file.with_suffix(".tmp")
-    temp_file.write_text(json.dumps(event, indent=2))
+    temp_file.write_text(json.dumps(event, indent=2, ensure_ascii=False))
     temp_file.rename(event_file)
     
     print(f"Emitted inquisitor.started for {args.project}: {args.issue}")

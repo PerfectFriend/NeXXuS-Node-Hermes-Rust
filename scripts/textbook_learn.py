@@ -1,3 +1,4 @@
+# HOT
 #!/usr/bin/env python3
 # Living Code Ecosystem — Textbook Learn (Every 6 hours)
 # Версия: 1.0

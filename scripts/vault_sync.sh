@@ -1,3 +1,4 @@
+# HOT
 #!/usr/bin/env bash
 # Vault Sync — Bidirectional git sync across Tailscale nodes
 # Runs every 5 min via cron or inotify

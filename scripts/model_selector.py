@@ -1,3 +1,4 @@
+# HOT
 #!/usr/bin/env python3
 """
 Model Selector — chooses best available model for agent role

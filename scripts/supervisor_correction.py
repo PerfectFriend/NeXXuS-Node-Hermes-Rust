@@ -1,3 +1,4 @@
+# HOT
 #!/usr/bin/env python3
 """
 Supervisor Correction — Applies corrective actions

@@ -1,3 +1,4 @@
+# HOT
 import { stepField, buildInitialField, countWater, GEOMETRY_PRESETS, mulberry32 } from '../src/engine/engine.ts';
 
 function profile(geom, radius, side, label) {

@@ -1,3 +1,4 @@
+# HOT
 pluginManagement {
   repositories {
     google {

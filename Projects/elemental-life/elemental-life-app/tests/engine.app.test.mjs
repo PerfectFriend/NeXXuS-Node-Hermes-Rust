@@ -1,3 +1,4 @@
+# HOT
 // App engine smoke test — validates water conservation on the forked engine.ts
 // This mirrors the reference tests/engine.smoke.test.mjs but tests the app's engine.ts
 

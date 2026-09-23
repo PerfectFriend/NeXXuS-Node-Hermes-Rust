@@ -1,3 +1,4 @@
+# HOT
 package com.toto.elementallife.ops.terminal
 
 import android.Manifest

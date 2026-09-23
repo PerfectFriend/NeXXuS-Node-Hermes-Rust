@@ -1,3 +1,4 @@
+# HOT
 #!/usr/bin/env python3
 """
 Auditor Trigger — Called when coder.done event fires

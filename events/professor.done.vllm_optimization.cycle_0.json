@@ -1,0 +1,8 @@
+{
+  "type": "professor.done",
+  "topic": "vllm_optimization",
+  "cycle": 0,
+  "status": "error",
+  "error": "No model",
+  "timestamp": "2026-08-30T18:06:19.935740+00:00"
+}

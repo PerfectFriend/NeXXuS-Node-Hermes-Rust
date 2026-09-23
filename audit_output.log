@@ -1,0 +1,481 @@
+find: ‘/home/thomas/LivingCode/elemental-life’: No such file or directory
+find: ‘/home/thomas/LivingCode/elemental-life’: No such file or directory
+find: ‘/home/thomas/LivingCode/elemental-life-2’: No such file or directory
+find: ‘/home/thomas/LivingCode/elemental-life-2’: No such file or directory
+find: ‘/home/thomas/LivingCode/superguard’: No such file or directory
+find: ‘/home/thomas/LivingCode/superguard’: No such file or directory
+Не удалось получить изменения через git
+./audit_10cycles.sh: line 109: |$() /home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/vite.config.ts 2>/dev/null | head -3 || true
+                grep -n api_key|secret|passwords*=|tokens*= /home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/vite.config.ts 2>/dev/null | head -3 || true
+            fi
+        done
+    else
+        # For non-git directories, check a few files
+        files_to_check=/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/vite.config.ts
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/dist/assets/index-fEkQVeEm.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/runtime.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/babel.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/cjs/react-refresh-runtime.development.js
+        for file in /home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/vite.config.ts
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/dist/assets/index-fEkQVeEm.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/runtime.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/babel.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/cjs/react-refresh-runtime.development.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/cjs/react-refresh-babel.production.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/cjs/react-refresh-runtime.production.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/cjs/react-refresh-babel.development.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/@babel/helpers/lib/index.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/@babel/helpers/lib/helpers/classStaticPrivateMethodGet.js; do
+            if [ -f /home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/vite.config.ts ]; then
+                echo Проверка: No such file or directory
+./audit_10cycles.sh: line 109: |$() /home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/dist/assets/index-fEkQVeEm.js 2>/dev/null | head -3 || true
+                grep -n api_key|secret|passwords*=|tokens*= /home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/dist/assets/index-fEkQVeEm.js 2>/dev/null | head -3 || true
+            fi
+        done
+    else
+        # For non-git directories, check a few files
+        files_to_check=/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/vite.config.ts
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/dist/assets/index-fEkQVeEm.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/runtime.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/babel.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/cjs/react-refresh-runtime.development.js
+        for file in /home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/vite.config.ts
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/dist/assets/index-fEkQVeEm.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/runtime.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/babel.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/cjs/react-refresh-runtime.development.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/cjs/react-refresh-babel.production.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/cjs/react-refresh-runtime.production.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/cjs/react-refresh-babel.development.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/@babel/helpers/lib/index.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/@babel/helpers/lib/helpers/classStaticPrivateMethodGet.js; do
+            if [ -f /home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/dist/assets/index-fEkQVeEm.js ]; then
+                echo Проверка: No such file or directory
+./audit_10cycles.sh: line 109: |$() /home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/runtime.js 2>/dev/null | head -3 || true
+                grep -n api_key|secret|passwords*=|tokens*= /home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/runtime.js 2>/dev/null | head -3 || true
+            fi
+        done
+    else
+        # For non-git directories, check a few files
+        files_to_check=/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/vite.config.ts
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/dist/assets/index-fEkQVeEm.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/runtime.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/babel.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/cjs/react-refresh-runtime.development.js
+        for file in /home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/vite.config.ts
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/dist/assets/index-fEkQVeEm.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/runtime.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/babel.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/cjs/react-refresh-runtime.development.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/cjs/react-refresh-babel.production.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/cjs/react-refresh-runtime.production.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/cjs/react-refresh-babel.development.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/@babel/helpers/lib/index.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/@babel/helpers/lib/helpers/classStaticPrivateMethodGet.js; do
+            if [ -f /home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/runtime.js ]; then
+                echo Проверка: No such file or directory
+./audit_10cycles.sh: line 109: |$() /home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/babel.js 2>/dev/null | head -3 || true
+                grep -n api_key|secret|passwords*=|tokens*= /home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/babel.js 2>/dev/null | head -3 || true
+            fi
+        done
+    else
+        # For non-git directories, check a few files
+        files_to_check=/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/vite.config.ts
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/dist/assets/index-fEkQVeEm.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/runtime.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/babel.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/cjs/react-refresh-runtime.development.js
+        for file in /home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/vite.config.ts
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/dist/assets/index-fEkQVeEm.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/runtime.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/babel.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/cjs/react-refresh-runtime.development.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/cjs/react-refresh-babel.production.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/cjs/react-refresh-runtime.production.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/cjs/react-refresh-babel.development.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/@babel/helpers/lib/index.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/@babel/helpers/lib/helpers/classStaticPrivateMethodGet.js; do
+            if [ -f /home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/babel.js ]; then
+                echo Проверка: No such file or directory
+./audit_10cycles.sh: line 109: |$() /home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/cjs/react-refresh-runtime.development.js 2>/dev/null | head -3 || true
+                grep -n api_key|secret|passwords*=|tokens*= /home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/cjs/react-refresh-runtime.development.js 2>/dev/null | head -3 || true
+            fi
+        done
+    else
+        # For non-git directories, check a few files
+        files_to_check=/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/vite.config.ts
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/dist/assets/index-fEkQVeEm.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/runtime.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/babel.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/cjs/react-refresh-runtime.development.js
+        for file in /home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/vite.config.ts
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/dist/assets/index-fEkQVeEm.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/runtime.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/babel.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/cjs/react-refresh-runtime.development.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/cjs/react-refresh-babel.production.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/cjs/react-refresh-runtime.production.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/cjs/react-refresh-babel.development.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/@babel/helpers/lib/index.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/@babel/helpers/lib/helpers/classStaticPrivateMethodGet.js; do
+            if [ -f /home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/cjs/react-refresh-runtime.development.js ]; then
+                echo Проверка: No such file or directory
+./audit_10cycles.sh: line 109: |$() /home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/cjs/react-refresh-babel.production.js 2>/dev/null | head -3 || true
+                grep -n api_key|secret|passwords*=|tokens*= /home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/cjs/react-refresh-babel.production.js 2>/dev/null | head -3 || true
+            fi
+        done
+    else
+        # For non-git directories, check a few files
+        files_to_check=/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/vite.config.ts
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/dist/assets/index-fEkQVeEm.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/runtime.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/babel.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/cjs/react-refresh-runtime.development.js
+        for file in /home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/vite.config.ts
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/dist/assets/index-fEkQVeEm.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/runtime.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/babel.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/cjs/react-refresh-runtime.development.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/cjs/react-refresh-babel.production.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/cjs/react-refresh-runtime.production.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/cjs/react-refresh-babel.development.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/@babel/helpers/lib/index.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/@babel/helpers/lib/helpers/classStaticPrivateMethodGet.js; do
+            if [ -f /home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/cjs/react-refresh-babel.production.js ]; then
+                echo Проверка: No such file or directory
+./audit_10cycles.sh: line 109: |$() /home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/cjs/react-refresh-runtime.production.js 2>/dev/null | head -3 || true
+                grep -n api_key|secret|passwords*=|tokens*= /home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/cjs/react-refresh-runtime.production.js 2>/dev/null | head -3 || true
+            fi
+        done
+    else
+        # For non-git directories, check a few files
+        files_to_check=/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/vite.config.ts
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/dist/assets/index-fEkQVeEm.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/runtime.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/babel.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/cjs/react-refresh-runtime.development.js
+        for file in /home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/vite.config.ts
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/dist/assets/index-fEkQVeEm.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/runtime.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/babel.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/cjs/react-refresh-runtime.development.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/cjs/react-refresh-babel.production.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/cjs/react-refresh-runtime.production.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/cjs/react-refresh-babel.development.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/@babel/helpers/lib/index.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/@babel/helpers/lib/helpers/classStaticPrivateMethodGet.js; do
+            if [ -f /home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/cjs/react-refresh-runtime.production.js ]; then
+                echo Проверка: No such file or directory
+./audit_10cycles.sh: line 109: |$() /home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/cjs/react-refresh-babel.development.js 2>/dev/null | head -3 || true
+                grep -n api_key|secret|passwords*=|tokens*= /home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/cjs/react-refresh-babel.development.js 2>/dev/null | head -3 || true
+            fi
+        done
+    else
+        # For non-git directories, check a few files
+        files_to_check=/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/vite.config.ts
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/dist/assets/index-fEkQVeEm.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/runtime.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/babel.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/cjs/react-refresh-runtime.development.js
+        for file in /home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/vite.config.ts
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/dist/assets/index-fEkQVeEm.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/runtime.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/babel.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/cjs/react-refresh-runtime.development.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/cjs/react-refresh-babel.production.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/cjs/react-refresh-runtime.production.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/cjs/react-refresh-babel.development.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/@babel/helpers/lib/index.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/@babel/helpers/lib/helpers/classStaticPrivateMethodGet.js; do
+            if [ -f /home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/cjs/react-refresh-babel.development.js ]; then
+                echo Проверка: No such file or directory
+./audit_10cycles.sh: line 109: |$() /home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/@babel/helpers/lib/index.js 2>/dev/null | head -3 || true
+                grep -n api_key|secret|passwords*=|tokens*= /home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/@babel/helpers/lib/index.js 2>/dev/null | head -3 || true
+            fi
+        done
+    else
+        # For non-git directories, check a few files
+        files_to_check=/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/vite.config.ts
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/dist/assets/index-fEkQVeEm.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/runtime.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/babel.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/cjs/react-refresh-runtime.development.js
+        for file in /home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/vite.config.ts
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/dist/assets/index-fEkQVeEm.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/runtime.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/babel.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/cjs/react-refresh-runtime.development.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/cjs/react-refresh-babel.production.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/cjs/react-refresh-runtime.production.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/cjs/react-refresh-babel.development.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/@babel/helpers/lib/index.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/@babel/helpers/lib/helpers/classStaticPrivateMethodGet.js; do
+            if [ -f /home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/@babel/helpers/lib/index.js ]; then
+                echo Проверка: No such file or directory
+./audit_10cycles.sh: line 109: |$() /home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/@babel/helpers/lib/helpers/classStaticPrivateMethodGet.js 2>/dev/null | head -3 || true
+                grep -n api_key|secret|passwords*=|tokens*= /home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/@babel/helpers/lib/helpers/classStaticPrivateMethodGet.js 2>/dev/null | head -3 || true
+            fi
+        done
+    else
+        # For non-git directories, check a few files
+        files_to_check=/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/vite.config.ts
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/dist/assets/index-fEkQVeEm.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/runtime.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/babel.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/cjs/react-refresh-runtime.development.js
+        for file in /home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/vite.config.ts
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/dist/assets/index-fEkQVeEm.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/runtime.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/babel.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/cjs/react-refresh-runtime.development.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/cjs/react-refresh-babel.production.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/cjs/react-refresh-runtime.production.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/react-refresh/cjs/react-refresh-babel.development.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/@babel/helpers/lib/index.js
+/home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/@babel/helpers/lib/helpers/classStaticPrivateMethodGet.js; do
+            if [ -f /home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/node_modules/@babel/helpers/lib/helpers/classStaticPrivateMethodGet.js ]; then
+                echo Проверка: No such file or directory
+-rw-r--r-- 1 thomas thomas 384 Aug 18 12:47 /home/thomas/LivingCode/Projects/LivingCode-boss_fight_system-001/README.md
+Не удалось получить изменения через git
+./audit_10cycles.sh: line 109: |$() /home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/vite.config.ts 2>/dev/null | head -3 || true
+                grep -n api_key|secret|passwords*=|tokens*= /home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/vite.config.ts 2>/dev/null | head -3 || true
+            fi
+        done
+    else
+        # For non-git directories, check a few files
+        files_to_check=/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/vite.config.ts
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/dist/assets/index-fEkQVeEm.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/runtime.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/babel.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/cjs/react-refresh-runtime.development.js
+        for file in /home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/vite.config.ts
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/dist/assets/index-fEkQVeEm.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/runtime.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/babel.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/cjs/react-refresh-runtime.development.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/cjs/react-refresh-babel.production.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/cjs/react-refresh-runtime.production.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/cjs/react-refresh-babel.development.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/@babel/helpers/lib/index.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/@babel/helpers/lib/helpers/classStaticPrivateMethodGet.js; do
+            if [ -f /home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/vite.config.ts ]; then
+                echo Проверка: No such file or directory
+./audit_10cycles.sh: line 109: |$() /home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/dist/assets/index-fEkQVeEm.js 2>/dev/null | head -3 || true
+                grep -n api_key|secret|passwords*=|tokens*= /home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/dist/assets/index-fEkQVeEm.js 2>/dev/null | head -3 || true
+            fi
+        done
+    else
+        # For non-git directories, check a few files
+        files_to_check=/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/vite.config.ts
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/dist/assets/index-fEkQVeEm.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/runtime.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/babel.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/cjs/react-refresh-runtime.development.js
+        for file in /home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/vite.config.ts
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/dist/assets/index-fEkQVeEm.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/runtime.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/babel.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/cjs/react-refresh-runtime.development.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/cjs/react-refresh-babel.production.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/cjs/react-refresh-runtime.production.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/cjs/react-refresh-babel.development.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/@babel/helpers/lib/index.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/@babel/helpers/lib/helpers/classStaticPrivateMethodGet.js; do
+            if [ -f /home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/dist/assets/index-fEkQVeEm.js ]; then
+                echo Проверка: No such file or directory
+./audit_10cycles.sh: line 109: |$() /home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/runtime.js 2>/dev/null | head -3 || true
+                grep -n api_key|secret|passwords*=|tokens*= /home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/runtime.js 2>/dev/null | head -3 || true
+            fi
+        done
+    else
+        # For non-git directories, check a few files
+        files_to_check=/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/vite.config.ts
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/dist/assets/index-fEkQVeEm.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/runtime.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/babel.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/cjs/react-refresh-runtime.development.js
+        for file in /home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/vite.config.ts
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/dist/assets/index-fEkQVeEm.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/runtime.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/babel.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/cjs/react-refresh-runtime.development.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/cjs/react-refresh-babel.production.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/cjs/react-refresh-runtime.production.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/cjs/react-refresh-babel.development.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/@babel/helpers/lib/index.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/@babel/helpers/lib/helpers/classStaticPrivateMethodGet.js; do
+            if [ -f /home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/runtime.js ]; then
+                echo Проверка: No such file or directory
+./audit_10cycles.sh: line 109: |$() /home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/babel.js 2>/dev/null | head -3 || true
+                grep -n api_key|secret|passwords*=|tokens*= /home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/babel.js 2>/dev/null | head -3 || true
+            fi
+        done
+    else
+        # For non-git directories, check a few files
+        files_to_check=/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/vite.config.ts
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/dist/assets/index-fEkQVeEm.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/runtime.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/babel.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/cjs/react-refresh-runtime.development.js
+        for file in /home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/vite.config.ts
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/dist/assets/index-fEkQVeEm.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/runtime.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/babel.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/cjs/react-refresh-runtime.development.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/cjs/react-refresh-babel.production.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/cjs/react-refresh-runtime.production.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/cjs/react-refresh-babel.development.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/@babel/helpers/lib/index.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/@babel/helpers/lib/helpers/classStaticPrivateMethodGet.js; do
+            if [ -f /home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/babel.js ]; then
+                echo Проверка: No such file or directory
+./audit_10cycles.sh: line 109: |$() /home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/cjs/react-refresh-runtime.development.js 2>/dev/null | head -3 || true
+                grep -n api_key|secret|passwords*=|tokens*= /home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/cjs/react-refresh-runtime.development.js 2>/dev/null | head -3 || true
+            fi
+        done
+    else
+        # For non-git directories, check a few files
+        files_to_check=/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/vite.config.ts
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/dist/assets/index-fEkQVeEm.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/runtime.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/babel.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/cjs/react-refresh-runtime.development.js
+        for file in /home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/vite.config.ts
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/dist/assets/index-fEkQVeEm.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/runtime.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/babel.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/cjs/react-refresh-runtime.development.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/cjs/react-refresh-babel.production.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/cjs/react-refresh-runtime.production.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/cjs/react-refresh-babel.development.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/@babel/helpers/lib/index.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/@babel/helpers/lib/helpers/classStaticPrivateMethodGet.js; do
+            if [ -f /home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/cjs/react-refresh-runtime.development.js ]; then
+                echo Проверка: No such file or directory
+./audit_10cycles.sh: line 109: |$() /home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/cjs/react-refresh-babel.production.js 2>/dev/null | head -3 || true
+                grep -n api_key|secret|passwords*=|tokens*= /home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/cjs/react-refresh-babel.production.js 2>/dev/null | head -3 || true
+            fi
+        done
+    else
+        # For non-git directories, check a few files
+        files_to_check=/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/vite.config.ts
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/dist/assets/index-fEkQVeEm.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/runtime.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/babel.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/cjs/react-refresh-runtime.development.js
+        for file in /home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/vite.config.ts
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/dist/assets/index-fEkQVeEm.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/runtime.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/babel.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/cjs/react-refresh-runtime.development.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/cjs/react-refresh-babel.production.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/cjs/react-refresh-runtime.production.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/cjs/react-refresh-babel.development.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/@babel/helpers/lib/index.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/@babel/helpers/lib/helpers/classStaticPrivateMethodGet.js; do
+            if [ -f /home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/cjs/react-refresh-babel.production.js ]; then
+                echo Проверка: No such file or directory
+./audit_10cycles.sh: line 109: |$() /home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/cjs/react-refresh-runtime.production.js 2>/dev/null | head -3 || true
+                grep -n api_key|secret|passwords*=|tokens*= /home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/cjs/react-refresh-runtime.production.js 2>/dev/null | head -3 || true
+            fi
+        done
+    else
+        # For non-git directories, check a few files
+        files_to_check=/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/vite.config.ts
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/dist/assets/index-fEkQVeEm.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/runtime.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/babel.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/cjs/react-refresh-runtime.development.js
+        for file in /home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/vite.config.ts
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/dist/assets/index-fEkQVeEm.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/runtime.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/babel.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/cjs/react-refresh-runtime.development.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/cjs/react-refresh-babel.production.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/cjs/react-refresh-runtime.production.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/cjs/react-refresh-babel.development.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/@babel/helpers/lib/index.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/@babel/helpers/lib/helpers/classStaticPrivateMethodGet.js; do
+            if [ -f /home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/cjs/react-refresh-runtime.production.js ]; then
+                echo Проверка: No such file or directory
+./audit_10cycles.sh: line 109: |$() /home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/cjs/react-refresh-babel.development.js 2>/dev/null | head -3 || true
+                grep -n api_key|secret|passwords*=|tokens*= /home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/cjs/react-refresh-babel.development.js 2>/dev/null | head -3 || true
+            fi
+        done
+    else
+        # For non-git directories, check a few files
+        files_to_check=/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/vite.config.ts
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/dist/assets/index-fEkQVeEm.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/runtime.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/babel.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/cjs/react-refresh-runtime.development.js
+        for file in /home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/vite.config.ts
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/dist/assets/index-fEkQVeEm.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/runtime.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/babel.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/cjs/react-refresh-runtime.development.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/cjs/react-refresh-babel.production.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/cjs/react-refresh-runtime.production.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/cjs/react-refresh-babel.development.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/@babel/helpers/lib/index.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/@babel/helpers/lib/helpers/classStaticPrivateMethodGet.js; do
+            if [ -f /home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/cjs/react-refresh-babel.development.js ]; then
+                echo Проверка: No such file or directory
+./audit_10cycles.sh: line 109: |$() /home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/@babel/helpers/lib/index.js 2>/dev/null | head -3 || true
+                grep -n api_key|secret|passwords*=|tokens*= /home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/@babel/helpers/lib/index.js 2>/dev/null | head -3 || true
+            fi
+        done
+    else
+        # For non-git directories, check a few files
+        files_to_check=/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/vite.config.ts
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/dist/assets/index-fEkQVeEm.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/runtime.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/babel.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/cjs/react-refresh-runtime.development.js
+        for file in /home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/vite.config.ts
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/dist/assets/index-fEkQVeEm.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/runtime.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/babel.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/cjs/react-refresh-runtime.development.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/cjs/react-refresh-babel.production.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/cjs/react-refresh-runtime.production.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/cjs/react-refresh-babel.development.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/@babel/helpers/lib/index.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/@babel/helpers/lib/helpers/classStaticPrivateMethodGet.js; do
+            if [ -f /home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/@babel/helpers/lib/index.js ]; then
+                echo Проверка: No such file or directory
+./audit_10cycles.sh: line 109: |$() /home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/@babel/helpers/lib/helpers/classStaticPrivateMethodGet.js 2>/dev/null | head -3 || true
+                grep -n api_key|secret|passwords*=|tokens*= /home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/@babel/helpers/lib/helpers/classStaticPrivateMethodGet.js 2>/dev/null | head -3 || true
+            fi
+        done
+    else
+        # For non-git directories, check a few files
+        files_to_check=/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/vite.config.ts
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/dist/assets/index-fEkQVeEm.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/runtime.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/babel.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/cjs/react-refresh-runtime.development.js
+        for file in /home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/vite.config.ts
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/dist/assets/index-fEkQVeEm.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/runtime.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/babel.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/cjs/react-refresh-runtime.development.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/cjs/react-refresh-babel.production.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/cjs/react-refresh-runtime.production.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/react-refresh/cjs/react-refresh-babel.development.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/@babel/helpers/lib/index.js
+/home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/@babel/helpers/lib/helpers/classStaticPrivateMethodGet.js; do
+            if [ -f /home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/node_modules/@babel/helpers/lib/helpers/classStaticPrivateMethodGet.js ]; then
+                echo Проверка: No such file or directory
+-rw-r--r-- 1 thomas thomas 384 Aug 18 12:47 /home/thomas/LivingCode/Projects/LivingCode-main_menu_ui-001/README.md
+find: ‘/home/thomas/LivingCode/cybertarot’: No such file or directory
+find: ‘/home/thomas/LivingCode/cybertarot’: No such file or directory
+find: ‘/home/thomas/LivingCode/elemental-life-game-by-toto’: No such file or directory
+find: ‘/home/thomas/LivingCode/elemental-life-game-by-toto’: No such file or directory
+find: ‘/home/thomas/LivingCode/elemental-life’: No such file or directory
+find: ‘/home/thomas/LivingCode/elemental-life’: No such file or directory
+find: ‘/home/thomas/LivingCode/elemental-life-2’: No such file or directory
+find: ‘/home/thomas/LivingCode/elemental-life-2’: No such file or directory
+find: ‘/home/thomas/LivingCode/superguard’: No such file or directory
+find: ‘/home/thomas/LivingCode/superguard’: No such file or directory
+Collection file: /home/thomas/LivingCode/audit_notes/audit_collection_20260818_175958.md

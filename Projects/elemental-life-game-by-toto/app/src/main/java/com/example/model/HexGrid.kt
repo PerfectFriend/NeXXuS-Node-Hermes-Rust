@@ -1,3 +1,4 @@
+# HOT
 package com.example.model
 
 import kotlin.random.Random

@@ -1,3 +1,4 @@
+# HOT
 #!/usr/bin/env python3
 # Living Code Ecosystem — DJ Studio Poller
 # Версия: 1.1
@@ -18,7 +19,7 @@ from datetime import datetime, timezone
 class DJStudioPoller:
     def __init__(self, cycle: int):
         self.cycle = cycle
-        self.root = Path("C:/LivingCode")
+        self.root = Path("/home/thomas/LivingCode")
         self.artifacts_dir = self.root / "artifacts"
         self.processed_file = self.artifacts_dir / f"dj_poller_processed_cycle_{cycle:03d}.json"
         self.processed = self._load_processed()
@@ -136,7 +137,7 @@ class DJStudioPoller:
 
 def auto_detect_cycle() -> int:
     """Auto-detect the current active cycle from professor_sync or cycle_start files."""
-    root = Path("C:/LivingCode")
+    root = Path("/home/thomas/LivingCode")
     artifacts_dir = root / "artifacts"
     
     # First priority: professor_sync_cycle_XXX.json (current active cycle)

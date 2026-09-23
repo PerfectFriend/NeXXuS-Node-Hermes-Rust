@@ -216,19 +216,19 @@ class _ElementalLifeGameState extends State<ElementalLifeGame> with SingleTicker
               IconButton(
                 icon: const Icon(Icons.help_outline),
                 tooltip: 'About',
-onPressed: () {
-                   showDialog(
-                     context: context,
-                     builder: (context) => AlertDialog(
-                       title: const Text('Elemental Life Game'),
-                       content: const Text(
-                         'A cellular automaton combining Conway\'s Game of Life with elemental interactions.\n\n'
-                         '• Life connected to Fire ignites into Fire (combustion)\n'
-                         '• Water protects Life from Fire; Fire + Water → Air → Water\n'
-                         '• Fire alone burns for 1-3 ticks then dies to Void\n'
-                         '• Air from Fire → Water (if Water present) or Earth\n\n'
-                         'Controls: Space=Play/Pause, R=Random, C=Clear, E=Eraser, L=Life brush',
-                       ),
+                onPressed: () {
+                  showDialog(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      title: const Text('Elemental Life Game'),
+                      content: const Text(
+                        'A cellular automaton combining Conway\'s Game of Life with elemental interactions.\n\n'
+                        '• Life connected to Fire ignites into Fire (combustion)\n'
+                        '• Water protects Life from Fire; Fire + Water → Air → Water\n'
+                        '• Fire alone burns for 1-3 ticks then dies to Void\n'
+                        '• Air from Fire → Water (if Water present) or Earth\n\n'
+                        'Controls: Space=Play/Pause, R=Random, C=Clear, E=Eraser, L=Life brush',
+                      ),
                       actions: [
                         TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK')),
                       ],
@@ -498,246 +498,149 @@ onPressed: () {
         _slider('Interaction', _simulation.rules.interactionStrength, 0, 1, 100, (value) => '${(value * 100).round()}%', (value) {
           setState(() => _simulation.applyRules(_simulation.rules.copyWith(interactionStrength: value)));
         }),
-        _slider('Decay', _simulation.rules.decay, 0, 0.02, 200, (value) => '${(value * 10000).toStringAsFixed(0)}‱', (value) {
-          setState(() => _simulation.applyRules(_simulation.rules.copyWith(decay: value)));
-        }),
-        _slider('Chaos', _simulation.rules.chaos, 0, 0.02, 200, (value) => '${(value * 10000).toStringAsFixed(0)}‱', (value) {
-          setState(() => _simulation.applyRules(_simulation.rules.copyWith(chaos: value)));
-        }),
-        const SizedBox(height: 18),
-        _sectionTitle('Fire Rules'),
-        _slider('Fire Duration', _simulation.rules.fireDuration.toDouble(), 1, 3, 2, (value) => '${value.round()} ticks', (value) {
-          setState(() => _simulation.applyRules(_simulation.rules.copyWith(fireDuration: value.round())));
-        }),
-      ],
-    );
-  }
-
-  Widget _sectionTitle(String title) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      child: Text(
-        title,
-        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-              color: Colors.grey[300],
-              fontWeight: FontWeight.w800,
-              letterSpacing: 0.08,
-            ),
-      ),
-    );
-  }
-
-  Widget _slider(
-    String label,
-    double value,
-    double min,
-    double max,
-    int divisions,
-    String Function(double) labelFor,
-    ValueChanged<double> onChanged,
-  ) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(label, style: Theme.of(context).textTheme.bodyMedium),
-            Text(labelFor(value), style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey[400])),
-          ],
-        ),
-        Slider(
-          value: value,
-          min: min,
-          max: max,
-          divisions: divisions,
-          onChanged: onChanged,
-        ),
       ],
     );
   }
 
   Widget _logic() {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text('Rules of Elemental Life', style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
-        const SizedBox(height: 10),
-        _logicLine('Life connected to Fire ignites into Fire (combustion).'),
-        _logicLine('Water protects adjacent Life from Fire (quenching).'),
-        _logicLine('Fire lifecycle: Fire → Water → Air (if no Water) → Void.'),
-        _logicLine('Fire + Water → Air (vapor) 1 tick → Water (rain).'),
-        _logicLine('Fire alone burns for 1-3 ticks then dies to Void.'),
-        _logicLine('Life survives on 2-3 neighbors; Water-connected Life protected.'),
-        _logicLine('Life with <2 neighbors dies; without Water becomes Earth.'),
-        _logicLine('Void erupts as Fire when overcrowded (8 neighbors).'),
-        _logicLine('Void near Water becomes Earth.'),
-        _logicLine('Earth with Life+Water neighbors converts to Life (germination).'),
-        _logicLine('Air with Water neighbors becomes Water (rain).'),
-        _logicLine('Water with Fire becomes Air (evaporation).'),
-        _logicLine('Elemental cycle: Fire→Air→Earth→Water→Fire.'),
+        _sectionTitle('Element Interactions'),
+        _logicRule('Fire + Life', 'Fire burns Life (combustion)'),
+        _logicRule('Fire + Water', 'Fire → Air (evaporation)'),
+        _logicRule('Air + Fire lifecycle', 'Air → Water (rain)'),
+        _logicRule('Air + Water', 'Air → Water (condensation)'),
+        _logicRule('Water + Fire', 'Water → Air (evaporation to extinguish)'),
+        _logicRule('Water + Water', 'Water spreads (2+ neighbors)'),
+        _logicRule('Earth + Life', 'Earth → Life (2-7 neighbors)'),
+        _logicRule('Earth + Water', 'Earth → Water (erosion)'),
+        _logicRule('Element + Predator', 'Element → Predator if predator >= max(2, interactionStrength * same)'),
+        _logicRule('Element Support', 'Same + Life*0.45 must be between elementMin and elementMax'),
+        _logicRule('Element Birth', 'Same >= elementBirth → survives'),
+        _logicRule('Element Decay', 'Same < elementMin → decays to Void'),
+        _logicRule('Void Terraform', '(1 Life + 3 Water) OR (2 Life + 2 Water) OR (3 Life + 1 Water) → Earth'),
+        _logicRule('Chaos', 'Random Life spawn in Void (chaos rate)'),
       ],
     );
   }
 
-  Widget _logicLine(String text) {
+  Widget _logicRule(String title, String desc) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 120,
+            child: Text(title, style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
+          ),
+          Expanded(child: Text(desc, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey[400]))),
+        ],
+      ),
+    );
+  }
+
+  Widget _sectionTitle(String title) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
-      child: Text(text, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey[400])),
+      child: Text(title, style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800, color: Colors.grey[300])),
+    );
+  }
+
+  Widget _slider(String label, double value, double min, double max, int divisions, String Function(double) labelBuilder, void Function(double) onChanged) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text('$label: ${labelBuilder(value)}', style: Theme.of(context).textTheme.bodyMedium),
+        Slider(value: value, min: min, max: max, divisions: divisions, onChanged: onChanged),
+      ],
     );
   }
 }
 
-/// LifeCanvas handles orchestration of lifecanvas functionality.
 class LifeCanvas extends StatefulWidget {
-  const LifeCanvas({
-    super.key,
-    required this.simulation,
-    required this.onPaintAt,
-  });
+  const LifeCanvas({super.key, required this.simulation, required this.onPaintAt});
 
   final ElementalLife simulation;
-  final ValueChanged<ui.Offset> onPaintAt;
+  final void Function(ui.Offset) onPaintAt;
 
   @override
   State<LifeCanvas> createState() => _LifeCanvasState();
 }
 
 class _LifeCanvasState extends State<LifeCanvas> {
-  final GlobalKey _boundaryKey = GlobalKey(debugLabel: 'repaintBoundary');
+  ui.Image? _cachedImage;
+  int _cachedGeneration = -1;
 
   Future<ui.Image?> captureImage() async {
-    final renderObject = _boundaryKey.currentContext?.findRenderObject();
-    if (renderObject is RenderRepaintBoundary) {
-      return renderObject.toImage(pixelRatio: MediaQuery.of(context).devicePixelRatio);
-    }
-    return null;
+    final recorder = ui.PictureRecorder();
+    final canvas = Canvas(recorder);
+    final size = MediaQuery.of(context).size;
+    _drawSimulation(canvas, size);
+    final picture = recorder.endRecording();
+    return picture.toImage(size.width.floor(), size.height.floor());
   }
 
-  void _paint(ui.Offset position) {
-    widget.onPaintAt(position);
+  void _drawSimulation(Canvas canvas, Size size) {
+    final cellWidth = size.width / widget.simulation.width;
+    final cellHeight = size.height / widget.simulation.height;
+    final paint = Paint()..style = PaintingStyle.fill;
+
+    for (var y = 0; y < widget.simulation.height; y++) {
+      for (var x = 0; x < widget.simulation.width; x++) {
+        final state = widget.simulation.cells[y * widget.simulation.width + x];
+        final elementalState = elementalStates[state];
+        paint.color = Color(elementalState.color);
+        canvas.drawRect(
+          Rect.fromLTWH(x * cellWidth, y * cellHeight, cellWidth, cellHeight),
+          paint,
+        );
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (_, constraints) => GestureDetector(
-        behavior: HitTestBehavior.translucent,
-        onPanStart: (details) => _paint(details.localPosition),
-        onPanUpdate: (details) => _paint(details.localPosition),
-        onTapDown: (details) => _paint(details.localPosition),
-        child: RepaintBoundary(
-          key: _boundaryKey,
-          child: Container(
-            color: const Color(0xFF07111F),
-            child: CustomPaint(
-              size: constraints.biggest,
-              painter: LifePainter(widget.simulation),
-            ),
-          ),
+    return GestureDetector(
+      onPanUpdate: (details) => widget.onPaintAt(details.localPosition),
+      onTapDown: (details) => widget.onPaintAt(details.localPosition),
+      child: RepaintBoundary(
+        child: CustomPaint(
+          painter: _LifeCanvasPainter(simulation: widget.simulation),
+          size: Size.infinite,
         ),
       ),
     );
   }
 }
 
-/// LifePainter handles orchestration of lifepainter functionality.
-class LifePainter extends CustomPainter {
-  LifePainter(this.simulation);
+class _LifeCanvasPainter extends CustomPainter {
+  _LifeCanvasPainter({required this.simulation});
 
   final ElementalLife simulation;
 
   @override
   void paint(Canvas canvas, Size size) {
-    if (size.isEmpty) {
-      return;
-    }
-    final bgPaint = Paint()..color = const Color(0xFF0D1321);
-    canvas.drawRect(Offset.zero & size, bgPaint);
-    _drawStars(canvas, size);
+    final cellWidth = size.width / simulation.width;
+    final cellHeight = size.height / simulation.height;
+    final paint = Paint()..style = PaintingStyle.fill;
 
-    final cellSize = math.max(3, (math.min(size.width / simulation.width, size.height / simulation.height)).floorToDouble()).toInt();
-    final gridWidth = cellSize * simulation.width.toDouble();
-    final gridHeight = cellSize * simulation.height.toDouble();
-    final offsetX = ((size.width - gridWidth) / 2).floorToDouble();
-    final offsetY = ((size.height - gridHeight) / 2).floorToDouble();
-
-    final borderPaint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.18)
-      ..strokeWidth = 1;
-    canvas.drawRect(
-      Rect.fromLTWH(offsetX - 0.5, offsetY - 0.5, gridWidth + 1.0, gridHeight + 1.0),
-      borderPaint,
-    );
-
-    final glowPaint = Paint()
-      ..style = PaintingStyle.fill
-      ..maskFilter = const ui.MaskFilter.blur(ui.BlurStyle.normal, 10);
-
-    for (var y = 0; y < simulation.height; y += 1) {
-      for (var x = 0; x < simulation.width; x += 1) {
-        final stateIndex = simulation.cells[y * simulation.width + x];
-        if (stateIndex == 0) {
-          continue;
-        }
-
-        final state = elementalStates[stateIndex];
-        final rect = Rect.fromLTWH(
-          offsetX + x * cellSize.toDouble() + 0.5,
-          offsetY + y * cellSize.toDouble() + 0.5,
-          cellSize > 1 ? cellSize.toDouble() - 1 : 1,
-          cellSize > 1 ? cellSize.toDouble() - 1 : 1,
+    for (var y = 0; y < simulation.height; y++) {
+      for (var x = 0; x < simulation.width; x++) {
+        final state = simulation.cells[y * simulation.width + x];
+        final elementalState = elementalStates[state];
+        paint.color = Color(elementalState.color);
+        canvas.drawRect(
+          Rect.fromLTWH(x * cellWidth, y * cellHeight, cellWidth, cellHeight),
+          paint,
         );
-        final flicker = stateIndex == 5
-            ? 0.78 + 0.22 * math.sin((x * 13 + y * 7 + simulation.generation) * 0.17)
-            : 1.0;
-
-        glowPaint
-          ..color = ui.Color(state.glow).withValues(alpha: stateIndex == 1 || stateIndex == 5 ? 0.24 : 0.14)
-          ..maskFilter = ui.MaskFilter.blur(
-            ui.BlurStyle.normal,
-            (cellSize * (stateIndex == 1 || stateIndex == 5 ? 0.22 : 0.1)).toDouble());
-        canvas.drawRect(rect, glowPaint);
-
-        final cellPaint = Paint()..style = PaintingStyle.fill;
-        cellPaint
-          ..color = ui.Color(state.color).withValues(alpha: stateIndex == 4 ? 0.62 : flicker);
-        canvas.drawRect(rect, cellPaint);
-
-        if (cellSize >= 5 && stateIndex == 1) {
-          final center = Offset(rect.left + rect.width * 0.5, rect.top + rect.height * 0.5);
-          final radius = cellSize * 0.16;
-          canvas.drawOval(
-            Rect.fromCircle(center: center, radius: radius),
-            Paint()..color = const ui.Color(0xFFDCFCE7).withValues(alpha: 0.85),
-          );
-        }
       }
-    }
-
-    if (cellSize >= 2) {
-      final gridPaint = Paint()
-        ..color = const ui.Color(0xFF64748B).withValues(alpha: 0.3)
-        ..strokeWidth = 0.8;
-      canvas.drawLine(Offset(offsetX, offsetY), Offset(offsetX + gridWidth, offsetY), gridPaint);
-      canvas.drawLine(Offset(offsetX, offsetY + gridHeight), Offset(offsetX + gridWidth, offsetY + gridHeight), gridPaint);
-      canvas.drawLine(Offset(offsetX, offsetY), Offset(offsetX, offsetY + gridHeight), gridPaint);
-      canvas.drawLine(Offset(offsetX + gridWidth, offsetY), Offset(offsetX + gridWidth, offsetY + gridHeight), gridPaint);
-    }
-  }
-
-  void _drawStars(Canvas canvas, Size size) {
-    final count = math.min(120, (size.width * size.height / 9000).floor());
-    final starPaint = Paint();
-    for (var i = 0; i < count; i += 1) {
-      final x = (i * 97) % size.width;
-      final y = (i * 53) % size.height;
-      final pulse = 0.35 + 0.35 * math.sin((simulation.generation + i) * 0.03);
-      starPaint.color = const ui.Color(0xFFE2E8F0).withValues(alpha: pulse);
-      canvas.drawRect(Offset(x, y) & const Size(1, 1), starPaint);
     }
   }
 
   @override
-  bool shouldRepaint(covariant LifePainter oldDelegate) => true;
+  bool shouldRepaint(covariant _LifeCanvasPainter oldDelegate) {
+    return oldDelegate.simulation.generation != simulation.generation;
+  }
 }

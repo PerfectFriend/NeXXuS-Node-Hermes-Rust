@@ -1,3 +1,4 @@
+# HOT
 #!/usr/bin/env python3
 # Wrapper for banner_deploy_poller.py that auto-detects the current cycle
 
@@ -8,7 +9,7 @@ import re
 
 def find_latest_cycle():
     """Find the latest cycle number from filter reports"""
-    artifacts_dir = Path("C:/LivingCode/artifacts")
+    artifacts_dir = Path("/home/thomas/LivingCode/artifacts")
     reports = list(artifacts_dir.glob("filter_report_cycle_*.json"))
     
     if not reports:
@@ -35,7 +36,7 @@ def main():
     # Run the poller with --poll-once
     cmd = [
         sys.executable,
-        "C:/LivingCode/scripts/banner_deploy_poller.py",
+        "/home/thomas/LivingCode/scripts/banner_deploy_poller.py",
         f"--cycle={cycle}",
         "--poll-once"
     ]

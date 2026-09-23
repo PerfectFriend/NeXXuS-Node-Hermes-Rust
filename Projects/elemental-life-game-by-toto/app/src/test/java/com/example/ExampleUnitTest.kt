@@ -1,3 +1,4 @@
+# HOT
 package com.example
 
 import org.junit.Assert.*

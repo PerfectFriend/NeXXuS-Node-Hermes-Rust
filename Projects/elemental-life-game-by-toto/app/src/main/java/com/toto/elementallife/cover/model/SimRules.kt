@@ -1,3 +1,4 @@
+# HOT
 package com.toto.elementallife.cover.model
 
 data class SimRules(

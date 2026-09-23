@@ -1,3 +1,4 @@
+# HOT
 #!/usr/bin/env python3
 # Living Code Ecosystem — Model Registry (Библиотекарь Фёдорович)
 # Версия: 1.0

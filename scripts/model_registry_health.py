@@ -1,3 +1,4 @@
+# HOT
 #!/usr/bin/env python3
 # Living Code Ecosystem — Model Registry Health (Every 30 min)
 # Версия: 1.0
@@ -14,7 +15,7 @@ from typing import Dict
 
 class ModelRegistryHealth:
     def __init__(self):
-        self.root = Path("C:/LivingCode")
+        self.root = Path("/home/thomas/LivingCode")
         self.scripts_dir = Path("C:/Users/tomas/the-grimoire/ru/scripts")
     
     def run_cmd(self, cmd: str, cwd: Path = None, timeout: int = 60) -> tuple:

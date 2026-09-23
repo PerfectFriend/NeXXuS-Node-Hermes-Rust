@@ -1,3 +1,4 @@
+# HOT
 package com.toto.elementallife.cover.ui.theme
 
 import androidx.compose.ui.graphics.Color

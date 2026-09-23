@@ -1,3 +1,4 @@
+# HOT
 #!/usr/bin/env python3
 """
 Promotion check - called by producer at :10 each hour.

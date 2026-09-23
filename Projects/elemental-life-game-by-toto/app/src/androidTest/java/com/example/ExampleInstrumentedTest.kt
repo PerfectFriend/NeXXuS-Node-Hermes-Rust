@@ -1,3 +1,4 @@
+# HOT
 package com.example
 
 import androidx.test.ext.junit.runners.AndroidJUnit4

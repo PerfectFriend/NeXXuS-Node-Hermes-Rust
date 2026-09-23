@@ -1,3 +1,4 @@
+# HOT
 package com.toto.elementallife.ops.api
 
 /** Shared probe / engine contracts for L2 networking lab. */

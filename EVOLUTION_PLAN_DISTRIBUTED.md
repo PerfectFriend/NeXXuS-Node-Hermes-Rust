@@ -1,3 +1,4 @@
+# HOT
 # Living Code Evolution Plan — Distributed, Trigger-Based, Offline-Capable
 
 **Version:** 2.0  

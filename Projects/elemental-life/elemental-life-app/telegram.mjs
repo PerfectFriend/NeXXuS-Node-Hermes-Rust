@@ -1,3 +1,4 @@
+# HOT
 // Telegram Bot — Elemental Life
 // Запуск: node telegram.mjs
 // Зависимости: только Node.js 18+ (native fetch), PowerShell для отправки файлов

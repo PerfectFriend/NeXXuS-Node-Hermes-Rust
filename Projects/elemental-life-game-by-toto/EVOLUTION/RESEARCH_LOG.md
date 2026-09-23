@@ -1,3 +1,4 @@
+# HOT
 # Research log
 
 Append-only. Cap: ≤3 primary sources per evolution cycle.

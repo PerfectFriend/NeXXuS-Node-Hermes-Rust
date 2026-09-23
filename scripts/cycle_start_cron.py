@@ -1,3 +1,4 @@
+# HOT
 #!/usr/bin/env python3
 # Wrapper for cycle_start.py that calculates cycle number automatically
 # Cycle = minutes since epoch (2021-01-01) // 240 (4-hour cycles)

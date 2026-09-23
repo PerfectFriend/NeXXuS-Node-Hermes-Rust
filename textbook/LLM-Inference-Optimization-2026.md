@@ -1,4 +1,5 @@
-# LLM Inference Optimization 2026 — [NEW]
+# HOT
+# LLM Inference Optimization 2026 — [DEPLOYED]
 
 ## 📚 Sources
 - [vLLM vs SGLang vs TGI Benchmark 2026](https://llm-academy.dev/inference/vllm-vs-sglang/) — H100 benchmarks
@@ -41,7 +42,7 @@
 ## 🔗 Related in Textbook
 - [ROCm PyTorch Audio Stack](ROCm-PyTorch-Audio-Stack.md) — 🟢
 - [Ollama AMD GPU Deployment](Ollama-AMD-GPU-Deployment.md) — 🟢
-- [vLLM Inference Optimization](vLLM-Inference-Optimization.md) — 🔴 [NEW]
+- [vLLM Inference Optimization](vLLM-Inference-Optimization.md) — 🟢 [STUDIED]
 
 ---
-*Added: 2026-08-17 | Status: 🔴 NEW | Source: Benchmarks, vLLM releases, community reports*
+*Added: 2026-08-17 | Status: 🟢 STUDIED | Source: Benchmarks, vLLM releases, community reports*"

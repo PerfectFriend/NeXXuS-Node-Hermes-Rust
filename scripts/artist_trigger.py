@@ -1,3 +1,4 @@
+# HOT
 #!/usr/bin/env python3
 """
 Artist Trigger — Called when producer triggers artist (assets needed)

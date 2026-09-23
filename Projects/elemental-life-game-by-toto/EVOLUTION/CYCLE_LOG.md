@@ -1,3 +1,4 @@
+# HOT
 # Cycle log — run 20260717-R1
 
 ## Cycle 0 (bootstrap)

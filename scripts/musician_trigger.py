@@ -1,3 +1,4 @@
+# HOT
 #!/usr/bin/env python3
 """
 Musician Trigger — Called when artist.done event fires

@@ -1,0 +1,11 @@
+# HOT
+{
+  "type": "artist.trigger",
+  "project": "elemental-life",
+  "cycle": 9999,
+  "assets_needed": [
+    "banner",
+    "icon"
+  ],
+  "timestamp": "2026-08-17T10:52:57.971936+00:00"
+}

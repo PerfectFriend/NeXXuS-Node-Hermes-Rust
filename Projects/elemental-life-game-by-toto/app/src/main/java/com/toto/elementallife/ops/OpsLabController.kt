@@ -1,3 +1,4 @@
+# HOT
 package com.toto.elementallife.ops
 
 import com.toto.elementallife.ops.api.BridgeSession

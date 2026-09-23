@@ -1,3 +1,4 @@
+# HOT
 #!/usr/bin/env python3
 # Living Code Ecosystem — Vault Git Sync (Daily 04:00)
 # Версия: 1.0

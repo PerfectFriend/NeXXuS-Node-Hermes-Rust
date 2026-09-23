@@ -1,3 +1,4 @@
+# HOT
 package com.toto.elementallife
 
 import androidx.test.ext.junit.runners.AndroidJUnit4

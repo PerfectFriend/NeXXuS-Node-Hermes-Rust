@@ -72,8 +72,8 @@
 - [ ] Unit: `tickWell` — пересыхание сбрасывает pending
 - [ ] Integration: draw → interpretation → mint → sell цикл
 - [ ] Integration: harvest → mint → sell цикл
-- [ ] Component: ManaWellTab рендерит таймеры
-- [ ] Component: CardFace рендерит карту с правильной ориентацией
+- [x] Component: ManaWellTab рендерит таймеры — ЗАКРЫТО 2026-09-23 (Frater Abyssus, 10 тестов, коммит a8e97fc)
+- [x] Component: CardFace рендерит карту с правильной ориентацией — ЗАКРЫТО 2026-09-23 (Frater Abyssus, 10 тестов, коммит a8e97fc)
 
 ---
 

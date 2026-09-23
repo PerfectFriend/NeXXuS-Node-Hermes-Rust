@@ -1,0 +1,12 @@
+# HOT
+{
+  "type": "artist.started",
+  "project": "elemental-life",
+  "cycle": 9999,
+  "assets_needed": [
+    "banner",
+    "icon"
+  ],
+  "node": "totomoto",
+  "timestamp": "2026-08-17T10:52:57.992949+00:00"
+}

@@ -1,238 +1,608 @@
-[2026-08-17 00:10:51] === Vault Sync Started ===
-[2026-08-17 00:10:51] Committed local changes
-[2026-08-17 00:10:51] Syncing with unsloth-studio...
-[2026-08-17 00:10:51]   unsloth-studio unreachable or no main branch
-[2026-08-17 00:10:51]   Push to unsloth-studio failed (maybe no changes)
-[2026-08-17 00:10:51] Syncing with dell...
-[2026-08-17 00:10:51]   dell unreachable or no main branch
-[2026-08-17 00:10:51]   Push to dell failed (maybe no changes)
-[2026-08-17 00:10:51] Syncing with lenovo...
-[2026-08-17 00:10:51]   lenovo unreachable or no main branch
-[2026-08-17 00:10:51]   Push to lenovo failed (maybe no changes)
-ssh: Could not resolve hostname unsloth-studio: Temporary failure in name resolution
+# HOT
+[2026-08-17 19:13:41] Узел unsloth-studio недоступен (пропускаем)
+[2026-08-17 19:13:41] Узел dell недоступен (пропускаем)
+[2026-08-17 19:13:41] Узел lenovo недоступен (пропускаем)
+[2026-08-17 19:13:41] Узел cathedral онлайн
+[2026-08-17 19:13:41] === Vault Sync Started ===
+[2026-08-17 19:13:41] === Vault Sync Started ===
+[2026-08-17 19:13:41] Syncing with cathedral...
+[2026-08-17 19:13:41]   cathedral unreachable or no main branch
+[2026-08-17 19:13:41]   Push to cathedral failed (maybe no changes)
+ssh: connect to host cathedral port 22: Connection refused
 rsync: connection unexpectedly closed (0 bytes received so far) [sender]
 rsync error: unexplained error (code 255) at io.c(232) [sender=3.4.1]
-[2026-08-17 00:10:51]   Artifacts sync to unsloth-studio failed
-ssh: Could not resolve hostname unsloth-studio: Temporary failure in name resolution
+[2026-08-17 19:13:41]   Artifacts sync to cathedral failed
+ssh: connect to host cathedral port 22: Connection refused
 rsync: connection unexpectedly closed (0 bytes received so far) [sender]
 rsync error: unexplained error (code 255) at io.c(232) [sender=3.4.1]
-[2026-08-17 00:10:51]   CompleteProjects sync to unsloth-studio failed
-ssh: Could not resolve hostname unsloth-studio: Temporary failure in name resolution
+[2026-08-17 19:13:41]   CompleteProjects sync to cathedral failed
+ssh: connect to host cathedral port 22: Connection refused
 rsync: connection unexpectedly closed (0 bytes received so far) [sender]
 rsync error: unexplained error (code 255) at io.c(232) [sender=3.4.1]
-[2026-08-17 00:10:51]   QUEUE/nodes sync to unsloth-studio failed
-ssh: Could not resolve hostname dell: Temporary failure in name resolution
+[2026-08-17 19:13:41]   QUEUE sync to cathedral failed
+ssh: connect to host cathedral port 22: Connection refused
 rsync: connection unexpectedly closed (0 bytes received so far) [sender]
 rsync error: unexplained error (code 255) at io.c(232) [sender=3.4.1]
-[2026-08-17 00:10:51]   Artifacts sync to dell failed
-ssh: Could not resolve hostname dell: Temporary failure in name resolution
+[2026-08-17 19:13:41]   Nodes sync to cathedral failed
+[2026-08-17 19:13:41] === Vault Sync Complete ===
+[2026-08-17 19:30:22] Узел unsloth-studio недоступен (пропускаем)
+[2026-08-17 19:30:22] Узел dell недоступен (пропускаем)
+[2026-08-17 19:30:22] Узел lenovo недоступен (пропускаем)
+[2026-08-17 19:30:22] Узел cathedral онлайн
+[2026-08-17 19:30:22] === Vault Sync Started ===
+[2026-08-17 19:30:22] === Vault Sync Started ===
+[2026-08-17 19:30:22] Syncing with cathedral...
+[2026-08-17 19:30:22]   cathedral unreachable or no main branch
+[2026-08-17 19:30:22]   Push to cathedral failed (maybe no changes)
+ssh: connect to host cathedral port 22: Connection refused
 rsync: connection unexpectedly closed (0 bytes received so far) [sender]
 rsync error: unexplained error (code 255) at io.c(232) [sender=3.4.1]
-[2026-08-17 00:10:51]   CompleteProjects sync to dell failed
-ssh: Could not resolve hostname dell: Temporary failure in name resolution
+[2026-08-17 19:30:22]   Artifacts sync to cathedral failed
+ssh: connect to host cathedral port 22: Connection refused
 rsync: connection unexpectedly closed (0 bytes received so far) [sender]
 rsync error: unexplained error (code 255) at io.c(232) [sender=3.4.1]
-[2026-08-17 00:10:51]   QUEUE/nodes sync to dell failed
-ssh: Could not resolve hostname lenovo: Temporary failure in name resolution
+[2026-08-17 19:30:22]   CompleteProjects sync to cathedral failed
+ssh: connect to host cathedral port 22: Connection refused
 rsync: connection unexpectedly closed (0 bytes received so far) [sender]
 rsync error: unexplained error (code 255) at io.c(232) [sender=3.4.1]
-[2026-08-17 00:10:51]   Artifacts sync to lenovo failed
-ssh: Could not resolve hostname lenovo: Temporary failure in name resolution
+[2026-08-17 19:30:22]   QUEUE sync to cathedral failed
+ssh: connect to host cathedral port 22: Connection refused
 rsync: connection unexpectedly closed (0 bytes received so far) [sender]
 rsync error: unexplained error (code 255) at io.c(232) [sender=3.4.1]
-[2026-08-17 00:10:51]   CompleteProjects sync to lenovo failed
-ssh: Could not resolve hostname lenovo: Temporary failure in name resolution
+[2026-08-17 19:30:22]   Nodes sync to cathedral failed
+[2026-08-17 19:30:22] === Vault Sync Complete ===
+[2026-08-17 20:21:35] Узел unsloth-studio недоступен (пропускаем)
+[2026-08-17 20:21:35] Узел dell недоступен (пропускаем)
+[2026-08-17 20:21:35] Узел lenovo недоступен (пропускаем)
+[2026-08-17 20:21:35] Узел cathedral онлайн
+[2026-08-17 20:21:35] === Vault Sync Started ===
+[2026-08-17 20:21:35] === Vault Sync Started ===
+[2026-08-17 20:21:35] Syncing with cathedral...
+[2026-08-17 20:21:35]   cathedral unreachable or no main branch
+[2026-08-17 20:21:35]   Push to cathedral failed (maybe no changes)
+ssh: connect to host cathedral port 22: Connection refused
 rsync: connection unexpectedly closed (0 bytes received so far) [sender]
 rsync error: unexplained error (code 255) at io.c(232) [sender=3.4.1]
-[2026-08-17 00:10:51]   QUEUE/nodes sync to lenovo failed
-[2026-08-17 00:10:51] === Vault Sync Complete ===
-[2026-08-17 07:19:13] === Vault Sync Started ===
-[2026-08-17 07:19:13] Syncing with unsloth-studio...
-[2026-08-17 07:19:13]   unsloth-studio unreachable or no main branch
-[2026-08-17 07:19:13]   Push to unsloth-studio failed (maybe no changes)
-[2026-08-17 07:19:13] Syncing with dell...
-[2026-08-17 07:19:13]   dell unreachable or no main branch
-[2026-08-17 07:19:13]   Push to dell failed (maybe no changes)
-[2026-08-17 07:19:13] Syncing with lenovo...
-[2026-08-17 07:19:13]   lenovo unreachable or no main branch
-[2026-08-17 07:19:13]   Push to lenovo failed (maybe no changes)
-ssh: Could not resolve hostname unsloth-studio: Temporary failure in name resolution
+[2026-08-17 20:21:35]   Artifacts sync to cathedral failed
+ssh: connect to host cathedral port 22: Connection refused
 rsync: connection unexpectedly closed (0 bytes received so far) [sender]
 rsync error: unexplained error (code 255) at io.c(232) [sender=3.4.1]
-[2026-08-17 07:19:13]   Artifacts sync to unsloth-studio failed
-ssh: Could not resolve hostname unsloth-studio: Temporary failure in name resolution
+[2026-08-17 20:21:35]   CompleteProjects sync to cathedral failed
+ssh: connect to host cathedral port 22: Connection refused
 rsync: connection unexpectedly closed (0 bytes received so far) [sender]
 rsync error: unexplained error (code 255) at io.c(232) [sender=3.4.1]
-[2026-08-17 07:19:14]   CompleteProjects sync to unsloth-studio failed
-ssh: Could not resolve hostname unsloth-studio: Temporary failure in name resolution
+[2026-08-17 20:21:35]   QUEUE sync to cathedral failed
+ssh: connect to host cathedral port 22: Connection refused
 rsync: connection unexpectedly closed (0 bytes received so far) [sender]
 rsync error: unexplained error (code 255) at io.c(232) [sender=3.4.1]
-[2026-08-17 07:19:14]   QUEUE/nodes sync to unsloth-studio failed
-ssh: Could not resolve hostname dell: Temporary failure in name resolution
+[2026-08-17 20:21:35]   Nodes sync to cathedral failed
+[2026-08-17 20:21:35] === Vault Sync Complete ===
+[2026-08-17 20:37:08] Узел unsloth-studio недоступен (пропускаем)
+[2026-08-17 20:37:08] Узел dell недоступен (пропускаем)
+[2026-08-17 20:37:08] Узел lenovo недоступен (пропускаем)
+[2026-08-17 20:37:08] Узел cathedral онлайн
+[2026-08-17 20:37:08] === Vault Sync Started ===
+[2026-08-17 20:37:08] === Vault Sync Started ===
+[2026-08-17 20:37:08] Syncing with cathedral...
+[2026-08-17 20:37:08]   cathedral unreachable or no main branch
+[2026-08-17 20:37:08]   Push to cathedral failed (maybe no changes)
+ssh: connect to host cathedral port 22: Connection refused
 rsync: connection unexpectedly closed (0 bytes received so far) [sender]
 rsync error: unexplained error (code 255) at io.c(232) [sender=3.4.1]
-[2026-08-17 07:19:14]   Artifacts sync to dell failed
-ssh: Could not resolve hostname dell: Temporary failure in name resolution
+[2026-08-17 20:37:08]   Artifacts sync to cathedral failed
+ssh: connect to host cathedral port 22: Connection refused
 rsync: connection unexpectedly closed (0 bytes received so far) [sender]
 rsync error: unexplained error (code 255) at io.c(232) [sender=3.4.1]
-[2026-08-17 07:19:14]   CompleteProjects sync to dell failed
-ssh: Could not resolve hostname dell: Temporary failure in name resolution
+[2026-08-17 20:37:08]   CompleteProjects sync to cathedral failed
+ssh: connect to host cathedral port 22: Connection refused
 rsync: connection unexpectedly closed (0 bytes received so far) [sender]
 rsync error: unexplained error (code 255) at io.c(232) [sender=3.4.1]
-[2026-08-17 07:19:14]   QUEUE/nodes sync to dell failed
-ssh: Could not resolve hostname lenovo: Temporary failure in name resolution
+[2026-08-17 20:37:08]   QUEUE sync to cathedral failed
+ssh: connect to host cathedral port 22: Connection refused
 rsync: connection unexpectedly closed (0 bytes received so far) [sender]
 rsync error: unexplained error (code 255) at io.c(232) [sender=3.4.1]
-[2026-08-17 07:19:14]   Artifacts sync to lenovo failed
-ssh: Could not resolve hostname lenovo: Temporary failure in name resolution
+[2026-08-17 20:37:08]   Nodes sync to cathedral failed
+[2026-08-17 20:37:08] === Vault Sync Complete ===
+[2026-08-18 05:29:04] Узел unsloth-studio недоступен (пропускаем)
+[2026-08-18 05:29:04] Узел dell недоступен (пропускаем)
+[2026-08-18 05:29:04] Узел lenovo недоступен (пропускаем)
+[2026-08-18 05:29:04] Узел cathedral онлайн
+[2026-08-18 05:29:04] === Vault Sync Started ===
+[2026-08-18 05:29:04] === Vault Sync Started ===
+[2026-08-18 05:29:04] Committed local changes
+[2026-08-18 05:29:04] Syncing with cathedral...
+[2026-08-18 05:29:04]   cathedral unreachable or no main branch
+[2026-08-18 05:29:04]   Push to cathedral failed (maybe no changes)
+ssh: connect to host cathedral port 22: Connection refused
 rsync: connection unexpectedly closed (0 bytes received so far) [sender]
 rsync error: unexplained error (code 255) at io.c(232) [sender=3.4.1]
-[2026-08-17 07:19:14]   CompleteProjects sync to lenovo failed
-ssh: Could not resolve hostname lenovo: Temporary failure in name resolution
+[2026-08-18 05:29:04]   Artifacts sync to cathedral failed
+ssh: connect to host cathedral port 22: Connection refused
 rsync: connection unexpectedly closed (0 bytes received so far) [sender]
 rsync error: unexplained error (code 255) at io.c(232) [sender=3.4.1]
-[2026-08-17 07:19:14]   QUEUE/nodes sync to lenovo failed
-[2026-08-17 07:19:14] === Vault Sync Complete ===
-[2026-08-17 07:23:34] === Vault Sync Started ===
-[2026-08-17 07:23:34] Committed local changes
-[2026-08-17 07:23:34] Syncing with unsloth-studio...
-[2026-08-17 07:23:34]   unsloth-studio unreachable or no main branch
-[2026-08-17 07:23:34]   Push to unsloth-studio failed (maybe no changes)
-[2026-08-17 07:23:34] Syncing with dell...
-[2026-08-17 07:23:34]   dell unreachable or no main branch
-[2026-08-17 07:23:34]   Push to dell failed (maybe no changes)
-[2026-08-17 07:23:34] Syncing with lenovo...
-[2026-08-17 07:23:34]   lenovo unreachable or no main branch
-[2026-08-17 07:23:34]   Push to lenovo failed (maybe no changes)
-ssh: Could not resolve hostname unsloth-studio: Temporary failure in name resolution
+[2026-08-18 05:29:04]   CompleteProjects sync to cathedral failed
+ssh: connect to host cathedral port 22: Connection refused
 rsync: connection unexpectedly closed (0 bytes received so far) [sender]
 rsync error: unexplained error (code 255) at io.c(232) [sender=3.4.1]
-[2026-08-17 07:23:34]   Artifacts sync to unsloth-studio failed
-ssh: Could not resolve hostname unsloth-studio: Temporary failure in name resolution
+[2026-08-18 05:29:04]   QUEUE sync to cathedral failed
+ssh: connect to host cathedral port 22: Connection refused
 rsync: connection unexpectedly closed (0 bytes received so far) [sender]
 rsync error: unexplained error (code 255) at io.c(232) [sender=3.4.1]
-[2026-08-17 07:23:34]   CompleteProjects sync to unsloth-studio failed
-ssh: Could not resolve hostname unsloth-studio: Temporary failure in name resolution
+[2026-08-18 05:29:04]   Nodes sync to cathedral failed
+[2026-08-18 05:29:04] === Vault Sync Complete ===
+[2026-08-18 05:39:14] Узел unsloth-studio недоступен (пропускаем)
+[2026-08-18 05:39:14] Узел dell недоступен (пропускаем)
+[2026-08-18 05:39:14] Узел lenovo недоступен (пропускаем)
+[2026-08-18 05:39:14] Узел cathedral онлайн
+[2026-08-18 05:39:14] === Vault Sync Started ===
+[2026-08-18 05:39:14] === Vault Sync Started ===
+[2026-08-18 05:39:14] Syncing with cathedral...
+[2026-08-18 05:39:14]   cathedral unreachable or no main branch
+[2026-08-18 05:39:14]   Push to cathedral failed (maybe no changes)
+ssh: connect to host cathedral port 22: Connection refused
 rsync: connection unexpectedly closed (0 bytes received so far) [sender]
 rsync error: unexplained error (code 255) at io.c(232) [sender=3.4.1]
-[2026-08-17 07:23:34]   QUEUE/nodes sync to unsloth-studio failed
-ssh: Could not resolve hostname dell: Temporary failure in name resolution
+[2026-08-18 05:39:14]   Artifacts sync to cathedral failed
+ssh: connect to host cathedral port 22: Connection refused
 rsync: connection unexpectedly closed (0 bytes received so far) [sender]
 rsync error: unexplained error (code 255) at io.c(232) [sender=3.4.1]
-[2026-08-17 07:23:34]   Artifacts sync to dell failed
-ssh: Could not resolve hostname dell: Temporary failure in name resolution
+[2026-08-18 05:39:14]   CompleteProjects sync to cathedral failed
+ssh: connect to host cathedral port 22: Connection refused
 rsync: connection unexpectedly closed (0 bytes received so far) [sender]
 rsync error: unexplained error (code 255) at io.c(232) [sender=3.4.1]
-[2026-08-17 07:23:34]   CompleteProjects sync to dell failed
-ssh: Could not resolve hostname dell: Temporary failure in name resolution
+[2026-08-18 05:39:14]   QUEUE sync to cathedral failed
+ssh: connect to host cathedral port 22: Connection refused
 rsync: connection unexpectedly closed (0 bytes received so far) [sender]
 rsync error: unexplained error (code 255) at io.c(232) [sender=3.4.1]
-[2026-08-17 07:23:34]   QUEUE/nodes sync to dell failed
-ssh: Could not resolve hostname lenovo: Temporary failure in name resolution
+[2026-08-18 05:39:14]   Nodes sync to cathedral failed
+[2026-08-18 05:39:14] === Vault Sync Complete ===
+[2026-08-18 06:32:19] Узел unsloth-studio недоступен (пропускаем)
+[2026-08-18 06:32:19] Узел dell недоступен (пропускаем)
+[2026-08-18 06:32:19] Узел lenovo недоступен (пропускаем)
+[2026-08-18 06:32:19] Узел cathedral онлайн
+[2026-08-18 06:32:19] === Vault Sync Started ===
+[2026-08-18 06:32:19] === Vault Sync Started ===
+[2026-08-18 06:32:19] Committed local changes
+[2026-08-18 06:32:19] Syncing with cathedral...
+[2026-08-18 06:32:19]   cathedral unreachable or no main branch
+[2026-08-18 06:32:20]   Push to cathedral failed (maybe no changes)
+ssh: connect to host cathedral port 22: Connection refused
 rsync: connection unexpectedly closed (0 bytes received so far) [sender]
 rsync error: unexplained error (code 255) at io.c(232) [sender=3.4.1]
-[2026-08-17 07:23:34]   Artifacts sync to lenovo failed
-ssh: Could not resolve hostname lenovo: Temporary failure in name resolution
+[2026-08-18 06:32:20]   Artifacts sync to cathedral failed
+ssh: connect to host cathedral port 22: Connection refused
 rsync: connection unexpectedly closed (0 bytes received so far) [sender]
 rsync error: unexplained error (code 255) at io.c(232) [sender=3.4.1]
-[2026-08-17 07:23:34]   CompleteProjects sync to lenovo failed
-ssh: Could not resolve hostname lenovo: Temporary failure in name resolution
+[2026-08-18 06:32:20]   CompleteProjects sync to cathedral failed
+ssh: connect to host cathedral port 22: Connection refused
 rsync: connection unexpectedly closed (0 bytes received so far) [sender]
 rsync error: unexplained error (code 255) at io.c(232) [sender=3.4.1]
-[2026-08-17 07:23:34]   QUEUE/nodes sync to lenovo failed
-[2026-08-17 07:23:34] === Vault Sync Complete ===
-[2026-08-17 07:32:55] === Vault Sync Started ===
-[2026-08-17 07:32:55] Committed local changes
-[2026-08-17 07:32:55] Syncing with unsloth-studio...
-[2026-08-17 07:32:55]   unsloth-studio unreachable or no main branch
-[2026-08-17 07:32:55]   Push to unsloth-studio failed (maybe no changes)
-[2026-08-17 07:32:55] Syncing with dell...
-[2026-08-17 07:32:56]   dell unreachable or no main branch
-[2026-08-17 07:32:56]   Push to dell failed (maybe no changes)
-[2026-08-17 07:32:56] Syncing with lenovo...
-[2026-08-17 07:32:56]   lenovo unreachable or no main branch
-[2026-08-17 07:32:56]   Push to lenovo failed (maybe no changes)
-ssh: Could not resolve hostname unsloth-studio: Temporary failure in name resolution
+[2026-08-18 06:32:20]   QUEUE sync to cathedral failed
+ssh: connect to host cathedral port 22: Connection refused
 rsync: connection unexpectedly closed (0 bytes received so far) [sender]
 rsync error: unexplained error (code 255) at io.c(232) [sender=3.4.1]
-[2026-08-17 07:32:56]   Artifacts sync to unsloth-studio failed
-ssh: Could not resolve hostname unsloth-studio: Temporary failure in name resolution
+[2026-08-18 06:32:20]   Nodes sync to cathedral failed
+[2026-08-18 06:32:20] === Vault Sync Complete ===
+[2026-08-18 06:41:16] Узел unsloth-studio недоступен (пропускаем)
+[2026-08-18 06:41:16] Узел dell недоступен (пропускаем)
+[2026-08-18 06:41:16] Узел lenovo недоступен (пропускаем)
+[2026-08-18 06:41:16] Узел cathedral онлайн
+[2026-08-18 06:41:16] === Vault Sync Started ===
+[2026-08-18 06:41:16] === Vault Sync Started ===
+[2026-08-18 06:41:16] Syncing with cathedral...
+[2026-08-18 06:41:16]   cathedral unreachable or no main branch
+[2026-08-18 06:41:16]   Push to cathedral failed (maybe no changes)
+ssh: connect to host cathedral port 22: Connection refused
 rsync: connection unexpectedly closed (0 bytes received so far) [sender]
 rsync error: unexplained error (code 255) at io.c(232) [sender=3.4.1]
-[2026-08-17 07:32:56]   CompleteProjects sync to unsloth-studio failed
-ssh: Could not resolve hostname unsloth-studio: Temporary failure in name resolution
+[2026-08-18 06:41:16]   Artifacts sync to cathedral failed
+ssh: connect to host cathedral port 22: Connection refused
 rsync: connection unexpectedly closed (0 bytes received so far) [sender]
 rsync error: unexplained error (code 255) at io.c(232) [sender=3.4.1]
-[2026-08-17 07:32:56]   QUEUE/nodes sync to unsloth-studio failed
-ssh: Could not resolve hostname dell: Temporary failure in name resolution
+[2026-08-18 06:41:16]   CompleteProjects sync to cathedral failed
+ssh: connect to host cathedral port 22: Connection refused
 rsync: connection unexpectedly closed (0 bytes received so far) [sender]
 rsync error: unexplained error (code 255) at io.c(232) [sender=3.4.1]
-[2026-08-17 07:32:56]   Artifacts sync to dell failed
-ssh: Could not resolve hostname dell: Temporary failure in name resolution
+[2026-08-18 06:41:16]   QUEUE sync to cathedral failed
+ssh: connect to host cathedral port 22: Connection refused
 rsync: connection unexpectedly closed (0 bytes received so far) [sender]
 rsync error: unexplained error (code 255) at io.c(232) [sender=3.4.1]
-[2026-08-17 07:32:56]   CompleteProjects sync to dell failed
-ssh: Could not resolve hostname dell: Temporary failure in name resolution
+[2026-08-18 06:41:16]   Nodes sync to cathedral failed
+[2026-08-18 06:41:16] === Vault Sync Complete ===
+[2026-08-18 07:38:48] Узел unsloth-studio недоступен (пропускаем)
+[2026-08-18 07:38:48] Узел dell недоступен (пропускаем)
+[2026-08-18 07:38:48] Узел lenovo недоступен (пропускаем)
+[2026-08-18 07:38:48] Узел cathedral онлайн
+[2026-08-18 07:38:48] === Vault Sync Started ===
+[2026-08-18 07:38:48] === Vault Sync Started ===
+[2026-08-18 07:38:48] Committed local changes
+[2026-08-18 07:38:48] Syncing with cathedral...
+[2026-08-18 07:38:48]   cathedral unreachable or no main branch
+[2026-08-18 07:38:48]   Push to cathedral failed (maybe no changes)
+ssh: connect to host cathedral port 22: Connection refused
 rsync: connection unexpectedly closed (0 bytes received so far) [sender]
 rsync error: unexplained error (code 255) at io.c(232) [sender=3.4.1]
-[2026-08-17 07:32:56]   QUEUE/nodes sync to dell failed
-ssh: Could not resolve hostname lenovo: Temporary failure in name resolution
+[2026-08-18 07:38:48]   Artifacts sync to cathedral failed
+ssh: connect to host cathedral port 22: Connection refused
 rsync: connection unexpectedly closed (0 bytes received so far) [sender]
 rsync error: unexplained error (code 255) at io.c(232) [sender=3.4.1]
-[2026-08-17 07:32:56]   Artifacts sync to lenovo failed
-ssh: Could not resolve hostname lenovo: Temporary failure in name resolution
+[2026-08-18 07:38:48]   CompleteProjects sync to cathedral failed
+ssh: connect to host cathedral port 22: Connection refused
 rsync: connection unexpectedly closed (0 bytes received so far) [sender]
 rsync error: unexplained error (code 255) at io.c(232) [sender=3.4.1]
-[2026-08-17 07:32:56]   CompleteProjects sync to lenovo failed
-ssh: Could not resolve hostname lenovo: Temporary failure in name resolution
+[2026-08-18 07:38:48]   QUEUE sync to cathedral failed
+ssh: connect to host cathedral port 22: Connection refused
 rsync: connection unexpectedly closed (0 bytes received so far) [sender]
 rsync error: unexplained error (code 255) at io.c(232) [sender=3.4.1]
-[2026-08-17 07:32:56]   QUEUE/nodes sync to lenovo failed
-[2026-08-17 07:32:56] === Vault Sync Complete ===
-[2026-08-17 07:33:41] === Vault Sync Started ===
-[2026-08-17 07:33:41] Syncing with unsloth-studio...
-[2026-08-17 07:33:41]   unsloth-studio unreachable or no main branch
-[2026-08-17 07:33:41]   Push to unsloth-studio failed (maybe no changes)
-[2026-08-17 07:33:41] Syncing with dell...
-[2026-08-17 07:33:41]   dell unreachable or no main branch
-[2026-08-17 07:33:41]   Push to dell failed (maybe no changes)
-[2026-08-17 07:33:41] Syncing with lenovo...
-[2026-08-17 07:33:41]   lenovo unreachable or no main branch
-[2026-08-17 07:33:41]   Push to lenovo failed (maybe no changes)
-ssh: Could not resolve hostname unsloth-studio: Temporary failure in name resolution
+[2026-08-18 07:38:48]   Nodes sync to cathedral failed
+[2026-08-18 07:38:48] === Vault Sync Complete ===
+[2026-08-18 08:58:44] Узел unsloth-studio недоступен (пропускаем)
+[2026-08-18 08:58:44] Узел dell недоступен (пропускаем)
+[2026-08-18 08:58:44] Узел lenovo недоступен (пропускаем)
+[2026-08-18 08:58:44] Узел cathedral онлайн
+[2026-08-18 08:58:44] === Vault Sync Started ===
+[2026-08-18 08:58:44] === Vault Sync Started ===
+[2026-08-18 08:58:44] Syncing with cathedral...
+[2026-08-18 08:58:44]   cathedral unreachable or no main branch
+[2026-08-18 08:58:44]   Push to cathedral failed (maybe no changes)
+ssh: connect to host cathedral port 22: Connection refused
 rsync: connection unexpectedly closed (0 bytes received so far) [sender]
 rsync error: unexplained error (code 255) at io.c(232) [sender=3.4.1]
-[2026-08-17 07:33:41]   Artifacts sync to unsloth-studio failed
-ssh: Could not resolve hostname unsloth-studio: Temporary failure in name resolution
+[2026-08-18 08:58:44]   Artifacts sync to cathedral failed
+ssh: connect to host cathedral port 22: Connection refused
 rsync: connection unexpectedly closed (0 bytes received so far) [sender]
 rsync error: unexplained error (code 255) at io.c(232) [sender=3.4.1]
-[2026-08-17 07:33:41]   CompleteProjects sync to unsloth-studio failed
-ssh: Could not resolve hostname unsloth-studio: Temporary failure in name resolution
+[2026-08-18 08:58:44]   CompleteProjects sync to cathedral failed
+ssh: connect to host cathedral port 22: Connection refused
 rsync: connection unexpectedly closed (0 bytes received so far) [sender]
 rsync error: unexplained error (code 255) at io.c(232) [sender=3.4.1]
-[2026-08-17 07:33:41]   QUEUE/nodes sync to unsloth-studio failed
-ssh: Could not resolve hostname dell: Temporary failure in name resolution
+[2026-08-18 08:58:44]   QUEUE sync to cathedral failed
+ssh: connect to host cathedral port 22: Connection refused
 rsync: connection unexpectedly closed (0 bytes received so far) [sender]
 rsync error: unexplained error (code 255) at io.c(232) [sender=3.4.1]
-[2026-08-17 07:33:41]   Artifacts sync to dell failed
-ssh: Could not resolve hostname dell: Temporary failure in name resolution
+[2026-08-18 08:58:44]   Nodes sync to cathedral failed
+[2026-08-18 08:58:44] === Vault Sync Complete ===
+[2026-08-18 09:15:18] Узел unsloth-studio недоступен (пропускаем)
+[2026-08-18 09:15:18] Узел dell недоступен (пропускаем)
+[2026-08-18 09:15:18] Узел lenovo недоступен (пропускаем)
+[2026-08-18 09:15:18] Узел cathedral онлайн
+[2026-08-18 09:15:18] === Vault Sync Started ===
+[2026-08-18 09:15:18] === Vault Sync Started ===
+[2026-08-18 09:15:18] Syncing with cathedral...
+[2026-08-18 09:15:18]   cathedral unreachable or no main branch
+[2026-08-18 09:15:18]   Push to cathedral failed (maybe no changes)
+ssh: connect to host cathedral port 22: Connection refused
 rsync: connection unexpectedly closed (0 bytes received so far) [sender]
 rsync error: unexplained error (code 255) at io.c(232) [sender=3.4.1]
-[2026-08-17 07:33:41]   CompleteProjects sync to dell failed
-ssh: Could not resolve hostname dell: Temporary failure in name resolution
+[2026-08-18 09:15:18]   Artifacts sync to cathedral failed
+ssh: connect to host cathedral port 22: Connection refused
 rsync: connection unexpectedly closed (0 bytes received so far) [sender]
 rsync error: unexplained error (code 255) at io.c(232) [sender=3.4.1]
-[2026-08-17 07:33:41]   QUEUE/nodes sync to dell failed
-ssh: Could not resolve hostname lenovo: Temporary failure in name resolution
+[2026-08-18 09:15:18]   CompleteProjects sync to cathedral failed
+ssh: connect to host cathedral port 22: Connection refused
 rsync: connection unexpectedly closed (0 bytes received so far) [sender]
 rsync error: unexplained error (code 255) at io.c(232) [sender=3.4.1]
-[2026-08-17 07:33:41]   Artifacts sync to lenovo failed
-ssh: Could not resolve hostname lenovo: Temporary failure in name resolution
+[2026-08-18 09:15:18]   QUEUE sync to cathedral failed
+ssh: connect to host cathedral port 22: Connection refused
 rsync: connection unexpectedly closed (0 bytes received so far) [sender]
 rsync error: unexplained error (code 255) at io.c(232) [sender=3.4.1]
-[2026-08-17 07:33:41]   CompleteProjects sync to lenovo failed
-ssh: Could not resolve hostname lenovo: Temporary failure in name resolution
+[2026-08-18 09:15:18]   Nodes sync to cathedral failed
+[2026-08-18 09:15:18] === Vault Sync Complete ===
+[2026-08-18 09:30:34] Узел unsloth-studio недоступен (пропускаем)
+[2026-08-18 09:30:34] Узел dell недоступен (пропускаем)
+[2026-08-18 09:30:34] Узел lenovo недоступен (пропускаем)
+[2026-08-18 09:30:34] Узел cathedral онлайн
+[2026-08-18 09:30:34] === Vault Sync Started ===
+[2026-08-18 09:30:34] === Vault Sync Started ===
+[2026-08-18 09:30:34] Syncing with cathedral...
+[2026-08-18 09:30:34]   cathedral unreachable or no main branch
+[2026-08-18 09:30:34]   Push to cathedral failed (maybe no changes)
+ssh: connect to host cathedral port 22: Connection refused
 rsync: connection unexpectedly closed (0 bytes received so far) [sender]
 rsync error: unexplained error (code 255) at io.c(232) [sender=3.4.1]
-[2026-08-17 07:33:41]   QUEUE/nodes sync to lenovo failed
-[2026-08-17 07:33:41] === Vault Sync Complete ===
+[2026-08-18 09:30:34]   Artifacts sync to cathedral failed
+ssh: connect to host cathedral port 22: Connection refused
+rsync: connection unexpectedly closed (0 bytes received so far) [sender]
+rsync error: unexplained error (code 255) at io.c(232) [sender=3.4.1]
+[2026-08-18 09:30:34]   CompleteProjects sync to cathedral failed
+ssh: connect to host cathedral port 22: Connection refused
+rsync: connection unexpectedly closed (0 bytes received so far) [sender]
+rsync error: unexplained error (code 255) at io.c(232) [sender=3.4.1]
+[2026-08-18 09:30:34]   QUEUE sync to cathedral failed
+ssh: connect to host cathedral port 22: Connection refused
+rsync: connection unexpectedly closed (0 bytes received so far) [sender]
+rsync error: unexplained error (code 255) at io.c(232) [sender=3.4.1]
+[2026-08-18 09:30:34]   Nodes sync to cathedral failed
+[2026-08-18 09:30:34] === Vault Sync Complete ===
+[2026-08-18 10:20:51] Узел unsloth-studio недоступен (пропускаем)
+[2026-08-18 10:20:51] Узел dell недоступен (пропускаем)
+[2026-08-18 10:20:51] Узел lenovo недоступен (пропускаем)
+[2026-08-18 10:20:51] Узел cathedral онлайн
+[2026-08-18 10:20:51] === Vault Sync Started ===
+[2026-08-18 10:20:51] === Vault Sync Started ===
+[2026-08-18 10:20:51] Committed local changes
+[2026-08-18 10:20:51] Syncing with cathedral...
+[2026-08-18 10:20:51]   cathedral unreachable or no main branch
+[2026-08-18 10:20:51]   Push to cathedral failed (maybe no changes)
+ssh: connect to host cathedral port 22: Connection refused
+rsync: connection unexpectedly closed (0 bytes received so far) [sender]
+rsync error: unexplained error (code 255) at io.c(232) [sender=3.4.1]
+[2026-08-18 10:20:51]   Artifacts sync to cathedral failed
+ssh: connect to host cathedral port 22: Connection refused
+rsync: connection unexpectedly closed (0 bytes received so far) [sender]
+rsync error: unexplained error (code 255) at io.c(232) [sender=3.4.1]
+[2026-08-18 10:20:51]   CompleteProjects sync to cathedral failed
+ssh: connect to host cathedral port 22: Connection refused
+rsync: connection unexpectedly closed (0 bytes received so far) [sender]
+rsync error: unexplained error (code 255) at io.c(232) [sender=3.4.1]
+[2026-08-18 10:20:51]   QUEUE sync to cathedral failed
+ssh: connect to host cathedral port 22: Connection refused
+rsync: connection unexpectedly closed (0 bytes received so far) [sender]
+rsync error: unexplained error (code 255) at io.c(232) [sender=3.4.1]
+[2026-08-18 10:20:51]   Nodes sync to cathedral failed
+[2026-08-18 10:20:51] === Vault Sync Complete ===
+[2026-08-18 10:32:10] Узел unsloth-studio недоступен (пропускаем)
+[2026-08-18 10:32:10] Узел dell недоступен (пропускаем)
+[2026-08-18 10:32:10] Узел lenovo недоступен (пропускаем)
+[2026-08-18 10:32:10] Узел cathedral онлайн
+[2026-08-18 10:32:10] === Vault Sync Started ===
+[2026-08-18 10:32:10] === Vault Sync Started ===
+[2026-08-18 10:32:10] Syncing with cathedral...
+[2026-08-18 10:32:10]   cathedral unreachable or no main branch
+[2026-08-18 10:32:10]   Push to cathedral failed (maybe no changes)
+ssh: connect to host cathedral port 22: Connection refused
+rsync: connection unexpectedly closed (0 bytes received so far) [sender]
+rsync error: unexplained error (code 255) at io.c(232) [sender=3.4.1]
+[2026-08-18 10:32:10]   Artifacts sync to cathedral failed
+ssh: connect to host cathedral port 22: Connection refused
+rsync: connection unexpectedly closed (0 bytes received so far) [sender]
+rsync error: unexplained error (code 255) at io.c(232) [sender=3.4.1]
+[2026-08-18 10:32:10]   CompleteProjects sync to cathedral failed
+ssh: connect to host cathedral port 22: Connection refused
+rsync: connection unexpectedly closed (0 bytes received so far) [sender]
+rsync error: unexplained error (code 255) at io.c(232) [sender=3.4.1]
+[2026-08-18 10:32:10]   QUEUE sync to cathedral failed
+ssh: connect to host cathedral port 22: Connection refused
+rsync: connection unexpectedly closed (0 bytes received so far) [sender]
+rsync error: unexplained error (code 255) at io.c(232) [sender=3.4.1]
+[2026-08-18 10:32:10]   Nodes sync to cathedral failed
+[2026-08-18 10:32:10] === Vault Sync Complete ===
+[2026-08-18 11:19:22] Узел unsloth-studio недоступен (пропускаем)
+[2026-08-18 11:19:22] Узел dell недоступен (пропускаем)
+[2026-08-18 11:19:22] Узел lenovo недоступен (пропускаем)
+[2026-08-18 11:19:22] Узел cathedral онлайн
+[2026-08-18 11:19:22] === Vault Sync Started ===
+[2026-08-18 11:19:22] === Vault Sync Started ===
+[2026-08-18 11:19:22] Syncing with cathedral...
+[2026-08-18 11:19:22]   cathedral unreachable or no main branch
+[2026-08-18 11:19:22]   Push to cathedral failed (maybe no changes)
+ssh: connect to host cathedral port 22: Connection refused
+rsync: connection unexpectedly closed (0 bytes received so far) [sender]
+rsync error: unexplained error (code 255) at io.c(232) [sender=3.4.1]
+[2026-08-18 11:19:22]   Artifacts sync to cathedral failed
+ssh: connect to host cathedral port 22: Connection refused
+rsync: connection unexpectedly closed (0 bytes received so far) [sender]
+rsync error: unexplained error (code 255) at io.c(232) [sender=3.4.1]
+[2026-08-18 11:19:22]   CompleteProjects sync to cathedral failed
+ssh: connect to host cathedral port 22: Connection refused
+rsync: connection unexpectedly closed (0 bytes received so far) [sender]
+rsync error: unexplained error (code 255) at io.c(232) [sender=3.4.1]
+[2026-08-18 11:19:22]   QUEUE sync to cathedral failed
+ssh: connect to host cathedral port 22: Connection refused
+rsync: connection unexpectedly closed (0 bytes received so far) [sender]
+rsync error: unexplained error (code 255) at io.c(232) [sender=3.4.1]
+[2026-08-18 11:19:22]   Nodes sync to cathedral failed
+[2026-08-18 11:19:22] === Vault Sync Complete ===
+[2026-08-18 11:58:25] Узел unsloth-studio недоступен (пропускаем)
+[2026-08-18 11:58:25] Узел dell недоступен (пропускаем)
+[2026-08-18 11:58:25] Узел lenovo недоступен (пропускаем)
+[2026-08-18 11:58:25] Узел cathedral онлайн
+[2026-08-18 11:58:25] === Vault Sync Started ===
+[2026-08-18 11:58:25] === Vault Sync Started ===
+[2026-08-18 11:58:25] Syncing with cathedral...
+[2026-08-18 11:58:25]   cathedral unreachable or no main branch
+[2026-08-18 11:58:25]   Push to cathedral failed (maybe no changes)
+ssh: connect to host cathedral port 22: Connection refused
+rsync: connection unexpectedly closed (0 bytes received so far) [sender]
+rsync error: unexplained error (code 255) at io.c(232) [sender=3.4.1]
+[2026-08-18 11:58:25]   Artifacts sync to cathedral failed
+ssh: connect to host cathedral port 22: Connection refused
+rsync: connection unexpectedly closed (0 bytes received so far) [sender]
+rsync error: unexplained error (code 255) at io.c(232) [sender=3.4.1]
+[2026-08-18 11:58:25]   CompleteProjects sync to cathedral failed
+ssh: connect to host cathedral port 22: Connection refused
+rsync: connection unexpectedly closed (0 bytes received so far) [sender]
+rsync error: unexplained error (code 255) at io.c(232) [sender=3.4.1]
+[2026-08-18 11:58:25]   QUEUE sync to cathedral failed
+ssh: connect to host cathedral port 22: Connection refused
+rsync: connection unexpectedly closed (0 bytes received so far) [sender]
+rsync error: unexplained error (code 255) at io.c(232) [sender=3.4.1]
+[2026-08-18 11:58:25]   Nodes sync to cathedral failed
+[2026-08-18 11:58:25] === Vault Sync Complete ===
+[2026-08-18 13:03:04] Узел unsloth-studio недоступен (пропускаем)
+[2026-08-18 13:03:04] Узел dell недоступен (пропускаем)
+[2026-08-18 13:03:04] Узел lenovo недоступен (пропускаем)
+[2026-08-18 13:03:04] Узел cathedral онлайн
+[2026-08-18 13:03:04] === Vault Sync Started ===
+[2026-08-18 13:03:04] === Vault Sync Started ===
+[2026-08-18 13:03:04] Committed local changes
+[2026-08-18 13:03:04] Syncing with cathedral...
+[2026-08-18 13:03:04]   cathedral unreachable or no main branch
+[2026-08-18 13:03:04]   Push to cathedral failed (maybe no changes)
+ssh: connect to host cathedral port 22: Connection refused
+rsync: connection unexpectedly closed (0 bytes received so far) [sender]
+rsync error: unexplained error (code 255) at io.c(232) [sender=3.4.1]
+[2026-08-18 13:03:04]   Artifacts sync to cathedral failed
+ssh: connect to host cathedral port 22: Connection refused
+rsync: connection unexpectedly closed (0 bytes received so far) [sender]
+rsync error: unexplained error (code 255) at io.c(232) [sender=3.4.1]
+[2026-08-18 13:03:04]   CompleteProjects sync to cathedral failed
+ssh: connect to host cathedral port 22: Connection refused
+rsync: connection unexpectedly closed (0 bytes received so far) [sender]
+rsync error: unexplained error (code 255) at io.c(232) [sender=3.4.1]
+[2026-08-18 13:03:04]   QUEUE sync to cathedral failed
+ssh: connect to host cathedral port 22: Connection refused
+rsync: connection unexpectedly closed (0 bytes received so far) [sender]
+rsync error: unexplained error (code 255) at io.c(232) [sender=3.4.1]
+[2026-08-18 13:03:04]   Nodes sync to cathedral failed
+[2026-08-18 13:03:04] === Vault Sync Complete ===
+[2026-08-18 14:31:57] Узел unsloth-studio недоступен (пропускаем)
+[2026-08-18 14:31:57] Узел dell недоступен (пропускаем)
+[2026-08-18 14:31:57] Узел lenovo недоступен (пропускаем)
+[2026-08-18 14:31:57] Узел cathedral онлайн
+[2026-08-18 14:31:57] === Vault Sync Started ===
+[2026-08-18 14:31:57] === Vault Sync Started ===
+[2026-08-18 14:31:57] Committed local changes
+[2026-08-18 14:31:57] Syncing with cathedral...
+[2026-08-18 14:31:57]   cathedral unreachable or no main branch
+[2026-08-18 14:31:57]   Push to cathedral failed (maybe no changes)
+ssh: connect to host cathedral port 22: Connection refused
+rsync: connection unexpectedly closed (0 bytes received so far) [sender]
+rsync error: unexplained error (code 255) at io.c(232) [sender=3.4.1]
+[2026-08-18 14:31:57]   Artifacts sync to cathedral failed
+ssh: connect to host cathedral port 22: Connection refused
+rsync: connection unexpectedly closed (0 bytes received so far) [sender]
+rsync error: unexplained error (code 255) at io.c(232) [sender=3.4.1]
+[2026-08-18 14:31:57]   CompleteProjects sync to cathedral failed
+ssh: connect to host cathedral port 22: Connection refused
+rsync: connection unexpectedly closed (0 bytes received so far) [sender]
+rsync error: unexplained error (code 255) at io.c(232) [sender=3.4.1]
+[2026-08-18 14:31:57]   QUEUE sync to cathedral failed
+ssh: connect to host cathedral port 22: Connection refused
+rsync: connection unexpectedly closed (0 bytes received so far) [sender]
+rsync error: unexplained error (code 255) at io.c(232) [sender=3.4.1]
+[2026-08-18 14:31:57]   Nodes sync to cathedral failed
+[2026-08-18 14:31:57] === Vault Sync Complete ===
+[2026-08-18 15:34:46] Узел unsloth-studio недоступен (пропускаем)
+[2026-08-18 15:34:46] Узел dell недоступен (пропускаем)
+[2026-08-18 15:34:46] Узел lenovo недоступен (пропускаем)
+[2026-08-18 15:34:46] Узел cathedral онлайн
+[2026-08-18 15:34:46] === Vault Sync Started ===
+[2026-08-18 15:34:46] === Vault Sync Started ===
+[2026-08-18 15:34:46] Syncing with cathedral...
+[2026-08-18 15:34:46]   cathedral unreachable or no main branch
+[2026-08-18 15:34:46]   Push to cathedral failed (maybe no changes)
+ssh: connect to host cathedral port 22: Connection refused
+rsync: connection unexpectedly closed (0 bytes received so far) [sender]
+rsync error: unexplained error (code 255) at io.c(232) [sender=3.4.1]
+[2026-08-18 15:34:46]   Artifacts sync to cathedral failed
+ssh: connect to host cathedral port 22: Connection refused
+rsync: connection unexpectedly closed (0 bytes received so far) [sender]
+rsync error: unexplained error (code 255) at io.c(232) [sender=3.4.1]
+[2026-08-18 15:34:46]   CompleteProjects sync to cathedral failed
+ssh: connect to host cathedral port 22: Connection refused
+rsync: connection unexpectedly closed (0 bytes received so far) [sender]
+rsync error: unexplained error (code 255) at io.c(232) [sender=3.4.1]
+[2026-08-18 15:34:46]   QUEUE sync to cathedral failed
+ssh: connect to host cathedral port 22: Connection refused
+rsync: connection unexpectedly closed (0 bytes received so far) [sender]
+rsync error: unexplained error (code 255) at io.c(232) [sender=3.4.1]
+[2026-08-18 15:34:46]   Nodes sync to cathedral failed
+[2026-08-18 15:34:46] === Vault Sync Complete ===
+[2026-08-18 17:42:44] Узел unsloth-studio недоступен (пропускаем)
+[2026-08-18 17:42:44] Узел dell недоступен (пропускаем)
+[2026-08-18 17:42:44] Узел lenovo недоступен (пропускаем)
+[2026-08-18 17:42:44] Узел cathedral онлайн
+[2026-08-18 17:42:44] === Vault Sync Started ===
+[2026-08-18 17:42:44] === Vault Sync Started ===
+[2026-08-18 17:42:44] Committed local changes
+[2026-08-18 17:42:44] Syncing with cathedral...
+[2026-08-18 17:42:44]   cathedral unreachable or no main branch
+[2026-08-18 17:42:44]   Push to cathedral failed (maybe no changes)
+ssh: connect to host cathedral port 22: Connection refused
+rsync: connection unexpectedly closed (0 bytes received so far) [sender]
+rsync error: unexplained error (code 255) at io.c(232) [sender=3.4.1]
+[2026-08-18 17:42:44]   Artifacts sync to cathedral failed
+ssh: connect to host cathedral port 22: Connection refused
+rsync: connection unexpectedly closed (0 bytes received so far) [sender]
+rsync error: unexplained error (code 255) at io.c(232) [sender=3.4.1]
+[2026-08-18 17:42:44]   CompleteProjects sync to cathedral failed
+ssh: connect to host cathedral port 22: Connection refused
+rsync: connection unexpectedly closed (0 bytes received so far) [sender]
+rsync error: unexplained error (code 255) at io.c(232) [sender=3.4.1]
+[2026-08-18 17:42:44]   QUEUE sync to cathedral failed
+ssh: connect to host cathedral port 22: Connection refused
+rsync: connection unexpectedly closed (0 bytes received so far) [sender]
+rsync error: unexplained error (code 255) at io.c(232) [sender=3.4.1]
+[2026-08-18 17:42:44]   Nodes sync to cathedral failed
+[2026-08-18 17:42:44] === Vault Sync Complete ===
+[2026-08-18 18:34:17] Узел unsloth-studio недоступен (пропускаем)
+[2026-08-18 18:34:17] Узел dell недоступен (пропускаем)
+[2026-08-18 18:34:17] Узел lenovo недоступен (пропускаем)
+[2026-08-18 18:34:17] Узел cathedral онлайн
+[2026-08-18 18:34:17] === Vault Sync Started ===
+[2026-08-18 18:34:17] === Vault Sync Started ===
+[2026-08-18 18:34:17] Committed local changes
+[2026-08-18 18:34:17] Syncing with cathedral...
+[2026-08-18 18:34:17]   cathedral unreachable or no main branch
+[2026-08-18 18:34:17]   Push to cathedral failed (maybe no changes)
+ssh: connect to host cathedral port 22: Connection refused
+rsync: connection unexpectedly closed (0 bytes received so far) [sender]
+rsync error: unexplained error (code 255) at io.c(232) [sender=3.4.1]
+[2026-08-18 18:34:17]   Artifacts sync to cathedral failed
+ssh: connect to host cathedral port 22: Connection refused
+rsync: connection unexpectedly closed (0 bytes received so far) [sender]
+rsync error: unexplained error (code 255) at io.c(232) [sender=3.4.1]
+[2026-08-18 18:34:17]   CompleteProjects sync to cathedral failed
+ssh: connect to host cathedral port 22: Connection refused
+rsync: connection unexpectedly closed (0 bytes received so far) [sender]
+rsync error: unexplained error (code 255) at io.c(232) [sender=3.4.1]
+[2026-08-18 18:34:17]   QUEUE sync to cathedral failed
+ssh: connect to host cathedral port 22: Connection refused
+rsync: connection unexpectedly closed (0 bytes received so far) [sender]
+rsync error: unexplained error (code 255) at io.c(232) [sender=3.4.1]
+[2026-08-18 18:34:17]   Nodes sync to cathedral failed
+[2026-08-18 18:34:17] === Vault Sync Complete ===
+[2026-08-18 18:34:56] Узел unsloth-studio недоступен (пропускаем)
+[2026-08-18 18:34:56] Узел dell недоступен (пропускаем)
+[2026-08-18 18:34:56] Узел lenovo недоступен (пропускаем)
+[2026-08-18 18:34:56] Узел cathedral онлайн
+[2026-08-18 18:34:56] === Vault Sync Started ===
+[2026-08-18 18:34:56] === Vault Sync Started ===
+[2026-08-18 18:34:56] Syncing with cathedral...
+[2026-08-18 18:34:56]   cathedral unreachable or no main branch
+[2026-08-18 18:34:56]   Push to cathedral failed (maybe no changes)
+ssh: connect to host cathedral port 22: Connection refused
+rsync: connection unexpectedly closed (0 bytes received so far) [sender]
+rsync error: unexplained error (code 255) at io.c(232) [sender=3.4.1]
+[2026-08-18 18:34:56]   Artifacts sync to cathedral failed
+ssh: connect to host cathedral port 22: Connection refused
+rsync: connection unexpectedly closed (0 bytes received so far) [sender]
+rsync error: unexplained error (code 255) at io.c(232) [sender=3.4.1]
+[2026-08-18 18:34:56]   CompleteProjects sync to cathedral failed
+ssh: connect to host cathedral port 22: Connection refused
+rsync: connection unexpectedly closed (0 bytes received so far) [sender]
+rsync error: unexplained error (code 255) at io.c(232) [sender=3.4.1]
+[2026-08-18 18:34:56]   QUEUE sync to cathedral failed
+ssh: connect to host cathedral port 22: Connection refused
+rsync: connection unexpectedly closed (0 bytes received so far) [sender]
+rsync error: unexplained error (code 255) at io.c(232) [sender=3.4.1]
+[2026-08-18 18:34:56]   Nodes sync to cathedral failed
+[2026-08-18 18:34:56] === Vault Sync Complete ===
+[2026-08-18 19:30:57] Узел unsloth-studio недоступен (пропускаем)
+[2026-08-18 19:30:57] Узел dell недоступен (пропускаем)
+[2026-08-18 19:30:57] Узел lenovo недоступен (пропускаем)
+[2026-08-18 19:30:57] Узел cathedral онлайн
+[2026-08-18 19:30:57] === Vault Sync Started ===
+[2026-08-18 19:30:57] === Vault Sync Started ===
+[2026-08-18 19:30:57] Committed local changes
+[2026-08-18 19:30:57] Syncing with cathedral...
+[2026-08-18 19:30:57]   cathedral unreachable or no main branch
+[2026-08-18 19:30:57]   Push to cathedral failed (maybe no changes)
+ssh: connect to host cathedral port 22: Connection refused
+rsync: connection unexpectedly closed (0 bytes received so far) [sender]
+rsync error: unexplained error (code 255) at io.c(232) [sender=3.4.1]
+[2026-08-18 19:30:57]   Artifacts sync to cathedral failed
+ssh: connect to host cathedral port 22: Connection refused
+rsync: connection unexpectedly closed (0 bytes received so far) [sender]
+rsync error: unexplained error (code 255) at io.c(232) [sender=3.4.1]
+[2026-08-18 19:30:57]   CompleteProjects sync to cathedral failed
+ssh: connect to host cathedral port 22: Connection refused
+rsync: connection unexpectedly closed (0 bytes received so far) [sender]
+rsync error: unexplained error (code 255) at io.c(232) [sender=3.4.1]
+[2026-08-18 19:30:57]   QUEUE sync to cathedral failed
+ssh: connect to host cathedral port 22: Connection refused
+rsync: connection unexpectedly closed (0 bytes received so far) [sender]
+rsync error: unexplained error (code 255) at io.c(232) [sender=3.4.1]
+[2026-08-18 19:30:57]   Nodes sync to cathedral failed
+[2026-08-18 19:30:57] === Vault Sync Complete ===

@@ -1,4 +1,5 @@
-# Spec-Driven Development with GitHub Spec Kit — [NEW]
+# HOT
+# Spec-Driven Development with GitHub Spec Kit — [DEPLOYED]
 
 ## 📚 Sources
 - [GitHub Spec Kit](https://github.com/github/spec-kit) — 130k+ stars, July 2026 release 0.14.4
@@ -70,9 +71,9 @@ specify init my-project --integration copilot
 - **Bundle**: "Living Code Developer" role bundle
 
 ## 🔗 Related in Textbook
-- [AI Agent Frameworks 2026](AI-Agent-Frameworks-2026.md) — 🔴 [NEW]
+- [AI Agent Frameworks 2026](AI-Agent-Frameworks-2026.md) — 🟢 [DEPLOYED]
 - [Graph Engineering Protocol v3.0](Graph-Engineering-Protocol.md) — 🟢
 - [Hermes Skill System Deep Dive](Hermes-Skill-System-Deep-Dive.md) — 🟢
 
 ---
-*Added: 2026-08-17 | Status: 🔴 NEW | Source: GitHub Spec Kit repo, docs, blog, spec-driven.md*
+*Added: 2026-08-17 | Status: 🟢 [DEPLOYED] | Source: GitHub Spec Kit repo, docs, blog, spec-driven.md*

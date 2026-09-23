@@ -1,3 +1,4 @@
+# HOT
 [Unit]
 Description=Living Code Agent Watchdog
 After=network-online.target tailscale.service

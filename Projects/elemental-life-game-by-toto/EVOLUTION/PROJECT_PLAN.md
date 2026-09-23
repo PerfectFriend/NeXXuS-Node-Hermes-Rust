@@ -1,3 +1,4 @@
+# HOT
 # Project Plan — Elemental Life + Ops Terminal (dual-layer)
 
 ## Vision

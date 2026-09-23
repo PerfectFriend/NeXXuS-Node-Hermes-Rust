@@ -1,3 +1,4 @@
+# HOT
 # Living Code Protocol — Comprehensive Technical Report
 
 **Date:** 2026-08-15  

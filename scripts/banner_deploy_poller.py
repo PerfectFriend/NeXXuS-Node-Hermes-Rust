@@ -1,3 +1,4 @@
+# HOT
 #!/usr/bin/env python3
 # Living Code Ecosystem — Banner Deploy Poller
 # Версия: 1.0
@@ -14,7 +15,7 @@ from datetime import datetime, timezone
 
 class BannerDeployPoller:
     def __init__(self, cycle: int = None):
-        self.root = Path("C:/LivingCode")
+        self.root = Path("/home/thomas/LivingCode")
         self.artifacts_dir = self.root / "artifacts"
         # Auto-detect cycle if not provided
         if cycle is None:
@@ -111,7 +112,7 @@ class BannerDeployPoller:
         print(f"\n  🎨 Deploying banner for {component} (Project {project})...")
         
         success, out, err = self.run_cmd(
-            f'python C:/LivingCode/scripts/banner_deploy.py --style brand --component "{component}" --cycle {self.cycle} --readme --langs ru,en,zh --create-repos',
+            f'python /home/thomas/LivingCode/scripts/banner_deploy.py --style brand --component "{component}" --cycle {self.cycle} --readme --langs ru,en,zh --create-repos',
             timeout=600
         )
         

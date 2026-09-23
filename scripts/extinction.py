@@ -1,3 +1,4 @@
+# HOT
 #!/usr/bin/env python3
 # Living Code Ecosystem — Extinction Check (Daily 03:00)
 # Версия: 1.0

@@ -1,3 +1,4 @@
+# HOT
 #!/usr/bin/env python3
 # Living Code Ecosystem — Cycle Start (T+0min) — Linux version
 # Git pull, health checks, chronicle entry, encrypted_comm briefing, promotion check

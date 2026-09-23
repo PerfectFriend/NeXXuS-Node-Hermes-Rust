@@ -1,3 +1,4 @@
+# HOT
 #!/usr/bin/env python3
 """
 Generate STATE.json for a project from evolution data.

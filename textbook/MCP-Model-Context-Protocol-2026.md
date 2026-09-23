@@ -1,4 +1,5 @@
-# MCP (Model Context Protocol) 2026 — [NEW]
+# HOT
+# MCP (Model Context Protocol) 2026 — [DEPLOYED]
 
 ## 📚 Sources
 - [MCP Specification Release Candidate](https://blog.modelcontextprotocol.io/posts/2026-07-28-release-candidate/) — July 28, 2026 (breaking changes)
@@ -36,17 +37,47 @@
 - **SuperGuard**: MCP for camera RTSP, Telegram alerts, metrics
 - **ParanoidX**: Local MCP servers only (no external calls)
 
-## 🔧 Implementation Priority
-1. **HIGH**: Add MCP client to Hermes skills system
-2. **HIGH**: Deploy local MCP servers (filesystem, GitHub, Obsidian)
-3. **MEDIUM**: Telegram MCP server for bot integration
-4. **MEDIUM**: Camera/RTSP MCP server for SuperGuard
-5. **LOW**: Public MCP servers (security review needed)
-
-## 🔗 Related in Textbook
-- [Hermes Agent Internals](Hermes-Skill-System-Deep-Dive.md) — 🟢
-- [AI Agent Frameworks 2026](AI-Agent-Frameworks-2026.md) — 🔴 [NEW]
-- [Graph Engineering Protocol](Graph-Engineering-Protocol.md) — 🟢
+## 🔧 Implementation Priority\n1. **HIGH**: Add MCP client to Hermes skills system\n2. **HIGH**: Deploy local MCP servers (filesystem, GitHub, Obsidian)\n3. **MEDIUM**: Telegram MCP server for bot integration\n4. **MEDIUM**: Camera/RTSP MCP server for SuperGuard\n5. **LOW**: Public MCP servers (security review needed)\n\n## 🔗 Related in Textbook\n- [Hermes Agent Internals](Hermes-Skill-System-Deep-Dive.md) — 🟢 [DEPLOYED]\n- [AI Agent Frameworks 2026](AI-Agent-Frameworks-2026.md) — 🟢 [DEPLOYED]\n- [Graph Engineering Protocol](Graph-Engineering-Protocol.md) — 🟢 [DEPLOYED]
 
 ---
-*Added: 2026-08-17 | Status: 🔴 NEW | Source: MCP blog, Wikipedia, security analysis, WorkOS*
+*Added: 2026-08-17 | Status: 🟡 STUDIED | Source: MCP blog, Wikipedia, security analysis, WorkOS*
+## 🟢 [DEPLOYED] MCP Integration for Self-Evolving Graphs (2026-08-17)
+
+### MCP Server for Graph Evolution:
+- **Purpose**: Expose graph evolution operations as standardized MCP tools
+- **Available Tools**:
+  - `evolve_graph(mutation_params)` — Apply structural mutations to agent graph
+  - `evaluate_fitness(graph)` — Score graph based on performance metrics
+  - `select_top_k(graphs, k)` — Retain top-k graph variants
+  - `get_graph_metrics(graph)` — Return centrality and structural metrics
+
+### Integration Patterns:
+1. **GodModeCoder**: MCP server wraps evolution_engine.py for graph mutation cycles
+2. **SuperGuard**: MCP enables real-time graph health checks from agent console
+3. **LangGraph Integration**: MCP servers discoverable by LangGraph orchestration graphs
+4. **Obsidian Vault**: MCP exposes knowledge graph operations for note-based evolution
+
+### MCP Server Example (Python):
+```python
+from mcp.server import Server
+from mcp.types import Tool, TextResource
+
+graph_server = Server("graph-evolution")
+
+@graph_server.list_tools()
+async def list_tools():
+    return [
+        Tool(
+            name="evolve_graph",
+            description="Apply mutations to self-evolving agent graph",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "mutation_type": {"type": "string", "enum": ["add_node", "remove_node", "rewire", "rebalance"]},
+                    "target_node": {"type": "string"},
+                    "fitness_criteria": {"type": "string"}
+                }
+            }
+        )
+    ]
+```

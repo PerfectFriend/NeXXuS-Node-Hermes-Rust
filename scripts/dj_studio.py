@@ -1,3 +1,4 @@
+# HOT
 #!/usr/bin/env python3
 # Living Code Ecosystem — DJ Sound Studio (DJ Студиёнок Витальевич)
 # Версия: 1.0

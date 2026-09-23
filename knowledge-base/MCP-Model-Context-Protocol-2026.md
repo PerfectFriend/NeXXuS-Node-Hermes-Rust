@@ -1,0 +1,83 @@
+# HOT
+# MCP (Model Context Protocol) 2026 — [DEPLOYED]
+
+## 📚 Sources
+- [MCP Specification Release Candidate](https://blog.modelcontextprotocol.io/posts/2026-07-28-release-candidate/) — July 28, 2026 (breaking changes)
+- [MCP Dev Summit North America](https://en.wikipedia.org/wiki/Model_Context_Protocol) — April 2026, 1200 attendees
+- [MCP Security 2026](https://agentmelt.com/blog/mcp-security-2026-attacks-and-defenses/) — Attack surface analysis
+- [WorkOS: Everything about MCP 2026](https://workos.com/blog/everything-your-team-needs-to-know-about-mcp-in-2026) — March 2026
+- [500+ public MCP servers](https://decodethefuture.org/en/what-is-mcp-model-context-protocol/) — Early 2026
+
+## 🎯 MCP Status 2026
+- **Default way agents connect to tools** — 1000+ servers
+- **Release Candidate** — July 28, 2026 (breaking changes from November 2025 spec)
+- **Salesforce**: 4.5M MCP calls processed (May 2026)
+- **Sampling → Agentic loops** — Servers can spawn agents using client tokens
+
+## 🛠️ MCP Server Categories (500+)
+| Category | Examples |
+|----------|----------|
+| Databases | Postgres, MySQL, SQLite |
+| File Storage | Google Drive, Box, Dropbox |
+| Web Scraping | Firecrawl, Browserbase |
+| Document Processing | PDF, OCR, Markdown |
+| Messaging | Slack, Email, Telegram |
+| Project Management | GitHub, Jira, Linear |
+| Code | Git, LSP, Linting |
+
+## 🔐 Security Concerns 2026
+- **Tool poisoning** — Malicious tool descriptions
+- **Prompt injection** — Through MCP responses
+- **Over-broad OAuth scopes** — Excessive permissions
+- **Supply chain** — Malicious server packages
+
+## 🏗️ Living Code Integration
+- **Hermes Agent**: MCP client for skill/tool access
+- **GodModeCoder**: MCP servers for GitHub, Obsidian, file system
+- **SuperGuard**: MCP for camera RTSP, Telegram alerts, metrics
+- **ParanoidX**: Local MCP servers only (no external calls)
+
+## 🔧 Implementation Priority\n1. **HIGH**: Add MCP client to Hermes skills system\n2. **HIGH**: Deploy local MCP servers (filesystem, GitHub, Obsidian)\n3. **MEDIUM**: Telegram MCP server for bot integration\n4. **MEDIUM**: Camera/RTSP MCP server for SuperGuard\n5. **LOW**: Public MCP servers (security review needed)\n\n## 🔗 Related in Textbook\n- [Hermes Agent Internals](Hermes-Skill-System-Deep-Dive.md) — 🟢 [DEPLOYED]\n- [AI Agent Frameworks 2026](AI-Agent-Frameworks-2026.md) — 🔴 [NEW]\n- [Graph Engineering Protocol](Graph-Engineering-Protocol.md) — 🟢 [DEPLOYED]
+
+---
+*Added: 2026-08-17 | Status: 🟢 DEPLOYED | Source: MCP blog, Wikipedia, security analysis, WorkOS*
+## 🔴 [NEW] MCP Integration for Self-Evolving Graphs (2026-08-17)
+
+### MCP Server for Graph Evolution:
+- **Purpose**: Expose graph evolution operations as standardized MCP tools
+- **Available Tools**:
+  - `evolve_graph(mutation_params)` — Apply structural mutations to agent graph
+  - `evaluate_fitness(graph)` — Score graph based on performance metrics
+  - `select_top_k(graphs, k)` — Retain top-k graph variants
+  - `get_graph_metrics(graph)` — Return centrality and structural metrics
+
+### Integration Patterns:
+1. **GodModeCoder**: MCP server wraps evolution_engine.py for graph mutation cycles
+2. **SuperGuard**: MCP enables real-time graph health checks from agent console
+3. **LangGraph Integration**: MCP servers discoverable by LangGraph orchestration graphs
+4. **Obsidian Vault**: MCP exposes knowledge graph operations for note-based evolution
+
+### MCP Server Example (Python):
+```python
+from mcp.server import Server
+from mcp.types import Tool, TextResource
+
+graph_server = Server("graph-evolution")
+
+@graph_server.list_tools()
+async def list_tools():
+    return [
+        Tool(
+            name="evolve_graph",
+            description="Apply mutations to self-evolving agent graph",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "mutation_type": {"type": "string", "enum": ["add_node", "remove_node", "rewire", "rebalance"]},
+                    "target_node": {"type": "string"},
+                    "fitness_criteria": {"type": "string"}
+                }
+            }
+        )
+    ]
+```

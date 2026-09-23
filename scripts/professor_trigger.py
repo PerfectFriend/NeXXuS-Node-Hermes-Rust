@@ -1,3 +1,4 @@
+# HOT
 #!/usr/bin/env python3
 """
 Professor Trigger — Called when searcher finds topic needing deep study
@@ -32,16 +33,17 @@ def main():
     
     event_file = EVENTS_DIR / f"professor.started.{args.topic.replace(' ', '_')}.cycle_{args.cycle}.json"
     temp_file = event_file.with_suffix(".tmp")
-    temp_file.write_text(json.dumps(event, indent=2))
+    temp_file.write_text(json.dumps(event, indent=2, ensure_ascii=False))
     temp_file.rename(event_file)
     
     print(f"Emitted professor.started for {args.topic} (priority: {args.priority})")
     
+    # Launch professor
     cmd = ["hermes", "run", "professor", "--topic", args.topic, "--priority", args.priority]
     try:
         subprocess.Popen(cmd, cwd=str(ROOT), start_new_session=True)
     except FileNotFoundError:
-        subprocess.Popen(["python", "scripts/professor_entry.py", "--topic", args.topic], cwd=str(ROOT), start_new_session=True)
+        subprocess.Popen(["python", "scripts/professor_entry.py", "--topic", args.topic, "--priority", args.priority], cwd=str(ROOT), start_new_session=True)
 
 if __name__ == "__main__":
     main()

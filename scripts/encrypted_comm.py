@@ -1,3 +1,4 @@
+# HOT
 #!/usr/bin/env python3
 # Living Code Ecosystem — Encrypted Communication Protocol
 # Версия: 1.0
@@ -56,7 +57,7 @@ AGENTS = [
 class EncryptedComm:
     def __init__(self, cycle: int):
         self.cycle = cycle
-        self.root = Path("C:/LivingCode")
+        self.root = Path("/home/thomas/LivingCode")
         self.logs_dir = self.root / "logs"
         self.logs_dir.mkdir(parents=True, exist_ok=True)
         self.keys_dir = self.root / "keys"

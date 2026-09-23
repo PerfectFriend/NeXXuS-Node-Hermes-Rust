@@ -18,7 +18,7 @@ import {
   STATE, GEOMETRY_PRESETS, GEOMETRY_LEVELS, PUZZLE_RADIUS, WIN_STABLE_TICKS,
   type GeometryKey, type PresetKey, type StateKey, type CellData, type Params,
   buildInitialField, buildLevelField, stepField, countWater, checkPuzzleWinTick,
-  mulberry32, gridCellCount,
+  mulberry32,
 } from '../engine/engine';
 
 type Mode = 'sandbox' | 'puzzle';
@@ -406,7 +406,11 @@ export function useSimulation(
     return result;
   }, [state.field]);
 
-  const totalCells = useMemo(() => gridCellCount(state.geometry, state.side), [state.geometry, state.side]);
+  // Реальное число клеток текущего поля. Напрямую по field (Map.size), а не по gridCellCount(state.side),
+  // т.к. state.side не обновляется при переключении в головоломку (остаётся песочничное) и для square
+  // gridCellCount трактует параметр как полную сторону, а makeGrid — как радиус. Это устраняет
+  // неверный счётчик в HUD/SettingsModal в режиме головоломки (показывал размер песочницы).
+  const totalCells = useMemo(() => state.field.size, [state.field]);
   const waterStats = useMemo(() => countWater(state.field), [state.field]);
 
   return {
