@@ -62,16 +62,16 @@
 - [ ] Sound effects (ambient + interaction)
 
 ### 1.4 Тесты
-- [ ] Unit: `shuffleDeck` возвращает правильное кол-во
-- [ ] Unit: `rollRarity` распределяет ~70/25/5
-- [ ] Unit: `mint` списывает баланс, добавляет в коллекцию
-- [ ] Unit: `sellCard` добавляет 60%, удаляет из коллекции
-- [ ] Unit: `interpret` возвращает корректный JSON
-- [ ] Unit: `tickWell` — fill/dry логика
-- [ ] Unit: `harvestWell` — списание + статистика
-- [ ] Unit: `tickWell` — пересыхание сбрасывает pending
-- [ ] Integration: draw → interpretation → mint → sell цикл
-- [ ] Integration: harvest → mint → sell цикл
+- [x] Unit: `shuffleDeck` возвращает правильное кол-во — ЗАКРЫТО 2026-09-24 (Frater Abyssus, game.test.ts: 5 тестов draw-логики)
+- [x] Unit: `rollRarity` распределяет ~70/25/5 — ЗАКРЫТО 2026-09-24 (Frater Abyssus, game.test.ts: rare ~0.7 / epic ~0.25 / legendary ~0.05)
+- [x] Unit: `mint` списывает баланс, добавляет в коллекцию — ЗАКРЫТО 2026-09-24 (Frater Abyssus, useTarot.test.ts: mint/mintRandom)
+- [x] Unit: `sellCard` добавляет 60%, удаляет из коллекции — ЗАКРЫТО 2026-09-24 (Frater Abyssus, useTarot.test.ts: 60%-refund по всем тирам)
+- [x] Unit: `interpret` возвращает корректный JSON — ЗАКРЫТО 2026-09-24 (Frater Abyssus, interpret.test.ts: cache/ollama/API/mock-цепочка)
+- [x] Unit: `tickWell` — fill/dry логика — ЗАКРЫТО 2026-09-24 (Frater Abyssus, magicWell.test.ts: fill + dry)
+- [x] Unit: `harvestWell` — списание + статистика — ЗАКРЫТО 2026-09-24 (Frater Abyssus, magicWell.test.ts: harvestWell)
+- [x] Unit: `tickWell` — пересыхание сбрасывает pending — ЗАКРЫТО 2026-09-24 (Frater Abyssus, magicWell.test.ts: dry→pending=0→refill)
+- [x] Integration: draw → interpretation → mint → sell цикл — ЗАКРЫТО 2026-09-24 (Frater Abyssus, useTarot.integration.test.ts, коммит adb5251)
+- [x] Integration: harvest → mint → sell цикл — ЗАКРЫТО 2026-09-24 (Frater Abyssus, useTarot.integration.test.ts, коммит adb5251)
 - [x] Component: ManaWellTab рендерит таймеры — ЗАКРЫТО 2026-09-23 (Frater Abyssus, 10 тестов, коммит a8e97fc)
 - [x] Component: CardFace рендерит карту с правильной ориентацией — ЗАКРЫТО 2026-09-23 (Frater Abyssus, 10 тестов, коммит a8e97fc)
 
