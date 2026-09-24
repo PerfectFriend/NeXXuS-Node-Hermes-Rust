@@ -9,7 +9,9 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "test:engine": "node tests/engine.smoke.test.mjs",
-    "test:engine:functional": "node tests/engine.functional.test.mjs"
+    "test:engine:functional": "node tests/engine.functional.test.mjs",
+    "test:puzzle": "node tests/engine.puzzle.test.mjs",
+    "test:renderer": "node tests/renderer.viewport.test.mjs"
   },
   "dependencies": {
     "@aparajita/capacitor-biometric-auth": "^10.0.0",

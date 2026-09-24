@@ -1,7 +1,7 @@
 // HOT
 # PORTING REPORT
 
-## Статус проекта (v2.3)
+## Статус проекта (v2.4)
 
 ### Выполнено
 
@@ -20,9 +20,13 @@
 
 5. **Canvas-рендер**: гексагональная сетка (pointy-top), квадратная сетка, обе геометрии.
 
-6. **Android-сборка**: APK (debug, ~4.2 MB) собирается и отправляется в Telegram.
+6. **Android-сборка**: APK (debug, 7.8 MB) собирается и отправляется в Telegram (см. PLAN.md Point 7: sha256 `1fceb322…`, экспорт в `~/apkexport/elemental-life-debug.apk`).
 
 7. **Telegram-бот**: скрипт `poll_bot.ps1` (PowerShell) — long-polling, inline-клавиатуры, команды /build /send /status /smoke /sync. Запускается отдельно.
+
+8. **Тесты (2026-09-24)**:
+   - `tests/renderer.viewport.test.mjs` — 15 юнит-тестов viewport-математики НАД реальным скомпилированным `GridRenderer.ts` (tsc → CJS-бандл, DOM-шимы): инвариант якоря зума, регресс dpr (device-px ломал якорь на HiDPI), wheel-dispatch в CSS-px, panBy, clamp зума 0.15..4, centerGrid, resetView, копия viewport. Фикс: pinch/wheel передавали device-px в CSS-px модель зума (`* this.dpr` убрано). Скрипт: `npm run test:renderer`.
+   - `tests/engine.puzzle.test.mjs` — «жадный игрок» проходит все 10 уровней головоломки (2 геометрии × 5) на реальном движке: hex 22–37 тиков / 48–135 капель, square 21–31 тиков / 37–102 капель — бюджеты капель не «too tight» (Point 8). Скрипт: `npm run test:puzzle`.
 
 ### Известные проблемы
 

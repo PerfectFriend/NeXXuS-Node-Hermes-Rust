@@ -148,8 +148,11 @@ export class GridRenderer {
 					const centerX = (entries[0].x + entries[1].x) / 2;
 					const centerY = (entries[0].y + entries[1].y) / 2;
 					const rect = getRect();
-					const canvasCenterX = (centerX - rect.left) * this.dpr;
-					const canvasCenterY = (centerY - rect.top) * this.dpr;
+					// Viewport model is in CSS pixels (see header comment); convert client
+					// coords to CSS px relative to canvas. NOTE: multiplying by dpr here
+					// would corrupt the zoom anchor on HiDPI (dpr > 1) devices.
+					const canvasCenterX = centerX - rect.left;
+					const canvasCenterY = centerY - rect.top;
 					this.zoomBy(factor, canvasCenterX, canvasCenterY);
 				}
 				lastPinchDist = dist;
@@ -164,7 +167,10 @@ export class GridRenderer {
 
 		this.boundWheel = (e: WheelEvent) => {
 			e.preventDefault(); const rect = getRect();
-			const centerX = (e.clientX - rect.left) * this.dpr; const centerY = (e.clientY - rect.top) * this.dpr;
+			// CSS px, matching the viewport model (see header comment) — dpr must
+			// NOT be applied here (device px would misplace the wheel zoom anchor
+			// on HiDPI screens, e.g. dpr=2-3 on Android).
+			const centerX = e.clientX - rect.left; const centerY = e.clientY - rect.top;
 			const factor = e.deltaY > 0 ? 1 / 1.15 : 1.15;
 			this.zoomBy(factor, centerX, centerY);
 		};

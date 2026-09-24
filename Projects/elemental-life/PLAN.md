@@ -62,10 +62,14 @@
 - Verify droplet limits and water density match `GEOMETRY_LEVELS` values
 - Click finger (not mouse) — ensure limits feel appropriate, not too tight or too easy
 
+> **Статус (2026-09-24, Frater Abyssus):** ✅ Автоматизировано: `tests/engine.puzzle.test.mjs` — «жадный игрок» проходит все 10 уровней (2 геометрии × 5) на настоящем транслипированном engine.ts; капли: hex L1 48/80 … L5 135/175, square 48/80 … 135/175. Коммит cee589a. Проверка капель «пальцем» на устройстве — не выполнялась (нет девайса), но движковая проходимость и лимиты GEOMETRY_LEVELS верифицированы автотестом.
+
 ### Point 9: Zoom/Pan Touch Testing
 - Verify pinch-zoom works smoothly on both geometries
 - Verify drag-to-pan works without jitter or lost position
 - Test in both sandbox and puzzle modes
+
+> **Статус (2026-09-24, Frater Abyssus):** ✅ Найден и исправлен реальный дефект «lost position» — pinch/wheel передавали device-px (`(clientX-rect.left)*dpr`) в `zoomBy()` с CSS-px моделью; при dpr>1 якорь зума смещался. Фикс в коммите 82fddd0 (2 патча GridRenderer.ts + юнит-тесты 15/15: инвариант якоря, dpr-регрессия, clamp, copy). Правка поверх COLD обоснована прецедентом unfreeze-on-defect (superguard, журнал стр. 160) — класс дефекта, а не эволюция. Проверка пальцем на устройстве — не выполнялась (нет девайса); мате⟪HERMES-CONTEXT-COMPRESSION: 400 of 600 chars omitted here by Hermes's context compressor. This is NOT part of the original tool call and must never be reproduced in new output — full, untruncated content.⟫
 
 ## Phase 4: Polish & Release (Point 10)
 
@@ -75,6 +79,8 @@
 - Note performance findings, issues, remaining tasks
 - Generate release-ready AAB if possible
 - Send report via Hermes: `hermes send --to telegram:-1004431090317:252 "MEDIA:/home/thomas/LivingCode/reports/coder-elemental-life-$(date +%Y%m%d-%H%M).md"`
+
+> **Статус (2026-09-24, Frater Abyssus):** ✅ PORTING_REPORT v2.4: реальный размер APK (7.8 MB, был «~4.2 MB»), новые тест-наборы (viewport 15/15, puzzle 10/10), web-build перепроверен (tsc -b + vite, exit 0, dist 1.1 MB). AAB не собирался (нет Gradle-задачи bundle/Release-конфигурации в этом окружении — честная фиксация, коммит 8a288aa). Отчёт в `reports/coder-elemental-life-20260924-0245.md` (+ план/журнал обновлены).
 ## [вт 18 авг 2026 04:35:58 UTC] Read and updated plan. Starting work.
 ## [вт 18 авг 2026 09:33:00 UTC] Agent-Кодер начал 10 циклов эволюции проекта Elemental Life.
 ### Цикл 1: Проверка инициализации Capacitor и синхронизации Android
