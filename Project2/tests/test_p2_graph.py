@@ -584,5 +584,101 @@ class TestCLI(TempDirCase):
         self.assertEqual(node_id(7), "n0007")
 
 
+class TestGraphReport(TempDirCase):
+    """Пункт 12 плана: числа GRAPH_REPORT.md обязаны совпадать с прогоном CLI."""
+
+    def write_corpus(self):
+        rows = []
+        for i in range(12):
+            rows.append(make_insight(
+                topic=f"Тема {i}",
+                summary=f"сводка {i}",
+                category="Учебник" if i < 6 else "Заметки",
+                tags=["общий"] if i < 6 else [f"у{i}"],
+                source_url=f"{i}.md",
+            ))
+        rows.append(make_insight(topic="Unknown"))
+        write_memory(self.dir, "professor_insights_cycle_001.json", 1, rows)
+        return ["--memory-dir", str(self.dir)]
+
+    def generate(self, name="GRAPH_REPORT.md"):
+        args = self.write_corpus() + ["graph-report", "--out", str(self.dir / name)]
+        self.assertEqual(main(args), EXIT_OK)
+        return (self.dir / name).read_text(encoding="utf-8")
+
+    def test_report_is_written(self):
+        text = self.generate()
+        self.assertIn("# Граф знаний", text)
+
+    def test_report_numbers_match_cli(self):
+        text = self.generate()
+        import io
+        from contextlib import redirect_stdout
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            main(self.write_corpus() + ["graph", "--json"])
+        payload = json.loads(buf.getvalue())
+        self.assertIn(f"- узлов: {payload['nodes']}", text)
+        self.assertIn(f"- рёбер: {payload['edges']}", text)
+        self.assertIn(f"- плотность: {payload['density']}", text)
+        self.assertIn(f"- компонент связности: {payload['components']}", text)
+        self.assertIn(f"- изолированных узлов: {payload['isolated_count']}", text)
+
+    def test_report_is_reproducible(self):
+        first = self.generate()
+        second = self.generate()
+        self.assertEqual(first, second)
+
+    def test_report_records_corpus_counts(self):
+        text = self.generate()
+        self.assertIn("- записей всего: 13", text)
+        self.assertIn("- записей после очистки: 12", text)
+
+    def test_report_lists_suppressed_keys(self):
+        text = self.generate()
+        self.assertIn("## Подавленные неразличающие ключи", text)
+
+    def test_report_has_sensitivity_table(self):
+        text = self.generate()
+        self.assertIn("## Чувствительность к порогу", text)
+        self.assertIn("| min_shared |", text)
+
+    def test_conclusions_do_not_mention_foreign_topics(self):
+        """Выводы должны выводиться из данных, а не быть расписанным текстом.
+
+        Регрессия: раздел выводов однажды содержал «пять томов TAOCP» и «83
+        изолированных» руками, и на чужом корпусе отчёт печатал неправду.
+        """
+        text = self.generate()
+        self.assertNotIn("TAOCP", text)
+        self.assertNotIn("Art of Computer Programming", text)
+        self.assertNotIn("professor_sync.py начнёт различать теги и категории по темам,"
+                         " добавятся", text.replace("\n", " "))
+
+    def test_conclusions_quote_real_counts(self):
+        text = self.generate()
+        self.assertIn("## Что из этого следует", text)
+        self.assertIn("изолированных узлов", text.lower())
+
+    def test_conclusions_state_no_write_happened(self):
+        self.assertIn("Данные не изменялись", self.generate())
+
+    def test_report_on_real_corpus_matches_real_cli(self):
+        from contextlib import redirect_stdout
+        import io
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            rc = main(["--memory-dir", str(REAL_MEMORY), "graph-report",
+                       "--out", str(self.dir / "REAL.md")])
+        self.assertEqual(rc, EXIT_OK)
+        text = (self.dir / "REAL.md").read_text(encoding="utf-8")
+        buf2 = io.StringIO()
+        with redirect_stdout(buf2):
+            main(["--memory-dir", str(REAL_MEMORY), "graph", "--json"])
+        payload = json.loads(buf2.getvalue())
+        self.assertIn(f"- узлов: {payload['nodes']}", text)
+        self.assertIn(f"- рёбер: {payload['edges']}", text)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

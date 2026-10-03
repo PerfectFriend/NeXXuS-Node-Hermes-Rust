@@ -14,6 +14,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from pathlib import Path
 from typing import Any, Dict, List
 
 from . import EDGE_TYPES, __version__
@@ -160,6 +161,7 @@ def cmd_graph(args) -> int:
         "density": m["density"],
         "components": m["components"],
         "largest_component": m["largest_component"],
+        "isolated_count": m["isolated"],
         "isolated": graph["isolated"],
         "avg_degree": m["avg_degree"],
         "min_shared": args.min_shared,
@@ -172,9 +174,171 @@ def cmd_graph(args) -> int:
         print(f"узлов: {payload['nodes']}, рёбер: {payload['edges']}")
         print(f"типы рёбер: {payload['edge_types']}")
         print(f"плотность: {payload['density']}, компонент: {payload['components']}, "
-              f"изолированных: {payload['isolated']}")
+              f"изолированных: {payload['isolated_count']}")
         for i, row in enumerate(payload["top_central"], 1):
             print(f"  {i:2}. d={row['degree']:<3} {row['topic']}")
+    return EXIT_OK
+
+
+def _conclusions(graph, m, kept, stats) -> List[str]:
+    """Выводы, выведенные из данных, а не расписанные заранее.
+
+    Раньше этот раздел содержал конкретные числа и названия тем, написанные
+    руками; на другом корпусе они становились ложью. Теперь каждая фраза
+    опирается на посчитанную величину.
+    """
+    out: List[str] = []
+
+    by_id = {n["id"]: n for n in graph["nodes"]}
+    comps = m["components_detail"]
+    biggest = max(comps, key=len) if comps else []
+    if len(biggest) > 1:
+        topics = [by_id[nid]["topic"] for nid in biggest if nid in by_id]
+        shown = ", ".join(f"«{t}»" for t in topics[:3])
+        more = f" и ещё {len(topics) - 3}" if len(topics) > 3 else ""
+        out.append(
+            f"Крупнейшая компонента ({len(biggest)} узла): {shown}{more}. "
+            "Эти темы связаны общими значимыми словами — настоящая связь, а не метаданные."
+        )
+    else:
+        out.append("Крупнейшая компонента состоит из одного узла: связей нет вовсе.")
+
+    total = len(kept)
+    if total:
+        iso_share = m["isolated"] / total
+        out.append(
+            f"Изолированных узлов {m['isolated']} из {total} ({iso_share:.0%}). "
+            "Остальное держится на перечисленных компонентах."
+        )
+
+    kinds = edge_type_counts(graph)
+    if graph["suppressed"]:
+        kinds_txt = ", ".join(f"`{s['kind']}`" for s in graph["suppressed"])
+        out.append(
+            f"Подавлено неразличающих ключей: {len(graph['suppressed'])} ({kinds_txt}). "
+            "Ключ, покрывающий больше половины узлов, — константа, а не структура: "
+            "он соединил бы все узлы попарно."
+        )
+    if kinds:
+        out.append(
+            f"Держат структуру: {kinds}. Если в будущем `professor_sync.py` начнёт "
+            "различать теги и категории по темам, добавятся и остальные типы рёбер."
+        )
+    else:
+        out.append("Ни один тип рёбер не дал связей: корпус не несёт структуры.")
+
+    if stats["junk"]:
+        share = stats["junk"] / max(len(graph["nodes"]) + stats["junk"], 1)
+        out.append(
+            f"Мусор — {stats['junk']} записей ({share:.0%} корпуса), причина: "
+            f"{stats['junk_reasons']}. Это меньше, чем вырожденность метаданных."
+        )
+    out.append(
+        "Данные не изменялись: отчёт только читает. Правка памяти — отдельная "
+        "команда `dedupe --fix`, и только по явному решению."
+    )
+    return out
+
+
+def cmd_report_file(args) -> int:
+    """Сгенерировать GRAPH_REPORT.md из живых данных.
+
+    Числа в файле берутся из тех же функций, что и CLI, поэтому отчёт не может
+    разойтись с кодом: файл либо перезаписан, либо не создан вовсе.
+    """
+    data = _collect(args)
+    kept, stats = clean_insights(data["insights"])
+    graph = build_graph(kept, min_shared=args.min_shared)
+    m = metrics(graph)
+
+    # Чувствительность к порогу: показывает, что min_shared — решение, а не магия.
+    sweep = []
+    for threshold in (1, 2, 3, 4, 5):
+        sm = metrics(build_graph(kept, min_shared=threshold))
+        sweep.append((threshold, sm))
+
+    lines: List[str] = []
+    lines.append("# Граф знаний Project2 — отчёт")
+    lines.append("")
+    lines.append("Сгенерировано кодом: `python3 -m p2_graph graph-report`.")
+    lines.append("Не редактировать руками — файл перезаписывается целиком.")
+    lines.append("")
+    lines.append(f"Порог `min_shared = {args.min_shared}` (минимум общих значимых слов для ребра).")
+    lines.append("")
+    lines.append("## Корпус")
+    lines.append("")
+    lines.append(f"- файлов памяти: {len(data['files'])}")
+    lines.append(f"- записей всего: {len(data['insights'])}")
+    lines.append(f"- мусорных (topic=Unknown/пустое): {stats['junk']} {stats['junk_reasons'] or ''}")
+    lines.append(f"- дубликатов на объединённом корпусе: {stats['duplicates']}")
+    lines.append(f"- записей после очистки: {len(kept)}")
+    lines.append("")
+    lines.append("## Граф")
+    lines.append("")
+    lines.append(f"- узлов: {m['nodes']}")
+    lines.append(f"- рёбер: {m['edges']}")
+    lines.append(f"- типы рёбер: {edge_type_counts(graph)}")
+    lines.append(f"- плотность: {m['density']}")
+    lines.append(f"- компонент связности: {m['components']}, крупнейшая {m['largest_component']}")
+    lines.append(f"- изолированных узлов: {m['isolated']}")
+    lines.append(f"- средняя степень: {m['avg_degree']}")
+    lines.append("")
+    lines.append("## Подавленные неразличающие ключи")
+    lines.append("")
+    lines.append("Ключ, покрывающий больше половины узлов, структуры не даёт и подавляется.")
+    lines.append("")
+    lines.append("| тип | ключ | узлов | доля |")
+    lines.append("| --- | --- | --- | --- |")
+    for s in graph["suppressed"]:
+        lines.append(f"| {s['kind']} | `{s['key']}` | {s['members']} | {s['share']} |")
+    lines.append("")
+    lines.append("## Чувствительность к порогу")
+    lines.append("")
+    lines.append("| min_shared | рёбер | плотность | компонент | крупнейшая | изолированных |")
+    lines.append("| --- | --- | --- | --- | --- | --- |")
+    for threshold, sm in sweep:
+        lines.append(
+            f"| {threshold} | {sm['edges']} | {sm['density']} | {sm['components']} "
+            f"| {sm['largest_component']} | {sm['isolated']} |"
+        )
+    lines.append("")
+    if sweep:
+        loose_t, loose = sweep[0]
+        chosen_t, chosen = next(((t, s) for t, s in sweep if t == args.min_shared),
+                                (args.min_shared, m))
+        if loose_t != chosen_t:
+            out = (
+                f"Порог {loose_t} даёт {loose['edges']} рёбер и {loose['components']} "
+                f"компонент, но это шум: одно общее слово склеивает несвязанные темы. "
+                f"Порог {chosen_t} — рабочий компромисс ({chosen['edges']} рёбер, "
+                f"{chosen['components']} компонент)."
+            )
+        else:
+            out = f"Порог {chosen_t} выбран и даёт {chosen['edges']} рёбер."
+        lines.append(out)
+    lines.append("")
+    lines.append("## Топ по центральности")
+    lines.append("")
+    lines.append("| # | узел | тема | степень | relevance | score |")
+    lines.append("| --- | --- | --- | --- | --- | --- |")
+    for i, row in enumerate(centrality(graph, top=args.top), 1):
+        lines.append(
+            f"| {i} | {row['id']} | {row['topic']} | {row['degree']} "
+            f"| {row['relevance']} | {row['score']} |"
+        )
+    lines.append("")
+    lines.append("## Что из этого следует")
+    lines.append("")
+    lines.extend(_conclusions(graph, m, kept, stats))
+    lines.append("")
+
+    text = "\n".join(lines)
+    if args.out:
+        out = Path(args.out)
+    else:
+        out = Path(__file__).resolve().parent.parent / "GRAPH_REPORT.md"
+    out.write_text(text, encoding="utf-8")
+    print(f"Записан {out} ({len(kept)} записей, {m['edges']} рёбер)")
     return EXIT_OK
 
 
@@ -222,6 +386,12 @@ def build_parser() -> argparse.ArgumentParser:
                    dest="min_shared",
                    help="минимум общих значимых слов для ребра token_overlap")
     g.set_defaults(func=cmd_graph)
+
+    r = sub.add_parser("graph-report", help="сгенерировать GRAPH_REPORT.md")
+    r.add_argument("--min-shared", type=int, default=2, dest="min_shared")
+    r.add_argument("--top", type=int, default=12)
+    r.add_argument("--out", default="", help="куда писать (по умолчанию GRAPH_REPORT.md рядом с пакетом)")
+    r.set_defaults(func=cmd_report_file)
 
     q = sub.add_parser("query", help="поиск по корпусу")
     q.add_argument("word")
