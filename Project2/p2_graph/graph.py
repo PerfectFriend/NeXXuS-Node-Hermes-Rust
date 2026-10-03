@@ -263,11 +263,19 @@ def edge_type_counts(graph: Dict[str, Any]) -> Dict[str, int]:
 
 
 def centrality(graph: Dict[str, Any], top: int = 10) -> List[Dict[str, Any]]:
-    """Топ узлов: степень, домнённая на relevance_score."""
+    """Топ узлов: степень, домнённая на relevance_score.
+
+    Пока relevance_score не различает записи (поле принимает одно значение),
+    множитель `(0.5 + 0.5 * relevance)` постоянен и не влияет ни на один
+    порядок. Метка `relevance_informative` в первой строке говорит об этом
+    прямо, чтобы молчаливый нулевой вклад не читался как вклад.
+    """
     degrees = {node["id"]: 0 for node in graph["nodes"]}
     for u, v, _kind in graph["edges"]:
         degrees[u] += 1
         degrees[v] += 1
+    rel_values = [n["relevance"] for n in graph["nodes"]]
+    informative = bool(rel_values) and (max(rel_values) - min(rel_values)) > 1e-12
     by_id = {node["id"]: node for node in graph["nodes"]}
     scored = []
     for nid, deg in degrees.items():
@@ -283,7 +291,11 @@ def centrality(graph: Dict[str, Any], top: int = 10) -> List[Dict[str, Any]]:
             }
         )
     scored.sort(key=lambda x: (-x["score"], -x["degree"], x["topic"]))
-    return scored[:top]
+    head = scored[:top]
+    if head:
+        head[0] = dict(head[0])
+        head[0]["relevance_informative"] = informative
+    return head
 
 
 def query(graph: Dict[str, Any], needle: str, limit: int = 10) -> List[Dict[str, Any]]:

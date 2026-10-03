@@ -12,7 +12,7 @@ Project1 закрыл загрузку/валидацию/дедупликаци
 Пакет ничего не пишет на диск без явного `--fix`.
 """
 
-__version__ = "1.0.0"
+__version__ = "1.1.0"
 
 MEMORY_GLOB = "professor_insights_cycle_*.json"
 VALID_PROJECTS = (1, 2, 3, 4)
