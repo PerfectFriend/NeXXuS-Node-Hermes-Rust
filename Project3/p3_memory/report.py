@@ -81,8 +81,8 @@ def build_report(memory_dir: Path = DEFAULT_DIR) -> str:
     lines.extend(_table(ident_rows, ["сосед", "тело", "общих ключей", "Жаккар"]))
     lines.append("")
     if ident["all_identical"]:
-        lines.append(f'**Тело Project3 ({ident["own_records"]} записей) совпадает со всеми')
-        lines.append(f'соседями без единого отличия.** Собственных ключей, не встречающихся')
+        lines.append(f'**Тело Project3 ({ident["own_records"]} записей) — Идентичен всем соседям '
+                     f'без единого отличия.** Собственных ключей, не встречающихся')
         lines.append(f'ни у соседа: {ident["distinct_keys"]}.')
     else:
         lines.append(f'Тело Project3 совпало с соседями: '
@@ -146,8 +146,12 @@ def build_report(memory_dir: Path = DEFAULT_DIR) -> str:
 
 
 def write_report(path: Path | None = None, memory_dir: Path = DEFAULT_DIR,
-                 fix: bool = False):
-    """Записать отчёт. Без `fix=True` только возвращает текст."""
+                  fix: bool = False):
+    """Записать отчёт. Без `fix=True` только возвращает текст.
+
+    При `fix=True` возвращает путь к бэкапу ПРЕДЫДУЩЕЙ версии или None,
+    если файла раньше не было (нечего было отдавать под бэкап).
+    """
     text = build_report(memory_dir)
     if not fix:
         return text

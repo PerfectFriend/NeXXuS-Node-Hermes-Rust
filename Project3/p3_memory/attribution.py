@@ -142,6 +142,8 @@ def audit_addressing(records: Iterable[Dict[str, Any]],
         "total": total,
         "default_addressed": len(default_records),
         "default_ratio": ratio,
+        # Записей, реально адресованных Project3: из трёх в тесте только
+        # A (`[1,2,3,4]`) и B (`[3]`), C адресован одному Project1.
         "project_addressed": sum(
             1 for r in records if sync_filter_passes(project, r.get("applicable_projects"))
         ),

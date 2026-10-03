@@ -59,12 +59,26 @@ def project_paths(project: str, root: Optional[Path] = None) -> List[Path]:
 
 
 def load_project(project: str, root: Optional[Path] = None) -> Dict[str, Any]:
-    """Загрузить и слить все файлы соседнего проекта (без канонизации)."""
+    """Загрузить и слить все файлы соседнего проекта (без канонизации).
+
+    Отсутствующий каталог памяти — не «пустой сосед», а ошибка в данных:
+    иначе отчёт об идентичности тихо выдавал бы `identical=False` для
+    проекта, которого просто нет, и это читалось бы как «проекты разошлись».
+    """
+    paths = project_paths(project, root)
+    if not paths:
+        raise FileNotFoundError(
+            f"у проекта {project} нет ни одного файла "
+            f"professor_insights_cycle_*.json"
+        )
     merged: List[Dict[str, Any]] = []
     markers: List[str] = []
     for path in project_paths(project, root):
-        data, removed = load(path)
-        markers.extend(removed)
+        # `load` возвращает словарь с полями `_markers_removed`/`_source_file`;
+        # распаковывать его как пару `(data, removed)` нельзя — это роняло
+        # весь отчёт об идентичности на «too many values to unpack».
+        data = load(path)
+        markers.extend(data.get("_markers_removed") or [])
         merged.extend(data.get("insights") or [])
     return {"insights": merged, "total_insights": len(merged), "_markers_removed": markers}
 

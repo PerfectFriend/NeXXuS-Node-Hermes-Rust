@@ -313,8 +313,15 @@ class TestCanon(Base):
     def test_unique_count_vs_sibling_schitaet_only_own(self):
         memory = self.fake_memory()
         result = canon.canon(canon.read_all(memory))
+        # fake_memory кладёт записи с url https://a/1 и https://a/2, поэтому
+        # их ключи не совпадают с ключом записи по умолчанию: «чужих» здесь
+        # нет ни одной, и unique считает обе. Прежнее ожидание 0 было ошибкой
+        # теста (автор принял fake_memory за запись make_record() по умолчанию).
         foreign = {canon.record_key(make_record(topic="Другое"))}
-        self.assertEqual(canon.unique_count_vs_sibling(result, foreign), 0)
+        self.assertEqual(canon.unique_count_vs_sibling(result, foreign), 2)
+        # а вот с ключом одной из записей корпуса — считает только вторую
+        own_key = {canon.record_key(make_record(topic="Графы", url="https://a/1"))}
+        self.assertEqual(canon.unique_count_vs_sibling(result, own_key), 1)
         self.assertEqual(canon.unique_count_vs_sibling(result, set()), 2)
 
     def test_pustoy_korpus_daet_nol(self):
@@ -436,7 +443,13 @@ class TestAddressingAudit(Base):
         self.assertTrue(result["filter_works"])
         self.assertEqual(result["excluded_count"], 1)
         self.assertEqual(result["default_addressed"], 1)
-        self.assertEqual(result["project_addressed"], 3)
+        # Адресовано Project3 ровно две записи: A (`[1,2,3,4]`) и B (`[3]`).
+        # Прежнее ожидание 3 противоречило `excluded_count == 1`: запись C
+        # адресована одному Project1, поэтому одновременно «исключена
+        # фильтром» и «адресована Project3» она быть не может.
+        self.assertEqual(result["project_addressed"], 2)
+        self.assertEqual(result["project_addressed"] + result["excluded_count"],
+                         result["total"])
         self.assertIn("различает", result["verdict"])
 
     def test_pustoy_korpus_bez_kategoricheskogo_vyvoda(self):
@@ -652,9 +665,20 @@ class TestReport(Base):
         self.assertFalse(target.exists())
         self.assertTrue(text)
 
+        # Первая запись: файла не было, бэкапировать нечего → None
+        # (CLI печатает «отчёт записан» без пути к бэкапу — этот случай
+        #  разобран в cmd_report, `if backup`).
         backup = report.write_report(target, memory_dir=REAL_MEMORY, fix=True)
         self.assertTrue(target.exists())
-        self.assertTrue(Path(backup).exists())
+        self.assertIsNone(backup)
+        self.assertEqual(list(self.tmp.iterdir()), [target])  # никаких .bak
+
+        # Вторая запись поверх: прежняя версия сохраняется в .bak
+        second = report.write_report(target, memory_dir=REAL_MEMORY, fix=True)
+        self.assertTrue(Path(second).exists())
+        self.assertEqual(Path(second).read_text(encoding="utf-8"),
+                         target.read_text(encoding="utf-8"))
+        self.assertTrue(target.exists())
 
 
 # ---------------------------------------------------------------- CLI

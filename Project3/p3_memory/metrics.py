@@ -38,12 +38,30 @@ def score_of(record: Dict[str, Any]) -> float:
 
 
 def metrics(memory_dir: Path = DEFAULT_DIR) -> Dict[str, Any]:
-    """Метрики канонического корпуса Project3."""
+    """Метрики канонического корпуса Project3.
+
+    Релевантность считается ДВАЖДЫ, потому что это две разные величины:
+      * `score_mean` — среднее по всем записям на входе (190), то есть с
+        весом межцикловых повторов: именно так выглядит то, что реально
+        лежит в файлах;
+      * `score_mean_unique` — то же по уникальным записям (102), то есть
+        без искажения от повторов.
+    Среднее по входу — первичная величина, и именно её сверяет регрессионный
+    тест независимым пересчётом; уникальное среднее идёт справочно.
+    """
     canon_result = corpus(memory_dir)
     records = canon_result["records"]
     total = len(records)
     junk = [r for r in records if is_junk_topic(r)]
     scores = [score_of(r) for r in records]
+    # Среднее по ВХОДУ восстанавливается взвешиванием по `_occurrences`:
+    # канон хранит кратность каждого ключа, а у дублей `relevance_score`
+    # совпадает (проверено тестом на реальном корпусе), поэтому взвешивание
+    # даёт ровно то же число, что прямой пересчёт по всем 190 записям,
+    # но без повторного чтения файлов. При расхождении оценок у дублей
+    # величины разойдутся — это видно по ним в отчёте.
+    input_count = sum(int(r.get("_occurrences") or 1) for r in records)
+    input_sum = sum(score_of(r) * int(r.get("_occurrences") or 1) for r in records)
     buckets = {"low (<0.6)": 0, "mid (0.6-0.79)": 0, "high (>=0.8)": 0}
     for score in scores:
         if score >= 0.8:
@@ -60,7 +78,8 @@ def metrics(memory_dir: Path = DEFAULT_DIR) -> Dict[str, Any]:
         "duplicates_removed": canon_result["duplicates_removed"],
         "junk_topics": len(junk),
         "junk_ratio": round(len(junk) / total, 6) if total else 0.0,
-        "score_mean": round(sum(scores) / total, 4) if total else 0.0,
+        "score_mean": round(input_sum / input_count, 4) if input_count else 0.0,
+        "score_mean_unique": round(sum(scores) / total, 4) if total else 0.0,
         "score_max": round(max(scores), 4) if total else 0.0,
         "score_min": round(min(scores), 4) if total else 0.0,
         "score_buckets": buckets,

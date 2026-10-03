@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import os
 import shutil
+import stat
 import tempfile
 from pathlib import Path
 
@@ -53,6 +54,17 @@ def atomic_write(path: Path, text: str, encoding: str = "utf-8",
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     backup_path = None
+    # `tempfile.mkstemp` создаёт файл с режимом 0600, и `os.replace` переносит
+    # этот режим на целевой файл: существовавший 0644 после первой записи
+    # становился 0600, и внешний читатель терял доступ. Прежний open('w')
+    # уважал umask, поэтому восстанавливаем прежний режим, а для нового
+    # файла применяем `0o666 & ~umask`.
+    try:
+        previous_mode = stat.S_IMODE(path.stat().st_mode)
+    except FileNotFoundError:
+        umask = os.umask(0o022)
+        os.umask(umask)
+        previous_mode = 0o666 & ~umask
     if backup and path.exists():
         backup_path = path.with_suffix(path.suffix + suffix)
         shutil.copy2(path, backup_path)
@@ -64,6 +76,7 @@ def atomic_write(path: Path, text: str, encoding: str = "utf-8",
             handle.write(text)
             handle.flush()
             os.fsync(handle.fileno())
+        os.chmod(tmp, previous_mode)
         os.replace(tmp, path)
     except Exception:
         tmp.unlink(missing_ok=True)

@@ -114,7 +114,11 @@ def validate_insight(record: Any, where: str) -> List[str]:
                 f"{'/'.join(t.__name__ for t in expected) if isinstance(expected, tuple) else expected.__name__}"
             )
     score = record.get("relevance_score")
-    if isinstance(score, (int, float)) and not isinstance(score, bool):
+    # `bool` — подкласс `int` в Python, поэтому без этой проверки `True`
+    # проходил как валидная релевантность.
+    if isinstance(score, bool):
+        problems.append(f"{where}: поле 'relevance_score' имеет тип bool, ожидался int/float")
+    elif isinstance(score, (int, float)):
         if not 0.0 <= float(score) <= 1.0:
             problems.append(f"{where}: relevance_score={score} вне [0, 1]")
     projects = record.get("applicable_projects")
