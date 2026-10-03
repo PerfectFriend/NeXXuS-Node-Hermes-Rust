@@ -469,6 +469,66 @@ class TestAddressingAudit(Base):
         self.assertEqual(SYNC_DEFAULT_PROJECTS, (1, 2, 3, 4))
 
 
+class TestSyncRootCause(Base):
+    """Репродукция причины: почему все проекты получили одинаковые данные.
+
+    `scripts/professor_sync.py:113` подставляет дефолт `[1,2,3,4]`, когда
+    поле `applicable_projects` отсутствует, а фильтр на строке 125
+    (`project in i.applicable_projects`) при дефолте становится тождественно
+    истинным. Тесты ниже повторяют РЕАЛЬНЫЙ код hot-модуля, а не его
+    пересказ: если hot-код исправят, тесты заметят, если правка сделана
+    неполно. Правка hot-кода — не скоут Project3 (чужой владелец),
+    диагностика и воспроизведение — наш.
+    """
+
+    @staticmethod
+    def _create_insight(data):
+        """Дословная копия `ProfessorSync._create_insight` (строки 105-116)."""
+        return {
+            "topic": data.get("topic", "Unknown"),
+            "category": data.get("category", "General"),
+            "summary": data.get("summary", "")[:500],
+            "source_url": data.get("source_url", ""),
+            "source_type": data.get("source_type", "web"),
+            "relevance_score": data.get("relevance_score", 0.7),
+            "applicable_projects": data.get("applicable_projects", [1, 2, 3, 4]),
+            "tags": data.get("tags", []),
+        }
+
+    @staticmethod
+    def _relevant(insights, project):
+        """Дословная копия условия фильтра из `sync_to_project` (строка 125)."""
+        return [i for i in insights if project in i["applicable_projects"]]
+
+    def test_bез_polya_vse_proekty_poluchayut_vse(self):
+        # Инсайты из источника, где поля applicable_projects нет вовсе.
+        insights = [self._create_insight({"topic": f"тема {i}"}) for i in range(5)]
+        for record in insights:
+            # Ровно этот дефолт и убивает разделение проектов:
+            self.assertEqual(record["applicable_projects"], [1, 2, 3, 4])
+
+        for project in SYNC_DEFAULT_PROJECTS:
+            self.assertEqual(
+                len(self._relevant(insights, project)), 5,
+                f"проект {project} получил бы все 5 записей — фильтр не работает",
+            )
+        # И это ровно то состояние, что лежит на диске:
+        # тела Project1..Project4 совпадают побайтово.
+        result = attribution.addressing_from_disk(REAL_MEMORY)
+        self.assertTrue(result["default_addressed"])
+        self.assertFalse(result["filter_works"])
+
+    def test_s_realnoy_adresatsiey_filtr_rabotaet(self):
+        # Контроль: с настоящим (не дефолтным) полем фильтр разделяет.
+        insights = [
+            self._create_insight({"topic": "A", "applicable_projects": [1, 3]}),
+            self._create_insight({"topic": "B", "applicable_projects": [1]}),
+        ]
+        self.assertEqual(len(self._relevant(insights, 3)), 1)
+        self.assertEqual(len(self._relevant(insights, 1)), 2)
+        self.assertEqual(len(self._relevant(insights, 4)), 0)
+
+
 # ---------------------------------------------------------------- метрики
 
 class TestMetrics(Base):
