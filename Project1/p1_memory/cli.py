@@ -22,6 +22,7 @@ from typing import List, Optional
 
 from . import __version__
 from .chronicle import CHRONICLE_NAME, append_entry, has_entry, now_stamp
+from .doctor import BLOCKING_KINDS, is_blocking, scan_tree, summarize as summarize_findings
 from .loader import MemoryError_, iter_memory_files, load, save_atomic
 from .validate import clean_insights, summarize, validate_document
 
@@ -138,6 +139,50 @@ def cmd_chronicle(args) -> int:
     return 0
 
 
+def cmd_doctor(args) -> int:
+    """Проверить целостность исходников проекта. exit 1, если найдена порча.
+
+    По умолчанию печатаются только блокирующие находки: инструмент записи
+    срезает завершающий перевод строки у всех файлов, поэтому без этого
+    фильтра вывод всегда состоял бы из восьми предупреждений и сигнал
+    порчи в нём тонул бы. Полный список — в --json или с --all.
+    """
+    findings = scan_tree(args.root)
+    blocking = is_blocking(findings)
+    shown = findings if args.all else [f for f in findings if f.kind in BLOCKING_KINDS]
+
+    if args.json:
+        print(json.dumps({
+            "root": str(args.root),
+            "blocking": blocking,
+            "findings": [
+                {"file": f.path, "kind": f.kind, "detail": f.detail,
+                 "blocking": f.kind in BLOCKING_KINDS}
+                for f in findings
+            ],
+            "summary": summarize_findings(findings),
+        }, ensure_ascii=False, indent=2))
+        return 1 if blocking else 0
+
+    if not findings:
+        print(f"Целостность в порядке: {args.root} (порчи нет)")
+        return 0
+
+    for f in shown:
+        mark = "ПОРЧА" if f.kind in BLOCKING_KINDS else "внимание"
+        print(f"[{mark}] {f}")
+
+    counts = summarize_findings(findings)
+    silent = len(findings) - len(shown)
+    detail = ", ".join(f"{kind} — {n}" for kind, n in sorted(counts.items()))
+    print(f"Находок: {len(findings)} ({detail})")
+    if silent:
+        print(f"Из них предупреждений без блокирующей силы: {silent} (показать: --all)")
+    if blocking:
+        print("Порча найдена: восстановление через `git checkout -- <путь>`.")
+    return 1 if blocking else 0
+
+
 def _split_prog(argv: Optional[List[str]]) -> List[str]:
     """Отбросить имя программы, если передан полный sys.argv.
 
@@ -174,8 +219,12 @@ def main(argv=None) -> int:
     p_chron.add_argument("--stats", action="store_true", help="дописать сводку качества памяти")
     p_chron.set_defaults(func=cmd_chronicle)
 
+    p_doctor = sub.add_parser("doctor", help="проверка целостности исходников (null-байты, мусор)")
+    p_doctor.add_argument("--all", action="store_true", help="показать и предупреждения, не только порчу")
+    p_doctor.set_defaults(func=cmd_doctor)
+
     # --json разрешён и до, и после имени команды
-    for sub_parser in (p_report, p_validate, p_dedupe, p_chron):
+    for sub_parser in (p_report, p_validate, p_dedupe, p_chron, p_doctor):
         sub_parser.add_argument("--json", action="store_true", default=None, dest="json",
                                 help="вывод в JSON")
 

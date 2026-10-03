@@ -10,6 +10,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from typing import Optional
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
@@ -448,6 +449,178 @@ def _capture(argv):
     with redirect_stdout(buf):
         main(argv)
     return buf.getvalue()
+
+
+class DoctorTests(unittest.TestCase):
+    """Целостность исходников: класс дефекта, найденный в слоте 2026-10-03 11:01.
+
+    Регрессия живой порчи: `chronicle.py` лежал на диске с NUL-байтом в
+    docstring, обрывом текста и строкой «п.Threading is disabled for this
+    response.». Пакет целиком не импортировался.
+    """
+
+    def setUp(self):
+        from p1_memory import doctor
+        self.doctor = doctor
+        self.tmp = tempfile.TemporaryDirectory(prefix="p1doctor-")
+        self.root = Path(self.tmp.name)
+        (self.root / "p1_memory").mkdir()
+        self.addCleanup(self.tmp.cleanup)
+
+    def _write(self, name: str, text: str = "", raw: Optional[bytes] = None):
+        target = self.root / "p1_memory" / name
+        if raw is not None:
+            target.write_bytes(raw)
+        else:
+            target.write_text(text, encoding="utf-8")
+        return target
+
+    def _kinds(self, path):
+        return {f.kind for f in self.doctor.scan_file(path)}
+
+    # --- регрессия на живой порче ---------------------------------------
+
+    def test_detects_null_byte_in_source(self):
+        """Живой дефект: NUL-байт роняет импорт всего пакета."""
+        path = self._write("broken.py", raw=b'"""Doc."""\n\nVALUE = 1\n\x00\ndef f():\n    return 2\n')
+        self.assertIn("null-байты", self._kinds(path))
+        self.assertTrue(self.doctor.is_blocking(self.doctor.scan_file(path)))
+
+    def test_detects_junk_line_from_stream_tail(self):
+        """Живой дефект: служебный хвост конвейера внутри docstring."""
+        path = self._write(
+            "broken.py",
+            '"""Начало.\n\nп.Threading is disabled for this response.\n\nVALUE = 1\n',
+        )
+        self.assertIn("служебный-мусор", self._kinds(path))
+
+    def test_truncated_file_reported(self):
+        """Обрыв записи: незакрытая скобка ловится правилом «синтаксис»."""
+        path = self._write("broken.py", "def f():\n    return {\n")
+        self.assertIn("синтаксис", self._kinds(path))
+        self.assertTrue(self.doctor.is_blocking(self.doctor.scan_file(path)))
+
+    # --- границы правил: ложных срабатываний быть не должно -------------
+
+    def test_clean_file_has_no_findings(self):
+        path = self._write("ok.py", "VALUE = 1\n\ndef f():\n    return VALUE\n")
+        self.assertEqual(self.doctor.scan_file(path), [])
+
+    def test_mention_of_junk_phrase_is_not_corruption(self):
+        """Упоминание служебной фразы в обычном тексте — не порча.
+
+        Регрессия на границу правила: первая версия доктора ловила само себя,
+        потому что фраза встречалась в его же docstring.
+        """
+        text = (
+            "def f():\n"
+            '    return "Threading is disabled for this response."\n'
+            "# а это в комментарии: Threading is disabled for this response\n"
+            "X = 1\n"
+        )
+        path = self._write("ok.py", text)
+        self.assertEqual(self.doctor.scan_file(path), [])
+
+    def test_truncation_is_warning_not_blocking(self):
+        """Нет завершающего \\n — подсказка, а не порча.
+
+        Инструмент записи в этой среде срезает последний перевод строки у
+        всех файлов; блокирующим такое делало бы doctor бесполезным.
+        """
+        path = self._write("ok.py", "X = 1")
+        findings = self.doctor.scan_file(path)
+        self.assertEqual([f.kind for f in findings], ["обрыв"])
+        self.assertFalse(self.doctor.is_blocking(findings))
+
+    def test_invalid_utf8_detected(self):
+        path = self._write("broken.py", raw=b"X = 1\n\xff\xfe\n")
+        self.assertIn("не-utf8", self._kinds(path))
+
+    # --- API --------------------------------------------------------------
+
+    def test_scan_tree_clean_project(self):
+        self._write("a.py", "A = 1\n")
+        self._write("b.py", "B = 2\n")
+        self.assertEqual(self.doctor.scan_tree(self.root), [])
+
+    def test_scan_tree_finds_corrupt_file(self):
+        self._write("good.py", "A = 1\n")
+        self._write("bad.py", raw=b"A = 1\n\x00")
+        findings = self.doctor.scan_tree(self.root)
+        self.assertTrue(self.doctor.is_blocking(findings))
+        self.assertIn("bad.py", {f.path for f in findings})
+
+    def test_compile_check_catches_syntax_error(self):
+        (self.root / "p1_memory" / "broken.py").write_text("def f(:\n", encoding="utf-8")
+        findings = self.doctor.compile_check(self.root)
+        self.assertTrue(findings)
+        self.assertEqual(findings[0].kind, "не компилируется")
+
+    def test_summarize_counts_by_kind(self):
+        self._write("a.py", raw=b"A = 1\n\x00")
+        self._write("b.py", "B = 2")
+        counts = self.doctor.summarize(self.doctor.scan_tree(self.root))
+        self.assertEqual(counts.get("null-байты"), 1)
+        self.assertGreaterEqual(counts.get("обрыв", 0), 1)
+
+    def test_empty_directory_has_no_findings(self):
+        self.assertEqual(self.doctor.scan_tree(self.root), [])
+
+
+class DoctorCliTests(unittest.TestCase):
+    """Команда `doctor`: exit-коды и формат вывода."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory(prefix="p1doctorcli-")
+        self.root = Path(self.tmp.name)
+        (self.root / "p1_memory").mkdir()
+        self.addCleanup(self.tmp.cleanup)
+        self.root_argv = ["--root", str(self.root)]
+
+    def _run(self, extra=None):
+        import io
+        from contextlib import redirect_stdout
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            code = main(self.root_argv + ["doctor"] + (extra or []))
+        return code, buf.getvalue()
+
+    def test_doctor_exit_zero_on_clean_tree(self):
+        (self.root / "p1_memory" / "ok.py").write_text("X = 1\n", encoding="utf-8")
+        code, out = self._run()
+        self.assertEqual(code, 0)
+        self.assertIn("порчи нет", out)
+
+    def test_doctor_exit_one_on_null_byte(self):
+        (self.root / "p1_memory" / "bad.py").write_bytes(b"X = 1\n\x00")
+        code, out = self._run()
+        self.assertEqual(code, 1)
+        self.assertIn("ПОРЧА", out)
+        self.assertIn("null-байты", out)
+
+    def test_doctor_json_is_valid(self):
+        (self.root / "p1_memory" / "bad.py").write_bytes(b"X = 1\n\x00")
+        code, out = self._run(["--json"])
+        self.assertEqual(code, 1)
+        data = json.loads(out)
+        self.assertTrue(data["blocking"])
+        self.assertEqual(data["summary"].get("null-байты"), 1)
+
+    def test_doctor_hides_warnings_by_default(self):
+        """Предупреждения не должны тонуть в выводе блокирующих находок."""
+        (self.root / "p1_memory" / "ok.py").write_text("X = 1", encoding="utf-8")
+        code, out = self._run()
+        self.assertEqual(code, 0)
+        self.assertNotIn("[ПОРЧА]", out)
+        self.assertIn("предупреждений без блокирующей силы", out)
+
+    def test_doctor_all_shows_warnings_without_porcha_mark(self):
+        """С --all предупреждения видны, но не помечены как порча."""
+        (self.root / "p1_memory" / "ok.py").write_text("X = 1", encoding="utf-8")
+        code, out = self._run(["--all"])
+        self.assertEqual(code, 0)
+        self.assertIn("обрыв", out)
+        self.assertNotIn("[ПОРЧА]", out)
 
 
 if __name__ == "__main__":
