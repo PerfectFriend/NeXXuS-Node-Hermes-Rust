@@ -1,0 +1,155 @@
+"""Отчёт DUPLICITY_REPORT.md, порождённый кодом (пункт 9 плана).
+
+Каждое число в отчёте — из посчитанного. Ручных констант нет: если корпус
+поменяется, отчёт обязан поехать вместе с ним. Регрессионный тест сверяет
+числа отчёта с независимым пересчётом.
+"""
+
+from __future__ import annotations
+
+from pathlib import Path
+from typing import Any, Dict, List
+
+from .attribution import addressing_from_disk
+from .canon import corpus
+from .identity import identity_report
+from .loader import DEFAULT_DIR, validate_corpus
+from .metrics import metrics, report_path
+from .paths import atomic_write
+
+SYNC_DEFECT_LOC = "scripts/professor_sync.py:113, фильтр на строке 125"
+
+
+def _table(rows: List[List[Any]], header: List[str]) -> List[str]:
+    lines = ["| " + " | ".join(str(h) for h in header) + " |",
+             "|" + "|".join("---" for _ in header) + "|"]
+    for row in rows:
+        lines.append("| " + " | ".join(str(cell) for cell in row) + " |")
+    return lines
+
+
+def build_report(memory_dir: Path = DEFAULT_DIR) -> str:
+    """Собрать текст отчёта из данных."""
+    m = metrics(memory_dir)
+    ident = identity_report(memory_dir)
+    addr = addressing_from_disk(memory_dir)
+    val = validate_corpus(memory_dir)
+    canon_result = corpus(memory_dir)
+
+    lines: List[str] = []
+    lines.append("# DUPLICITY_REPORT — Project3")
+    lines.append("")
+    lines.append("Отчёт порождён кодом (`p3_memory report`). Все числа посчитаны")
+    lines.append("по корпусу `Project3/memory/`; ручных констант в тексте нет.")
+    lines.append("")
+
+    lines.append("## 1. Состояние корпуса")
+    lines.append("")
+    lines.extend(_table([
+        ["файлов памяти", m["files"]],
+        ["записей на входе", m["records_input"]],
+        ["уникальных записей", m["records_total"]],
+        ["снято повторов", m["duplicates_removed"]],
+        ["тем-заглушек", f'{m["junk_topics"]} (доля {m["junk_ratio"]:.4f})'],
+        ["валидация схемы", "чисто" if val["valid"] else f'{val["problem_count"]} претензий'],
+    ], ["величина", "значение"]))
+    lines.append("")
+
+    lines.append("## 2. Релевантность")
+    lines.append("")
+    lines.extend(_table([
+        ["минимум", m["score_min"]],
+        ["среднее", m["score_mean"]],
+        ["максимум", m["score_max"]],
+        *[[name, count] for name, count in m["score_buckets"].items()],
+    ], ["величина", "значение"]))
+    lines.append("")
+
+    lines.append("## 3. Кросс-проектная идентичность")
+    lines.append("")
+    ident_rows = []
+    for name, res in ident["per_sibling"].items():
+        if "error" in res:
+            ident_rows.append([name, "ошибка", res["error"][:60], "—"])
+            continue
+        ident_rows.append([
+            name,
+            "идентичен" if res["identical"] else "отличается",
+            f'{res["shared_keys"]}/{res["own_keys"]}',
+            f'{res["jaccard"]:.4f}',
+        ])
+    lines.extend(_table(ident_rows, ["сосед", "тело", "общих ключей", "Жаккар"]))
+    lines.append("")
+    if ident["all_identical"]:
+        lines.append(f'**Тело Project3 ({ident["own_records"]} записей) совпадает со всеми')
+        lines.append(f'соседями без единого отличия.** Собственных ключей, не встречающихся')
+        lines.append(f'ни у соседа: {ident["distinct_keys"]}.')
+    else:
+        lines.append(f'Тело Project3 совпало с соседями: '
+                     f'{", ".join(ident["identical_siblings"]) or "ни с одним"}. '
+                     f'Собственных ключей: {ident["distinct_keys"]}.')
+    lines.append("")
+
+    lines.append("## 4. Аудит адресации")
+    lines.append("")
+    lines.extend(_table([
+        ["записей всего", addr["total"]],
+        ["с дефолтом «все проекты»", addr["default_addressed"]],
+        ["доля дефолтных", f'{addr["default_ratio"]:.4f}'],
+        ["различных адресаций, кроме дефолта",
+         addr["distinct_non_default_addressing"]],
+        ["фильтр проекта 3 способен что-то отсечь",
+         "да" if addr["filter_works"] else "нет"],
+        ["отсеял бы фильтр", addr["excluded_count"]],
+    ], ["величина", "значение"]))
+    lines.append("")
+    lines.append(addr["verdict"] + ".")
+    lines.append("")
+    lines.append(f"Механика дефекта: `{SYNC_DEFECT_LOC}` — поле `applicable_projects`")
+    lines.append("подставляется дефолтом `[1, 2, 3, 4]`, и условие фильтра становится")
+    lines.append("тождественно истинным. Правка этого файла — не скоум `p3_memory`:")
+    lines.append("это hot-код синхронизатора, решение за его владельцем.")
+    lines.append("")
+
+    lines.append("## 5. Атрибуция по содержанию")
+    lines.append("")
+    lines.append("`applicable_projects` для этой оценки непригоден (поле одинаково у всех),")
+    lines.append("поэтому принадлежность определяется типу источника и тегам.")
+    lines.append("")
+    lines.extend(_table([
+        ["own (признаки Project3 есть)", m["attribution_own"]],
+        ["shared (только общие метки)", m["attribution_shared"]],
+        ["без признаков", m["attribution_unattributed"]],
+    ], ["класс", "записей"]))
+    lines.append("")
+
+    lines.append("## 6. Типы источников")
+    lines.append("")
+    lines.extend(_table(
+        [[name, count] for name, count in m["by_source_type"].items()],
+        ["source_type", "записей"],
+    ))
+    lines.append("")
+
+    lines.append("## 7. Повторы по файлам")
+    lines.append("")
+    lines.extend(_table(
+        [[name, count] for name, count in m["duplicates_by_file"].items()],
+        ["файл", "повторов"],
+    ))
+    lines.append("")
+    lines.append(f'Всего снято при канонизации: {m["duplicates_removed"]}; '
+                 f'уникальных записей в корпусе: {m["records_total"]} '
+                 f'(вход {m["records_input"]}).')
+    lines.append("")
+    return "\n".join(lines) + "\n"
+
+
+def write_report(path: Path | None = None, memory_dir: Path = DEFAULT_DIR,
+                 fix: bool = False):
+    """Записать отчёт. Без `fix=True` только возвращает текст."""
+    text = build_report(memory_dir)
+    if not fix:
+        return text
+    target = path or report_path()
+    return atomic_write(Path(target), text)
