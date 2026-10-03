@@ -5,6 +5,7 @@
     python3 -m p2_graph dedupe   [--json] [--fix]
     python3 -m p2_graph graph    [--json] [--top N] [--types a,b]
     python3 -m p2_graph query WORD [--json] [--limit N]
+    python3 -m p2_graph freshness [--json]
 
 Exit-коды: 0 — успех, 1 — ошибка данных (есть проблемы), 2 — ошибка ввода/файла.
 """
@@ -358,6 +359,58 @@ def cmd_query(args) -> int:
     return EXIT_OK
 
 
+def cmd_freshness(args) -> int:
+    """Свежесть корпуса: инверсии порядка имён, потери, подменённое происхождение."""
+    from .provenance import freshness_report, origin_findings
+
+    data = _collect(args)
+    files = data.get("files") or []
+    if not files:
+        print("Нет файлов памяти для анализа.")
+        return EXIT_DATA
+    rep = freshness_report(files)
+    kept, _stats = clean_insights(data["insights"])
+    findings = origin_findings(kept)
+
+    if args.json:
+        print(json.dumps(
+            {
+                "order_is_chronological": rep["order_is_chronological"],
+                "inverted_count": rep["inverted_count"],
+                "inverted_files": rep["inverted_files"],
+                "lost": rep["lost"],
+                "lost_detail": rep["lost_detail"],
+                "origin_findings": findings,
+                "origin_count": len(findings),
+            },
+            ensure_ascii=False, indent=2,
+        ))
+        return EXIT_OK
+
+    print(f"Файлов памяти: {len(rep['files'])}")
+    if rep["order_is_chronological"]:
+        print("Порядок чтения совпадает с хронологией: да")
+    else:
+        инв = rep.get("inverted_count", 0)
+        print(
+            "Порядок чтения НЕ совпадает с хронологией: "
+            f"инверсий {инв}, потеряно свежих записей {rep.get('lost', 0)}"
+        )
+        for det in rep["lost_detail"]:
+            print(f"  {det['file']}  synced_at={det['synced_at']}  "
+                  f"вытеснено записей: {det['overwritten_by_fresher']}")
+        print(f"Всего потеряно записей при дедупе по имени файла: {rep['lost']}")
+    if findings:
+        print(f"Подменённое происхождение: {len(findings)}")
+        for f in findings[:20]:
+            print(f"  [{f['index']}] {f['topic'][:70]} — {f['source_type']} {f['source_url'][:50]}")
+            for reason in f["reasons"]:
+                print(f"        · {reason}")
+        if len(findings) > 20:
+            print(f"  … ещё {len(findings) - 20}")
+    return EXIT_OK
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="p2_graph", description="Память и граф знаний Project2")
     p.add_argument("--version", action="version", version=__version__)
@@ -398,6 +451,10 @@ def build_parser() -> argparse.ArgumentParser:
     q.add_argument("--json", action="store_true")
     q.add_argument("--limit", type=int, default=10)
     q.set_defaults(func=cmd_query)
+
+    fz = sub.add_parser("freshness", help="свежесть корпуса и подменённое происхождение")
+    fz.add_argument("--json", action="store_true")
+    fz.set_defaults(func=cmd_freshness)
     return p
 
 

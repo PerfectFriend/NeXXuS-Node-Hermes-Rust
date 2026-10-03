@@ -22,6 +22,7 @@
 
 from __future__ import annotations
 
+import re
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 
 __all__ = [
@@ -75,16 +76,46 @@ def file_freshness(data: Dict[str, Any]) -> Optional[float]:
     return parse_ts(data.get("synced_at"))
 
 
+_CYCLE_IN_NAME = re.compile(r"cycle[_-]?(\d+)", re.IGNORECASE)
+
+
 def _cycle_of(data: Dict[str, Any]) -> int:
-    raw = data.get("_cycle", -1)
-    return raw if isinstance(raw, int) else -1
+    """Номер цикла файла: из метаданных, иначе из имени `..._cycle_012....`.
+
+    Имя — единственный источник номера для файлов, пришедших без
+    `_cycle`; без него порядок чтения вырождается в порядок выдачи
+    каталога, а инверсию нечем объяснить.
+    """
+    raw = data.get("_cycle")
+    if isinstance(raw, int) and not isinstance(raw, bool):
+        return raw
+    match = _CYCLE_IN_NAME.search(str(data.get("_path", "")))
+    return int(match.group(1)) if match else -1
 
 
 def file_order_report(files: Sequence[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    """Порядок чтения (по номеру цикла) против фактической свежести.
+    """Расхождение между порядком чтения и тем, что файлы на самом деле.
+
+    Файлы приходят **в порядке чтения** — `load_all()` отсортировал их
+    по имени файла, а имя обычно несёт номер цикла. Пересортировывать
+    их здесь нельзя: отчёт измеряет расхождение между порядком чтения
+    и хронологией, а внутренняя сортировка уничтожила бы его ровно в
+    том случае, когда оно есть.
+
+    Файл помечается `inverted`, если читается позже, а при этом:
+
+    * у него номер цикла МЕНЬШЕ, чем у уже прочитанного (порядок чтения
+      не следует за номерами циклов — верный признак того, что сортировка
+      по имени не отражает порядок появления, например из-за неравной
+      ширины номера в именах `cycle_9` / `cycle_12`);
+    * либо он СТАРШЕ уже прочитанного (файл со свежей синхронизацией
+      прочитан раньше файла с более старой).
+
+    Чего отчёт не делает: файлу без номера цикла и без `synced_at` ничего
+    неизвестно, и флаг у него всегда False — лучше молчание, чем выдумка.
 
     Возвращает по файлу: позицию в порядке чтения, `synced_at`, номер
-    цикла и флаг `inverted` — файл читается раньше более свежего.
+    цикла, флаг `inverted` и максимум свежести среди прочитанных ранее.
     """
     rows: List[Dict[str, Any]] = []
     for pos, data in enumerate(files):
@@ -99,15 +130,23 @@ def file_order_report(files: Sequence[Dict[str, Any]]) -> List[Dict[str, Any]]:
                 "insights": len(data.get("insights") or []),
             }
         )
-    # Максимальная свежесть среди файлов, читаемых раньше данного.
     best_before: Optional[float] = None
+    max_cycle_before = -1
     for row in rows:
         fresh = row["freshness"]
-        inverted = fresh is not None and best_before is not None and fresh < best_before
+        cycle = row["cycle"]
+        known = cycle >= 0
+        # Оси независимы: отсутствие номера цикла отменяет только проверку
+        # порядка циклов, но не хронологию — по `synced_at` файл судим.
+        inverted = (known and cycle < max_cycle_before) or (
+            fresh is not None and best_before is not None and fresh < best_before
+        )
         row["inverted"] = inverted
         row["newer_before"] = best_before
         if fresh is not None and (best_before is None or fresh > best_before):
             best_before = fresh
+        if known and cycle > max_cycle_before:
+            max_cycle_before = cycle
     return rows
 
 
@@ -161,9 +200,12 @@ def dedupe_by_freshness(
             order.append(key)
             continue
         cur_rank = cur["rank"]
-        # Переигрывание запрещено: копия с большей свежестью вытесняет
-        # старую, но не наоборот, — иначе более свежий дубль терялся бы.
-        if rank > cur_rank:
+        # Ничья по свежести (обе копии без своей даты, свежесть подставлена
+        # из одного файла) — выбор чисто позиционный: побеждает более поздняя,
+        # потому что файл дописывали. Переигрывание при строго МЕНЬШЕЙ
+        # свежести по-прежнему запрещено.
+        tie = rank == cur_rank and rank != float("-inf")
+        if rank > cur_rank or tie:
             # Счётчики «недоказанного» вытеснения смотрят на СОБСТВЕННУЮ дату
             # записи, а не на итоговую свежесть: подставленный из файла
             # fallback не должен делать подставную запись датированной.
