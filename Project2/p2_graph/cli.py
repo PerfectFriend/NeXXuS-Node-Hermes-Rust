@@ -385,7 +385,10 @@ def cmd_freshness(args) -> int:
             },
             ensure_ascii=False, indent=2,
         ))
-        return EXIT_OK
+        # Инверсия без потерь — это сведения, не дефект: дедуп по свежести
+        # (пункт 13) уже выбирает победителя верно. Exit-код сигналит
+        # именно о потерянных записях, как и обещает пункт 18 плана.
+        return EXIT_DATA if rep["lost"] else EXIT_OK
 
     print(f"Файлов памяти: {len(rep['files'])}")
     if rep["order_is_chronological"]:
@@ -408,7 +411,7 @@ def cmd_freshness(args) -> int:
                 print(f"        · {reason}")
         if len(findings) > 20:
             print(f"  … ещё {len(findings) - 20}")
-    return EXIT_OK
+    return EXIT_DATA if rep["lost"] else EXIT_OK
 
 
 def build_parser() -> argparse.ArgumentParser:

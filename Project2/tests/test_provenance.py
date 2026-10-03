@@ -327,10 +327,44 @@ def test_cli_freshness_json_считает_инверсии(tmp_path):
     with redirect_stdout(буфер):
         код = main(["--memory-dir", str(tmp_path), "freshness", "--json"])
     данные = json.loads(буфер.getvalue())
-    assert код == EXIT_OK
+    # Пункт 18 плана: потери есть — код данных (1), а не 0.
+    assert код == EXIT_DATA
     assert данные["order_is_chronological"] is False
     assert данные["inverted_count"] == 1
     assert данные["lost"] == 1
+
+
+def test_cli_freshness_инверсия_без_потерь_даёт_ноль(tmp_path):
+    # Те же два файла, но записи разные — дедуп ничего не теряет, значит
+    # инверсия порядка чтения здесь сведения, а не дефект данных.
+    _память(tmp_path, "professor_insights_cycle_001.json", 1,
+            "2026-08-16T08:10:33+00:00", [_ins()])
+    _память(tmp_path, "professor_insights_cycle_002.json", 2,
+            "2026-08-15T08:10:33+00:00",
+            [{"topic": "другая тема", "source_url": "https://example.org/a",
+              "source_type": "textbook", "summary": "s",
+              "timestamp": "2026-08-15T08:10:33+00:00"}])
+    буфер = io.StringIO()
+    with redirect_stdout(буфер):
+        код = main(["--memory-dir", str(tmp_path), "freshness", "--json"])
+    данные = json.loads(буфер.getvalue())
+    assert код == EXIT_OK
+    assert данные["inverted_count"] == 1
+    assert данные["lost"] == 0
+
+
+def test_cli_freshness_текст_даёт_код_данных_при_потерях(tmp_path):
+    _память(tmp_path, "professor_insights_cycle_001.json", 1,
+            "2026-08-16T08:10:33+00:00", [_ins()])
+    _память(tmp_path, "professor_insights_cycle_002.json", 2,
+            "2026-08-15T08:10:33+00:00", [_ins()])
+    буфер = io.StringIO()
+    with redirect_stdout(буфер):
+        код = main(["--memory-dir", str(tmp_path), "freshness"])
+    вывод = буфер.getvalue()
+    assert код == EXIT_DATA
+    assert "Порядок чтения НЕ совпадает с хронологией" in вывод
+    assert "Всего потеряно записей" in вывод
 
 
 def test_cli_freshness_json_ловит_подмену_происхождения(tmp_path):
