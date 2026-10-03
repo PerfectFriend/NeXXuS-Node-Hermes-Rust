@@ -13,7 +13,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from p1_memory import loader, validate  # noqa: E402
+from p1_memory import chronicle, loader, validate  # noqa: E402
+from p1_memory.chronicle import append_entry, has_entry, render_entry  # noqa: E402
 from p1_memory.cli import main  # noqa: E402
 from p1_memory.loader import MemoryError_, load, save_atomic, strip_markers  # noqa: E402
 from p1_memory.validate import clean_insights, dedupe_key, is_junk, validate_document, validate_insight  # noqa: E402
@@ -347,6 +348,96 @@ class TestCli(unittest.TestCase):
 
     def test_real_project_report_runs(self):
         self.assertEqual(main(["p1_memory", "--root", str(PROJECT_ROOT), "report"]), 0)
+
+
+class TestChronicle(unittest.TestCase):
+    """Атомарный аппенд в CHRONICLE.md."""
+
+    def setUp(self):
+        self.dir = Path(tempfile.mkdtemp(prefix="p1chron-"))
+        self.path = self.dir / "CHRONICLE.md"
+        self.addCleanup(shutil.rmtree, self.dir, True)
+
+    def test_render_has_stamp_title_and_separator(self):
+        entry = render_entry("Слот 7", "сделано A\nсделано B", "2026-10-03 03:00:00")
+        self.assertEqual(
+            entry,
+            "### 2026-10-03 03:00:00 — Слот 7\nсделано A\nсделано B\n\n---\n\n",
+        )
+
+    def test_append_creates_file_when_absent(self):
+        append_entry(self.path, "Первый слот", "тело", "2026-10-03 03:00:00")
+        text = self.path.read_text(encoding="utf-8")
+        self.assertIn("### 2026-10-03 03:00:00 — Первый слот", text)
+        self.assertTrue(text.endswith("---\n\n"))
+
+    def test_append_keeps_previous_history_intact(self):
+        self.path.write_text("# Журнал\n\nстарые записи\n", encoding="utf-8")
+        append_entry(self.path, "Слот 8", "новое", "2026-10-03 03:10:00")
+        text = self.path.read_text(encoding="utf-8")
+        self.assertTrue(text.startswith("# Журнал\n\nстарые записи\n"))
+        self.assertIn("Слот 8", text)
+
+    def test_append_repairs_missing_final_newline(self):
+        self.path.write_text("# Журнал\n\nхвост без перевода", encoding="utf-8")
+        append_entry(self.path, "Слот 9", "новое", "2026-10-03 03:20:00")
+        text = self.path.read_text(encoding="utf-8")
+        self.assertIn("хвост без перевода\n### 2026-10-03 03:20:00 — Слот 9", text)
+
+    def test_repeat_title_is_noop(self):
+        append_entry(self.path, "Слот 10", "тело", "2026-10-03 03:30:00")
+        size = self.path.stat().st_size
+        append_entry(self.path, "Слот 10", "тело", "2026-10-03 03:45:00")
+        self.assertEqual(self.path.stat().st_size, size)
+        self.assertEqual(self.path.read_text(encoding="utf-8").count("Слот 10"), 1)
+
+    def test_backup_is_created(self):
+        self.path.write_text("# Журнал\n", encoding="utf-8")
+        append_entry(self.path, "Слот 11", "тело", "2026-10-03 03:40:00")
+        self.assertTrue((self.dir / "CHRONICLE.md.bak").exists())
+
+    def test_empty_title_rejected(self):
+        with self.assertRaises(ValueError):
+            append_entry(self.path, "   ", "тело", "2026-10-03 03:50:00")
+
+    def test_has_entry_does_not_match_partial(self):
+        self.assertFalse(has_entry("### 2026-10-03 — Слот 1", "Слот"))
+
+
+class TestChronicleCli(unittest.TestCase):
+    """Команда chronicle через CLI."""
+
+    def setUp(self):
+        self.tmp = TempProject()
+        self.tmp.write("professor_insights_cycle_001.json", document([good_insight()]))
+        self.addCleanup(self.tmp.cleanup)
+        self.argv = ["p1_memory", "--root", str(self.tmp.root)]
+
+    def test_chronicle_writes_entry(self):
+        code = main(self.argv + ["chronicle", "--title", "Слот 1", "--body", "сделано",
+                                 "--stamp", "2026-10-03 04:00:00"])
+        self.assertEqual(code, 0)
+        text = (self.tmp.root / "CHRONICLE.md").read_text(encoding="utf-8")
+        self.assertIn("### 2026-10-03 04:00:00 — Слот 1", text)
+
+    def test_chronicle_is_idempotent(self):
+        self.argv += ["chronicle", "--title", "Слот 1", "--body", "сделано", "--stamp", "2026-10-03 04:00:00"]
+        main(self.argv)
+        size = (self.tmp.root / "CHRONICLE.md").stat().st_size
+        main(self.argv)
+        self.assertEqual((self.tmp.root / "CHRONICLE.md").stat().st_size, size)
+
+    def test_chronicle_stats_appends_summary(self):
+        main(self.argv + ["chronicle", "--title", "Слот 2", "--stamp", "2026-10-03 04:10:00", "--stats"])
+        text = (self.tmp.root / "CHRONICLE.md").read_text(encoding="utf-8")
+        self.assertIn("- инсайтов: 1", text)
+        self.assertIn("- чистых: 1", text)
+
+    def test_chronicle_does_not_touch_memory(self):
+        path = self.tmp.root / "memory" / "professor_insights_cycle_001.json"
+        before = path.read_text(encoding="utf-8")
+        main(self.argv + ["chronicle", "--title", "Слот 3", "--stamp", "2026-10-03 04:20:00"])
+        self.assertEqual(path.read_text(encoding="utf-8"), before)
 
 
 def _capture(argv):

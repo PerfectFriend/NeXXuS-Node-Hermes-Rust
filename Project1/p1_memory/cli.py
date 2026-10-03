@@ -4,8 +4,11 @@
     python3 -m p1_memory report --json
     python3 -m p1_memory validate          # список проблем, exit 1 если есть
     python3 -m p1_memory dedupe --fix      # перезапись файлов (атомарно, с .bak)
+    python3 -m p1_memory chronicle --title "..." --body "..."
 
 По умолчанию ничего не пишется: --fix обязателен для записи.
+Единственная команда, которая пишет сама по себе явному вызову, — chronicle
+(запись в журнал проекта CHRONICLE.md).
 """
 
 from __future__ import annotations
@@ -13,10 +16,12 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from datetime import datetime
 from pathlib import Path
 from typing import List, Optional
 
 from . import __version__
+from .chronicle import CHRONICLE_NAME, append_entry, has_entry, now_stamp
 from .loader import MemoryError_, iter_memory_files, load, save_atomic
 from .validate import clean_insights, summarize, validate_document
 
@@ -107,6 +112,32 @@ def cmd_dedupe(args) -> int:
     return 0
 
 
+def cmd_chronicle(args) -> int:
+    """Дописать запись в CHRONICLE.md (атомарно, повтор по заголовку — no-op)."""
+    path = args.root / args.file
+    body = args.body
+    if args.stats:
+        _, docs = collect(args.root)
+        rows = [summarize(d) for d in docs]
+        lines = [
+            f"- файлов: {len(rows)}",
+            f"- инсайтов: {sum(r['raw']['input'] for r in rows)}",
+            f"- мусор: {sum(r['raw']['junk'] for r in rows)}",
+            f"- дубли: {sum(r['raw']['duplicates'] for r in rows)}",
+            f"- чистых: {sum(r['raw']['kept'] for r in rows)}",
+            f"- проблем схемы: {sum(len(r['problems']) for r in rows)}",
+        ]
+        body = (body + "\n" if body else "") + "\n".join(lines)
+
+    stamp = args.stamp or now_stamp(datetime.now())
+    if path.exists() and has_entry(path.read_text(encoding="utf-8"), args.title):
+        print(f"Запись уже есть, пропускаю: {args.title}")
+        return 0
+    append_entry(path, args.title, body, stamp)
+    print(f"Записано в {path.name}: {args.title} ({stamp})")
+    return 0
+
+
 def _split_prog(argv: Optional[List[str]]) -> List[str]:
     """Отбросить имя программы, если передан полный sys.argv.
 
@@ -134,8 +165,17 @@ def main(argv=None) -> int:
     p_dedupe = sub.add_parser("dedupe", help="дедупликация и фильтрация мусора")
     p_dedupe.add_argument("--fix", action="store_true", help="записать изменения (по умолчанию dry-run)")
     p_dedupe.set_defaults(func=cmd_dedupe)
+
+    p_chron = sub.add_parser("chronicle", help="дописать запись в журнал проекта")
+    p_chron.add_argument("--title", required=True, help="заголовок записи (и защита от повтора)")
+    p_chron.add_argument("--body", default="", help="текст записи")
+    p_chron.add_argument("--file", default=CHRONICLE_NAME, help="имя файла журнала")
+    p_chron.add_argument("--stamp", default="", help="метка времени (для тестов/кронов)")
+    p_chron.add_argument("--stats", action="store_true", help="дописать сводку качества памяти")
+    p_chron.set_defaults(func=cmd_chronicle)
+
     # --json разрешён и до, и после имени команды
-    for sub_parser in (p_report, p_validate, p_dedupe):
+    for sub_parser in (p_report, p_validate, p_dedupe, p_chron):
         sub_parser.add_argument("--json", action="store_true", default=None, dest="json",
                                 help="вывод в JSON")
 
