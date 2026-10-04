@@ -1011,6 +1011,72 @@ class TestReport(Base):
         )
 
 
+class TestReportCheck(Base):
+    """Пункт 25: свежесть артефакта отчёта (report --check)."""
+
+    def test_svezhiy_otchet_prohodit(self):
+        target = self.tmp / "R.md"
+        target.write_text(report.build_report(REAL_MEMORY), encoding="utf-8")
+        result = report.check_report(target, memory_dir=REAL_MEMORY)
+        self.assertTrue(result["ok"])
+        self.assertEqual(result["missing_lines"], [])
+        self.assertEqual(result["extra_lines"], [])
+
+    def test_ustarevshiy_otchet_nazyvaet_chego_net(self):
+        fresh = report.build_report(REAL_MEMORY).splitlines()
+        target = self.tmp / "R.md"
+        kept = [ln for ln in fresh
+                if ln != "## 8. Реестр дефектов и состояние цикла"]
+        kept.append("лишняя строка чужой версии")
+        target.write_text("\n".join(kept) + "\n", encoding="utf-8")
+        result = report.check_report(target, memory_dir=REAL_MEMORY)
+        self.assertFalse(result["ok"])
+        self.assertIn("## 8. Реестр дефектов и состояние цикла",
+                      result["missing_lines"])
+        self.assertIn("лишняя строка чужой версии", result["extra_lines"])
+
+    def test_otlichie_poryadka_strok_takzhe_lovitsya(self):
+        # Критерий — побайтовое равенство: переставленные строки означают,
+        # что файл не то, что порождает код, даже если множество строк то же.
+        lines = report.build_report(REAL_MEMORY).splitlines()
+        a, b = 4, 5
+        while lines[a] == lines[b]:
+            b += 1
+        target = self.tmp / "R.md"
+        swapped = lines[:]
+        swapped[a], swapped[b] = swapped[b], swapped[a]
+        target.write_text("\n".join(swapped) + "\n", encoding="utf-8")
+        result = report.check_report(target, memory_dir=REAL_MEMORY)
+        self.assertFalse(result["ok"])
+        self.assertEqual(result["missing_lines"], [])
+        self.assertEqual(result["extra_lines"], [])
+
+    def test_otsutstvuyushchiy_fayl_eto_ne_svezhest(self):
+        result = report.check_report(self.tmp / "нет.md", memory_dir=REAL_MEMORY)
+        self.assertFalse(result["ok"])
+        self.assertIn("reason", result)
+
+    def test_cli_check_na_zakommitovannom_otchete(self):
+        # То же утверждение, что пункт 23, но машинное: exit 0/1.
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            code = cli_main(["report", "--check",
+                             "--memory-dir", str(REAL_MEMORY)])
+        self.assertEqual(code, 0, buf.getvalue())
+        self.assertIn("свежий", buf.getvalue())
+
+    def test_cli_check_ustarevshiy_daet_kod_1(self):
+        target = self.tmp / "R.md"
+        target.write_text("# устаревший\n", encoding="utf-8")
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            code = cli_main(["report", "--check", "--out", str(target),
+                             "--memory-dir", str(REAL_MEMORY)])
+        self.assertEqual(code, 1, buf.getvalue())
+        self.assertIn("устарел", buf.getvalue())
+        self.assertIn("report --fix", buf.getvalue())
+
+
 # ---------------------------------------------------------------- CLI
 
 class TestCLI(Base):

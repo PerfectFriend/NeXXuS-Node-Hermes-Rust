@@ -23,7 +23,7 @@ from .identity import distinguish, identity_report
 from .loader import DEFAULT_DIR, MemoryInvalid, load as load_one, validate_corpus
 from .metrics import metrics as compute_metrics, search
 from .paths import PathRefused, append_section, project_root
-from .report import build_report, write_report
+from .report import build_report, check_report, write_report
 
 EXIT_OK = 0
 EXIT_FAIL = 1
@@ -172,6 +172,23 @@ def cmd_search(args) -> int:
 
 
 def cmd_report(args) -> int:
+    if args.check:
+        result = check_report(
+            Path(args.out) if args.out else None,
+            memory_dir=_memory_dir(args),
+        )
+        if args.as_json:
+            print(json.dumps(result, ensure_ascii=False, indent=2))
+        elif result["ok"]:
+            print(f"отчёт свежий: {result['path']} совпадает с build_report()")
+        else:
+            print(f"отчёт устарел: {result['path']}")
+            for line in result["missing_lines"][: args.limit]:
+                print(f"  [нет в файле] {line}")
+            for line in result["extra_lines"][: args.limit]:
+                print(f"  [лишнее в файле] {line}")
+            print("починить: p3_memory report --fix")
+        return EXIT_OK if result["ok"] else EXIT_FAIL
     if not args.fix:
         print(build_report(_memory_dir(args)))
         return EXIT_OK
@@ -400,6 +417,8 @@ def build_parser() -> argparse.ArgumentParser:
     p_report = sub.add_parser("report", parents=[sub_common],
                               help="собрать DUPLICITY_REPORT.md")
     p_report.add_argument("--fix", action="store_true", help="записать файл")
+    p_report.add_argument("--check", action="store_true",
+                          help="проверить свежесть артефакта (exit 0/1)")
     p_report.add_argument("--out", help="путь внутри проекта")
 
     p_canon = sub.add_parser("canon", parents=[sub_common], help="канонический корпус")

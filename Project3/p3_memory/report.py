@@ -238,6 +238,38 @@ def build_report(memory_dir: Path = DEFAULT_DIR) -> str:
     return "\n".join(lines) + "\n"
 
 
+def check_report(path: Path | None = None,
+                 memory_dir: Path = DEFAULT_DIR) -> Dict[str, Any]:
+    """Свежесть артефакта (фаза 3, пункт 25): только чтение.
+
+    `ok=True`, когда файл на диске побайтово равен тому, что сейчас
+    порождает `build_report()`. Сигнальный выход не здесь, а в CLI:
+    команда не пишет ничего ни при каких условиях.
+    """
+    target = Path(path) if path else report_path()
+    expected = build_report(memory_dir)
+    result: Dict[str, Any] = {
+        "path": str(target),
+        "ok": False,
+        "missing_lines": [],
+        "extra_lines": [],
+    }
+    if not target.is_file():
+        result["reason"] = "no report file"
+        return result
+    actual = target.read_text(encoding="utf-8")
+    actual_set = set(actual.splitlines())
+    expected_set = set(expected.splitlines())
+    result["missing_lines"] = [
+        line for line in expected.splitlines() if line not in actual_set
+    ]
+    result["extra_lines"] = [
+        line for line in actual.splitlines() if line not in expected_set
+    ]
+    result["ok"] = actual == expected
+    return result
+
+
 def write_report(path: Path | None = None, memory_dir: Path = DEFAULT_DIR,
                   fix: bool = False):
     """Записать отчёт. Без `fix=True` только возвращает текст.
