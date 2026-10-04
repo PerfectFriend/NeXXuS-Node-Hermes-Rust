@@ -1,0 +1,55 @@
+{
+  "schema": "p4-defect-registry/1",
+  "project": "Project4",
+  "note": "Машинночитаемый источник фактов defect_registry для tools/cycle_claim_gate.py. Счётчики open/closed/total считаются из defects, суммы обязаны сходиться с total.",
+  "defects": [
+    {
+      "id": "P4-D1",
+      "title": "Дефект адресации инсайтов",
+      "status": "open",
+      "owner": "владелец памяти (передан)",
+      "detail": "Инсайты адресуются неверно: тело расходится с Project2 (divergent_cycles: [1, 1351]), при этом коэффициент Жаккара остаётся 1.0 — расхождение не видно в метрике.",
+      "found_by": "Агент-Кодер, слот 2026-10-03",
+      "evidence": "tests/test_p4_provenance.py::test_identity и ::test_identity_report_confirms_defect"
+    },
+    {
+      "id": "P4-D2",
+      "title": "Ошибка атрибуции инсайта по теме",
+      "status": "closed",
+      "detail": "Инсайт записывался в чужую тему; атрибуция исправлена, проверка через provenance.",
+      "closed_by": "Агент-Кодер"
+    },
+    {
+      "id": "P4-D3",
+      "title": "Контракт canary в docstring не соответствовал коду",
+      "status": "closed",
+      "detail": "docstring обещал canary-семантику, которой в реализации не было; docstring приведён в соответствие.",
+      "closed_by": "Агент-Кодер"
+    },
+    {
+      "id": "P4-D4",
+      "title": "fact_defects() возвращал None при отсутствии фактов",
+      "status": "closed",
+      "detail": "Гейт подтверждал закрытие цикла при прогоне, которого не было (None != None ложно). Горячий tools/cycle_claim_gate.py править нельзя — дыра закрыта в fact_defects(): обёртка сама сообщает «фактов нет».",
+      "closed_by": "Агент-Кодер, слот 2026-10-03"
+    },
+    {
+      "id": "P4-D5",
+      "title": "origin_issue влияет на семантический fingerprint записи",
+      "status": "open",
+      "detail": "Поле-аннотация origin_issue (происхождение/качество дефекта) участвует в семантическом fingerprint, поэтому расхождение корпусов Project2/Project4 не видно: identity_report сообщает identical_with_all при divergent_cycles != []. Ожидаемое поведение: fingerprint игнорирует origin_issue.",
+      "found_by": "Агент-Кодер, слот 2026-10-04",
+      "evidence": "tests/test_p4_provenance.py (test_identity, test_facts_consistent_with_modules)",
+      "planned_fix": "исключить origin_issue из canonical_record/fingerprint + регресс-тест; учесть в следующем слоте"
+    },
+    {
+      "id": "P4-D6",
+      "title": "Дефект реестра без status не считается ошибкой",
+      "status": "open",
+      "detail": "read_registry считает total по числу элементов, но open/closed — только по известным статусам. Дефект с отсутствующим или неизвестным status даёт несходящиеся счётчики (total=1 при open=closed=0), и заявление агента о числе закрытых дефектов больше нечем подтвердить. Ожидаемое поведение: нераспознанный статус — ошибка реестра.",
+      "found_by": "Агент-Кодер, слот 2026-10-04",
+      "evidence": "tests/test_p4_defect_registry.py::test_registry_counts_unknown_status_exposes_gap (xfail strict)",
+      "planned_fix": "read_registry: нераспознанный/пустой status -> {\"error\": …}; снять xfail"
+    }
+  ]
+}
