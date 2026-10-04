@@ -43,14 +43,13 @@ def test_broken_registry_does_not_report_zeroes(tmp_path):
     assert reg and "error" in reg, reg
 
 
-@pytest.mark.xfail(strict=True, reason="P4-D6: дефект без status не считается ошибкой")
 def test_registry_counts_unknown_status_exposes_gap(tmp_path):
-    """Дефект без `status` обязан ломать согласованность, а не молчать.
+    """Дефект без `status` обязан ломать согласованность, а не молчать (P4-D6).
 
-    Пока `read_registry` считает `total` по числу элементов, а `open`/`closed` —
-    только по известным статусам, такой дефект даёт несходящиеся счётчики
-    (total=1 при open=closed=0). Это заведено как P4-D6; тест падает намеренно
-    и служит регрессией на тихую потерю дефекта.
+    Раньше `read_registry` считала `total` по числу элементов, а `open`/`closed` —
+    только по известным статусам, и дефект без `status` давал несходящиеся
+    счётчики (total=1 при open=closed=0): агент мог заявить «открытых дефектов
+    нет» и пройти сверку. Теперь такой реестр — ошибка данных (`error`).
     """
     (tmp_path / gate.REGISTRY_NAME).write_text(
         json.dumps({"defects": [{"id": "D1"}]}), encoding="utf-8")
