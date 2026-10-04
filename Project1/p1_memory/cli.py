@@ -22,6 +22,7 @@ from typing import List, Optional
 
 from . import __version__
 from .chronicle import CHRONICLE_NAME, append_entry, has_entry, now_stamp
+from .crossfile import plan_crossfile
 from .doctor import BLOCKING_KINDS, is_blocking, scan_tree, summarize as summarize_findings
 from .loader import MemoryError_, iter_memory_files, load, save_atomic
 from .validate import clean_insights, summarize, validate_document
@@ -87,16 +88,50 @@ def cmd_validate(args) -> int:
 
 def cmd_dedupe(args) -> int:
     files, docs = collect(args.root)
-    changes = []
-    for path, doc in zip(files, docs):
-        kept, stats = clean_insights(doc["insights"])
-        if stats["kept"] == stats["input"]:
-            continue
-        changes.append((path, doc, kept, stats))
-        marker = "FIX" if args.fix else "dry-run"
-        print(f"[{marker}] {path.name}: {stats['input']} → {stats['kept']} "
-              f"(мусор {stats['junk']}, дубли {stats['duplicates']})")
+    scope = getattr(args, "scope", "file")
+    pairs = list(zip(files, docs))
 
+    if scope == "all":
+        # Кросс-файловая очистка: один общий seen на все memory-файлы.
+        plan, stats = plan_crossfile(pairs)
+        changes = [(e["path"], e["doc"], e["kept"], e["stats"]) for e in plan]
+    else:
+        stats = {"files": len(pairs), "input": 0, "junk": 0,
+                 "duplicates_inside": 0, "cross_file_duplicates": 0, "kept": 0}
+        changes = []
+        for path, doc in pairs:
+            kept, st = clean_insights(doc["insights"])
+            stats["input"] += st["input"]
+            stats["junk"] += st["junk"]
+            stats["duplicates_inside"] += st["duplicates"]
+            stats["kept"] += st["kept"]
+            if st["kept"] == st["input"]:
+                continue
+            changes.append((path, doc, kept, st))
+
+    if args.json:
+        payload = {
+            "scope": scope,
+            "dry_run": not args.fix,
+            "totals": stats,
+            "files": [
+                {"file": Path(c[0]).name, "input": c[3]["input"], "junk": c[3]["junk"],
+                 "duplicates_inside": c[3]["duplicates"],
+                 "cross_file_duplicates": c[3].get("cross", 0),
+                 "kept": c[3]["kept"],
+                 "written": bool(args.fix)}
+                for c in changes
+            ],
+        }
+        print(json.dumps(payload, ensure_ascii=False, indent=2))
+        if not args.fix:
+            return 0
+
+    marker = "FIX" if args.fix else "dry-run"
+    for path, doc, kept, st in changes:
+        print(f"[{marker}] {path.name}: {st['input']} → {st['kept']} "
+              f"(мусор {st['junk']}, дубли внутри {st['duplicates']}, "
+              f"кросс-файловые {st.get('cross', 0)})")
     if not changes:
         print("Чистить нечего: все файлы уже чистые.")
         return 0
@@ -104,12 +139,12 @@ def cmd_dedupe(args) -> int:
         print(f"Итого к очистке файлов: {len(changes)} (запусти с --fix)")
         return 0
 
-    for path, doc, kept, stats in changes:
-        payload = dict(doc)
-        payload["insights"] = kept
-        payload["total_insights"] = len(kept)
-        save_atomic(path, payload, backup=True)
-        print(f"  записано: {path.name} ({stats['kept']} записей), бэкап {path.name}.bak")
+    for path, doc, kept, st in changes:
+        payload_doc = dict(doc)
+        payload_doc["insights"] = kept
+        payload_doc["total_insights"] = len(kept)
+        save_atomic(path, payload_doc, backup=True)
+        print(f"  записано: {path.name} ({len(kept)} записей), бэкап {path.name}.bak")
     return 0
 
 
@@ -209,6 +244,9 @@ def main(argv=None) -> int:
     p_validate.set_defaults(func=cmd_validate)
     p_dedupe = sub.add_parser("dedupe", help="дедупликация и фильтрация мусора")
     p_dedupe.add_argument("--fix", action="store_true", help="записать изменения (по умолчанию dry-run)")
+    p_dedupe.add_argument("--scope", choices=("file", "all"), default="file",
+                          help="file — внутри каждого файла (по умолчанию); "
+                               "all — общий ключ по всем memory-файлам")
     p_dedupe.set_defaults(func=cmd_dedupe)
 
     p_chron = sub.add_parser("chronicle", help="дописать запись в журнал проекта")

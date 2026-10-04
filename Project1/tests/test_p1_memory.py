@@ -14,9 +14,10 @@ from typing import Optional
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from p1_memory import chronicle, loader, validate  # noqa: E402
+from p1_memory import chronicle, crossfile, loader, validate  # noqa: E402
 from p1_memory.chronicle import append_entry, has_entry, render_entry  # noqa: E402
 from p1_memory.cli import main  # noqa: E402
+from p1_memory.crossfile import count_crossfile, merged_view, plan_crossfile  # noqa: E402
 from p1_memory.loader import MemoryError_, load, save_atomic, strip_markers  # noqa: E402
 from p1_memory.validate import clean_insights, dedupe_key, is_junk, validate_document, validate_insight  # noqa: E402
 
@@ -621,6 +622,206 @@ class DoctorCliTests(unittest.TestCase):
         self.assertEqual(code, 0)
         self.assertIn("обрыв", out)
         self.assertNotIn("[ПОРЧА]", out)
+
+
+class CrossFileTests(unittest.TestCase):
+    """Кросс-файловая дедупликация: победитель выбирается по synced_at."""
+
+    def setUp(self):
+        self.tmp = TempProject()
+        self.addCleanup(self.tmp.cleanup)
+
+    def _pair(self):
+        """Два файла: старый цикл и новый, тема одна и та же."""
+        old_url = "https://example.org/one.md"
+        old = self.tmp.write(
+            "professor_insights_cycle_001.json",
+            document([good_insight(topic="Тема один", source_url=old_url)], synced_at="2026-08-16T08:10:33+00:00"),
+        )
+        new = self.tmp.write(
+            "professor_insights_cycle_777.json",
+            document(
+                [good_insight(topic="Тема один", source_url=old_url, summary="Поздняя копия")],
+                cycle=777,
+                synced_at="2026-10-01T12:00:00+00:00",
+            ),
+        )
+        docs = [load(old), load(new)]
+        return [(old, docs[0]), (new, docs[1])]
+
+    def test_earlier_synced_at_wins(self):
+        plan, stats = plan_crossfile(self._pair())
+        self.assertEqual(stats["cross_file_duplicates"], 1)
+        by_path = {e["path"]: e for e in plan}
+        self.assertEqual(len(by_path[plan[0]["path"]]["kept"]), 1)
+        # файл с поздним synced_at должен остаться пустым
+        late = [e for e in plan if "777" in e["path"].name][0]
+        self.assertEqual(late["kept"], [])
+
+    def test_kept_record_comes_from_older_file(self):
+        plan, _ = plan_crossfile(self._pair())
+        kept = merged_view(self._pair())[0]
+        self.assertEqual(kept["summary"], "Краткое изложение темы")
+
+    def test_tie_broken_by_filename(self):
+        """Одинаковый synced_at — побеждает файл с меньшим именем."""
+        url = "https://example.org/tie.md"
+        a = self.tmp.write("professor_insights_cycle_001.json", document([good_insight(source_url=url)]))
+        b = self.tmp.write(
+            "professor_insights_cycle_002.json",
+            document([good_insight(source_url=url, summary="Вторая копия")], cycle=2),
+        )
+        docs = [load(a), load(b)]
+        plan, stats = plan_crossfile([(a, docs[0]), (b, docs[1])])
+        self.assertEqual(stats["cross_file_duplicates"], 1)
+        first = [e for e in plan if "cycle_001" in e["path"].name][0]
+        self.assertEqual(len(first["kept"]), 1)
+
+    def test_disjoint_topics_are_untouched(self):
+        a = self.tmp.write("professor_insights_cycle_001.json", document([good_insight(source_url="https://example.org/a.md")]))
+        b = self.tmp.write(
+            "professor_insights_cycle_002.json",
+            document([good_insight(topic="Другая", source_url="https://example.org/b.md")], cycle=2),
+        )
+        docs = [load(a), load(b)]
+        plan, stats = plan_crossfile([(a, docs[0]), (b, docs[1])])
+        self.assertEqual(stats["cross_file_duplicates"], 0)
+        self.assertEqual(sum(len(e["kept"]) for e in plan), 2)
+
+    def test_count_crossfile_matches_plan(self):
+        pairs = self._pair()
+        self.assertEqual(count_crossfile(pairs), plan_crossfile(pairs)[1]["cross_file_duplicates"])
+
+    def test_junk_is_dropped_before_crossfile_pass(self):
+        """Мусорная запись не должна блокировать валидную более позднюю."""
+        url = "https://example.org/j.md"
+        a = self.tmp.write(
+            "professor_insights_cycle_001.json",
+            document([good_insight(source_url=url), good_insight(topic="Unknown", source_url="")], synced_at="2026-08-16T08:10:33+00:00"),
+        )
+        b = self.tmp.write(
+            "professor_insights_cycle_002.json",
+            document([good_insight(source_url=url, summary="Хорошая копия")], cycle=2, synced_at="2026-10-01T12:00:00+00:00"),
+        )
+        docs = [load(a), load(b)]
+        _, stats = plan_crossfile([(a, docs[0]), (b, docs[1])])
+        self.assertEqual(stats["junk"], 1)
+        self.assertEqual(stats["cross_file_duplicates"], 1)
+
+    def test_empty_source_url_not_merged(self):
+        """Две безымянные мысли — не дубль (нет доказательства тождества)."""
+        a = self.tmp.write("professor_insights_cycle_001.json", document([good_insight(source_url="")]))
+        b = self.tmp.write(
+            "professor_insights_cycle_002.json",
+            document([good_insight(source_url="", summary="Другая мысль без ссылки")], cycle=2),
+        )
+        docs = [load(a), load(b)]
+        _, stats = plan_crossfile([(a, docs[0]), (b, docs[1])])
+        self.assertEqual(stats["cross_file_duplicates"], 0)
+
+    def test_merged_view_is_deterministic(self):
+        pairs = self._pair()
+        first = merged_view(pairs)
+        second = merged_view(list(reversed(pairs)))
+        self.assertEqual(first, second)
+
+
+class CrossFileCliTests(unittest.TestCase):
+    """`dedupe --scope all` через CLI: dry-run, --fix, идемпотентность."""
+
+    def setUp(self):
+        self.tmp = TempProject()
+        self.addCleanup(self.tmp.cleanup)
+        url = "https://example.org/dup.md"
+        self.tmp.write(
+            "professor_insights_cycle_001.json",
+            document([good_insight(source_url=url), good_insight(topic="Только тут", source_url="https://example.org/only.md")],
+                     synced_at="2026-08-16T08:10:33+00:00"),
+        )
+        self.tmp.write(
+            "professor_insights_cycle_002.json",
+            document([good_insight(source_url=url, summary="Повтор")], cycle=2, synced_at="2026-10-01T12:00:00+00:00"),
+        )
+        self.argv = ["p1_memory", "--root", str(self.tmp.root)]
+
+    def _run(self, extra):
+        import io
+        from contextlib import redirect_stdout
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            code = main(self.argv + ["dedupe"] + extra)
+        return code, buf.getvalue()
+
+    def test_dry_run_does_not_write(self):
+        before = (self.tmp.root / "memory" / "professor_insights_cycle_002.json").read_text(encoding="utf-8")
+        code, out = self._run(["--scope", "all"])
+        self.assertEqual(code, 0)
+        after = (self.tmp.root / "memory" / "professor_insights_cycle_002.json").read_text(encoding="utf-8")
+        self.assertEqual(before, after)
+        self.assertIn("1", out)
+
+    def test_json_reports_scope_and_totals(self):
+        code, out = self._run(["--scope", "all", "--json"])
+        self.assertEqual(code, 0)
+        data = json.loads(out)
+        self.assertEqual(data["scope"], "all")
+        self.assertTrue(data["dry_run"])
+        self.assertEqual(data["totals"]["cross_file_duplicates"], 1)
+        self.assertEqual(data["totals"]["kept"], 2)
+
+    def test_fix_removes_duplicate_and_makes_backup(self):
+        code, out = self._run(["--scope", "all", "--fix"])
+        self.assertEqual(code, 0)
+        doc = load(self.tmp.root / "memory" / "professor_insights_cycle_002.json")
+        self.assertEqual(doc["insights"], [])
+        self.assertTrue((self.tmp.root / "memory" / "professor_insights_cycle_002.json.bak").exists())
+        self.assertIn("1", out)
+
+    def test_second_run_is_idempotent(self):
+        self._run(["--scope", "all", "--fix"])
+        code, out = self._run(["--scope", "all", "--json"])
+        self.assertEqual(code, 0)
+        data = json.loads(out)
+        self.assertEqual(data["totals"]["cross_file_duplicates"], 0)
+        self.assertEqual(data["totals"]["kept"], 2)
+
+    def test_fix_preserves_oldest_content(self):
+        self._run(["--scope", "all", "--fix"])
+        doc = load(self.tmp.root / "memory" / "professor_insights_cycle_001.json")
+        self.assertEqual(len(doc["insights"]), 2)
+        self.assertEqual(doc["insights"][0]["summary"], "Краткое изложение темы")
+
+    def test_default_scope_still_works_filewise(self):
+        """Старое поведение `dedupe` без --scope не должно сломаться."""
+        code, out = self._run(["--json"])
+        self.assertEqual(code, 0)
+        data = json.loads(out)
+        self.assertEqual(data["scope"], "file")
+        self.assertEqual(data["totals"]["cross_file_duplicates"], 0)
+        self.assertEqual(data["totals"]["kept"], 3)
+
+
+class RealDataCrossFileTests(unittest.TestCase):
+    """Реальные файлы Project1: измеренный дефект кросс-файловых дублей."""
+
+    def test_measured_duplicate_count(self):
+        pairs = list(crossfile_pairs(PROJECT_ROOT))
+        plan, stats = plan_crossfile(pairs)
+        self.assertEqual(stats["files"], len(pairs))
+        self.assertGreater(stats["cross_file_duplicates"], 0)
+        self.assertLess(
+            stats["cross_file_duplicates"],
+            stats["input"],
+            "реальные данные обязаны содержать и уникальные записи",
+        )
+        # после глобальной очистки ключи не должны повторяться между файлами
+        keys = [dedupe_key(i) for i in merged_view(pairs)]
+        self.assertEqual(len(keys), len(set(keys)))
+
+
+def crossfile_pairs(root):
+    """Список (путь, документ) по файлам памяти проекта."""
+    return [(path, load(path)) for path in loader.iter_memory_files(root)]
 
 
 if __name__ == "__main__":
