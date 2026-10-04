@@ -1322,6 +1322,79 @@ class TestGateCli(Base):
         self.assertEqual(build_parser().parse_args(["search"]).limit, 20)
         self.assertFalse(build_parser().parse_args(["search"]).as_json)
 
+    def test_zapisannyy_keys_beretsya_nastoyashchim_gaytom(self):
+        """Пункт 21: живой ЗАПУСК гейта, а не только импорт.
+
+        Импорт доказывает, что мой код сможет вызвать `check()`, но не что
+        записанный кейс принимается настоящей командой `tools/cycle_claim_gate.py`
+        как входной файл — а это и есть контракт с протоколом.
+        """
+        import subprocess
+
+        target = project_root() / "GATE_TMP_CASE.json"
+        try:
+            with redirect_stdout(io.StringIO()):
+                self.assertEqual(
+                    cli_main(["gate", "--no-run", "--write", target.name]), 0
+                )
+            gate_file = gate.livingcode_root() / "tools" / "cycle_claim_gate.py"
+            self.assertTrue(gate_file.exists(), gate_file)
+            proc = subprocess.run([sys.executable, str(gate_file), str(target)],
+                                  capture_output=True, text=True, timeout=120)
+            # Открытые дефекты в реестре → гейт обязан падать с кодом 2.
+            self.assertEqual(proc.returncode, 2, proc.stdout + proc.stderr)
+            self.assertIn("открытых дефектов", proc.stdout)
+        finally:
+            target.unlink(missing_ok=True)
+            (project_root() / (target.name + ".bak")).unlink(missing_ok=True)
+
+    def test_nastoyashchiy_gayt_vidaet_tolko_open_a_ne_proval_fakta(self):
+        """Дыра гейта, документированная в gate.py, подтверждена запуском.
+
+        Точная граница дыры (установлена живым запуском, а не чтением кода):
+        гейт отбрасывает секцию с `{"error": …}`, НО ловит расхождение, если
+        агент назвал число — `0 != None`. Дыра возникает ровно тогда, когда
+        заявление молчит (`None`) одновременно с недоступным фактом: тогда
+        сравнение `None == None` истинно и расхождения не видно. Именно этот
+        случай и закрывает `claim_defects`.
+        """
+        import subprocess
+
+        target = project_root() / "GATE_TMP_HOLE.json"
+        gate_file = gate.livingcode_root() / "tools" / "cycle_claim_gate.py"
+
+        def run(case_name, claim):
+            target.write_text(json.dumps(
+                {"name": case_name, "claim": claim,
+                 "facts": {"test_run": {"error": "прогон НЕ выполнен"},
+                           "defect_registry": {"open": 0, "closed": 0,
+                                               "total": 0}}},
+                ensure_ascii=False), encoding="utf-8")
+            return subprocess.run([sys.executable, str(gate_file), str(target)],
+                                  capture_output=True, text=True, timeout=120)
+
+        try:
+            # Молчащее заявление: гейт подтверждает закрытие цикла при прогоне,
+            # которого не было. Обёртка обязана это ловить.
+            silent = run("молчание", {"tests_passed": None, "tests_total": None,
+                                      "defects_closed": None, "cycle_closed": True})
+            self.assertEqual(silent.returncode, 0, silent.stdout + silent.stderr)
+            facts = {"test_run": {"error": "прогон НЕ выполнен"},
+                     "defect_registry": {"open": 0, "closed": 0, "total": 0}}
+            claim = {"tests_passed": None, "tests_total": None,
+                     "defects_closed": None, "cycle_closed": True}
+            self.assertTrue(gate.fact_defects(facts))
+            self.assertTrue(gate.claim_defects(facts, claim))
+            self.assertEqual(gate.gate_exit(facts, claim), 2)
+
+            # Названное число гейт ловит сам — обёртка тут не нужна.
+            named = run("названо число", {"tests_passed": 0, "tests_total": 0,
+                                          "defects_closed": 0, "cycle_closed": True})
+            self.assertEqual(named.returncode, 2, named.stdout + named.stderr)
+        finally:
+            target.unlink(missing_ok=True)
+            (project_root() / (target.name + ".bak")).unlink(missing_ok=True)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
