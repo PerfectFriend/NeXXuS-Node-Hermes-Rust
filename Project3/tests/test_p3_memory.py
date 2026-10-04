@@ -2248,6 +2248,60 @@ class TestDiffTextNamesEveryone(Base):
             self.assertIn(entry["topic"], text)
 
 
+class TestReportShowsBalance(Base):
+    """Пункт 38: сходимость видна читателю отчёта, а не только тесту.
+
+    Равенства проверяет тест — но читатель `DUPLICITY_REPORT.md` о них
+    не узнавал. Числа в таблице переходов выглядели правдой, даже когда
+    инструмент терял записи по пути (пункты 35–36).
+    """
+
+    def setUp(self):
+        super().setUp()
+        self.text = report.build_report(REAL_MEMORY)
+
+    def test_otchet_govorit_chto_skhodimost_v_poryadke(self):
+        self.assertIn("Сходимость в порядке", self.text)
+        # И называет сами числа, а не только факт: читатель должен
+        # суметь проверить равенство, не запуская тест.
+        self.assertIn("= 102 (было 102)", self.text)
+        self.assertIn("= 88 (стало 88)", self.text)
+
+    def test_v_otchete_net_preduprezhdeniya_na_chestnom_korpuse(self):
+        self.assertNotIn("ВНИМАНИЕ", self.text)
+        self.assertNotIn("недостоверны", self.text)
+
+    def test_pri_narushenii_otchet_krichit_a_ne_molchit(self):
+        # Подсовываем отчёту результат с заведемо плохой сходимостью:
+        # подмена делается на уровне `report.cycle_diff` (отчёт импортирует
+        # функцию под этим именем), иначе пришлось бы портить файл корпуса.
+        import unittest.mock as mock
+
+        result = report.cycle_diff(REAL_MEMORY)
+        broken = dict(result, from_records=result["from_records"] + 3)
+        with mock.patch.object(report, "cycle_diff", return_value=broken):
+            text = report.build_report(REAL_MEMORY)
+        self.assertIn("ВНИМАНИЕ: сходимость нарушена", text)
+        self.assertIn("недостоверны", text)
+        # Расхождение названо числами: сколько получилось и сколько
+        # должно было быть.
+        self.assertIn("против 105 записей", text)
+        self.assertIn("= 102 против 105", text)
+
+    def test_svedka_i_otchet_soglasovany_pro_narusheniya(self):
+        # Оба вывода обязаны реагировать на одну и ту же неправду:
+        # иначе один из них молчал бы, пока другой кричит.
+        import unittest.mock as mock
+
+        result = report.cycle_diff(REAL_MEMORY)
+        broken = dict(result, to_records=result["to_records"] - 2)
+        with mock.patch.object(report, "cycle_diff", return_value=broken):
+            text = report.build_report(REAL_MEMORY)
+        summary = diff.diff_text(broken, limit=5)
+        self.assertIn("ВНИМАНИЕ", text)
+        self.assertIn("ВНИМАНИЕ", summary)
+
+
 class TestDiffSectionInReport(Base):
     """Раздел «Дифф двух последних циклов» в отчёте (пункт 30).
 
