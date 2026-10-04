@@ -907,6 +907,38 @@ class TestReport(Base):
         else:
             self.assertIn("Содержательных расхождений не найдено", text)
 
+    def test_otchet_soderzhit_razdel_reestra(self):
+        # Пункт 19: числа раздела взяты из того же файла, который читает гейт.
+        # Расхождение отчёта с реестром сделало бы отчёт вводящим в заблуждение.
+        text = report.build_report(REAL_MEMORY)
+        self.assertIn("Реестр дефектов и состояние цикла", text)
+        reg = gate.read_registry(project_root()) or {}
+        self.assertIn(f'всего дефектов | {reg["total"]}', text)
+        self.assertIn(f'открыто | {reg["open"]}', text)
+        entries = gate.registry_entries(project_root())
+        for entry in entries:
+            if entry.get("status") == "open":
+                self.assertIn(entry["id"], text)
+
+    def test_otchet_ne_utverzhaet_o_zakrytom_cikle_pri_otkrytyh_defektah(self):
+        # Открытые дефекты означают, что цикл закрывать нельзя. Отчёт обязан
+        # это сказать, а не выглядеть как отчёт о завершённой работе.
+        reg = gate.read_registry(project_root()) or {}
+        text = report.build_report(REAL_MEMORY)
+        # Условие не самотест «сегодня открыто 2», а правило: формулировка
+        # обязана соответствовать состоянию реестра при любом его состоянии.
+        if reg.get("open"):
+            self.assertIn("закрыть цикл нельзя", text)
+            self.assertEqual(text.count("закрыть цикл нельзя"), 1)
+        else:
+            self.assertNotIn("закрыть цикл нельзя", text)
+
+    def test_otchet_ne_podmenyaet_svoi_chisla_na_chuzhie(self):
+        # В отчёте не должно быть числа прогона тестов: оно живёт в `gate`,
+        # иначе числа устаревают между сборкой отчёта и прогоном.
+        text = report.build_report(REAL_MEMORY)
+        self.assertIn("p3_memory gate", text)
+
     def test_otchet_perechityvaet_dlya_iskazhennogo_korpora(self):
         memory = self.fake_memory()
         text = report.build_report(memory)

@@ -12,10 +12,11 @@ from typing import Any, Dict, List
 
 from .attribution import addressing_from_disk
 from .canon import corpus
+from .gate import OPEN_STATUSES, read_registry, registry_entries
 from .identity import identity_report
 from .loader import DEFAULT_DIR, validate_corpus
 from .metrics import metrics, report_path
-from .paths import atomic_write
+from .paths import atomic_write, project_root
 
 SYNC_DEFECT_LOC = "scripts/professor_sync.py:113, фильтр на строке 125"
 
@@ -197,6 +198,42 @@ def build_report(memory_dir: Path = DEFAULT_DIR) -> str:
     lines.append(f'Всего снято при канонизации: {m["duplicates_removed"]}; '
                  f'уникальных записей в корпусе: {m["records_total"]} '
                  f'(вход {m["records_input"]}).')
+    lines.append("")
+    lines.append("## 8. Реестр дефектов и состояние цикла")
+    lines.append("")
+    # Числа берутся из того же gate.py, который отдаёт их настоящему
+    # tools/cycle_claim_gate.py. Прогон здесь НЕ выполняется: отчёт должен
+    # собираться быстро и без вложенного pytest. Факт прогона — команда
+    # `p3_memory gate`, а не этот отчёт.
+    reg = read_registry(project_root())
+    if reg is None:
+        lines.append("Реестра дефектов нет — состояние цикла нечем подтвердить.")
+    elif "error" in reg:
+        lines.append(f"Реестр не разобран: {reg['error']}.")
+    else:
+        entries = registry_entries(project_root())
+        lines.extend(_table([
+            ["всего дефектов", reg["total"]],
+            ["открыто", reg["open"]],
+            ["закрыто", reg["closed"]],
+        ], ["величина", "значение"]))
+        lines.append("")
+        open_entries = [e for e in entries if str(e.get("status", "")).lower()
+                        in OPEN_STATUSES]
+        if open_entries:
+            lines.append(f"Открытые дефекты ({len(open_entries)}). Пока они открыты, "
+                         "закрыть цикл нельзя: `tools/cycle_claim_gate.py` "
+                         "возвращает код 2 на любом заявлении о закрытии.")
+            lines.append("")
+            lines.extend(_table(
+                [[e.get("id"), e.get("owner", "—"),
+                  (e.get("title") or "")[:70]] for e in open_entries],
+                ["id", "владелец", "суть"],
+            ))
+            lines.append("")
+        lines.append(f'Состояние прогона тестов в отчёт не входит намеренно — '
+                     f'оно измеряется командой `p3_memory gate`, чтобы числа '
+                     f'не могли устареть между сборкой отчёта и прогоном.')
     lines.append("")
     return "\n".join(lines) + "\n"
 
