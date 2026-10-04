@@ -2027,5 +2027,163 @@ class TestCycles(Base):
         self.assertEqual(payload["numbering_gaps"], [[2, 1350]])
 
 
+def _section_rows(text, heading):
+    """Строки markdown-таблицы, следующей за ``heading``.
+
+    Между заголовком и таблицей бывает пустая строка и поясняющая
+    проза, поэтому сначала ищем первую строку-таблицу, а потом берём
+    подряд идущие строки таблицы.
+    """
+    lines = text.splitlines()
+    start = lines.index(heading) + 1
+    rows = []
+    for line in lines[start:]:
+        if not line.startswith("|"):
+            if rows:
+                break  # таблица кончилась
+            continue  # ещё не началась: пустая строка или проза
+        cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
+        if all(set(cell) <= {"-", ":"} and cell for cell in cells):
+            continue  # строка-разделитель markdown-таблицы
+        rows.append(cells)
+    return rows
+
+
+class TestDiffSectionInReport(Base):
+    """Раздел «Дифф двух последних циклов» в отчёте (пункт 30).
+
+    Пункт требует, чтобы числа раздела были теми же, что отдаёт CLI
+    `diff`. Поэтому проверка не «в разделе есть такие-то цифры», а
+    сверка каждой строки таблицы с независимым пересчётом из
+    `p3_memory.diff`.
+    """
+
+    def test_razdel_sveryaetsya_s_pereSchetom(self):
+        def rec(topic, url, score=0.7, summary="Сводка"):
+            return make_record(topic=topic, url=url, score=score, summary=summary)
+        root = write_corpus(self.tmp, {
+            "professor_insights_cycle_001.json": [
+                rec("А", "https://x.com/a"),
+                rec("Б", "https://x.com/b", score=0.5),
+                rec("В", "https://x.com/c"),
+            ],
+            "professor_insights_cycle_002.json": [
+                rec("А", "https://x.com/a"),          # без изменений
+                rec("Б", "https://x.com/b", score=0.9),  # изменено: score
+                rec("Г", "https://x.com/d"),          # добавлено
+            ],
+        })
+        text = report.build_report(root)
+        d = diff.diff(root)
+        self.assertEqual(
+            _section_rows(text, "## 9. Дифф двух последних циклов"),
+            [
+                ["переход", "записей"],
+                ["добавлено", str(len(d["added"]))],
+                ["удалено", str(len(d["removed"]))],
+                ["изменено", str(len(d["changed"]))],
+                ["без изменений", str(d["unchanged"])],
+                ["пересечение ключей", str(d["shared"])],
+            ],
+        )
+
+    def test_pole_totals_izmeneniy_sovpadayut(self):
+        root = write_corpus(self.tmp, {
+            "professor_insights_cycle_001.json": [
+                make_record(topic="А", url="https://x.com/a", score=0.1),
+                make_record(topic="Б", url="https://x.com/b", score=0.2),
+            ],
+            "professor_insights_cycle_002.json": [
+                make_record(topic="А", url="https://x.com/a", score=0.9),
+                make_record(topic="Б", url="https://x.com/b", score=0.8,
+                            summary="Другая сводка"),
+            ],
+        })
+        text = report.build_report(root)
+        d = diff.diff(root)
+        expected: dict = {}
+        for entry in d["changed"]:
+            for field in entry["fields"]:
+                expected[field] = expected.get(field, 0) + 1
+        self.assertIn("По каким полям менялись записи:", text)
+        self.assertEqual(
+            _section_rows(text, "По каким полям менялись записи:"),
+            [["поле", "записей"]]
+            + [[name, str(count)] for name, count in
+               sorted(expected.items(), key=lambda kv: (-kv[1], kv[0]))],
+        )
+
+    def test_odin_cykl_skazan_slovami_a_ne_nulyom(self):
+        root = write_corpus(self.tmp, {
+            "professor_insights_cycle_007.json": [
+                make_record(topic="А", url="https://x.com/a"),
+            ],
+        })
+        text = report.build_report(root)
+        self.assertIn("## 9. Дифф двух последних циклов", text)
+        self.assertIn("Дифф не построен:", text)
+        self.assertIn("минимум 2 цикла", text)
+        # Ноль в таблице означал бы «сравнили и не нашли различий» —
+        # это другая правда, и её нельзя выдавать за отсутствие данных.
+        self.assertNotIn("| без изменений | 0 |", text)
+
+    def test_zhivoj_progon_sovpadayet_s_difyff(self):
+        # Штатное дерево: 001 → 1351, ровно те числа, что у CLI `diff`.
+        text = report.build_report(REAL_MEMORY)
+        d = diff.diff(REAL_MEMORY)
+        self.assertEqual(
+            _section_rows(text, "## 9. Дифф двух последних циклов"),
+            [
+                ["переход", "записей"],
+                ["добавлено", str(len(d["added"]))],
+                ["удалено", str(len(d["removed"]))],
+                ["изменено", str(len(d["changed"]))],
+                ["без изменений", str(d["unchanged"])],
+                ["пересечение ключей", str(d["shared"])],
+            ],
+        )
+        self.assertIn(d["from_file"], text)
+        self.assertIn(d["to_file"], text)
+
+    def test_net_manualnyh_konstant_v_razdele(self):
+            # Раздел собран из расчёта: если корпус меняется, меняются и
+            # числа раздела — вручную зашитого числа тут быть не может.
+            def rec(topic, url):
+                return make_record(topic=topic, url=url)
+            files = {
+                "professor_insights_cycle_001.json": [
+                    rec("А", "https://x.com/a"), rec("Б", "https://x.com/b"),
+                ],
+                "professor_insights_cycle_002.json": [rec("А", "https://x.com/a")],
+            }
+            first = report.build_report(write_corpus(self.tmp, files))
+            d_first = diff.diff(self.tmp)
+            files["professor_insights_cycle_003.json"] = [
+                rec("А", "https://x.com/a"), rec("В", "https://x.com/v"),
+            ]
+            second = report.build_report(write_corpus(self.tmp, files))
+            d_second = diff.diff(self.tmp)
+
+            self.assertNotEqual(
+                _section_rows(first, "## 9. Дифф двух последних циклов"),
+                _section_rows(second, "## 9. Дифф двух последних циклов"),
+            )
+            self.assertEqual(
+                _section_rows(second, "## 9. Дифф двух последних циклов"),
+                [
+                    ["переход", "записей"],
+                    ["добавлено", str(len(d_second["added"]))],
+                    ["удалено", str(len(d_second["removed"]))],
+                    ["изменено", str(len(d_second["changed"]))],
+                    ["без изменений", str(d_second["unchanged"])],
+                    ["пересечение ключей", str(d_second["shared"])],
+                ],
+            )
+            self.assertEqual(len(d_second["added"]), 1)
+            self.assertEqual(len(d_second["removed"]), 0)
+            self.assertEqual(d_first["shared"], 1)
+            self.assertEqual(d_second["shared"], 1)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

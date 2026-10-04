@@ -12,9 +12,10 @@ from typing import Any, Dict, List
 
 from .attribution import addressing_from_disk
 from .canon import corpus
+from .diff import diff as cycle_diff
 from .gate import OPEN_STATUSES, read_registry, registry_entries
 from .identity import identity_report
-from .loader import DEFAULT_DIR, validate_corpus
+from .loader import DEFAULT_DIR, MemoryInvalid, validate_corpus
 from .metrics import metrics, report_path
 from .paths import atomic_write, project_root
 
@@ -235,6 +236,47 @@ def build_report(memory_dir: Path = DEFAULT_DIR) -> str:
                      f'оно измеряется командой `p3_memory gate`, чтобы числа '
                      f'не могли устареть между сборкой отчёта и прогоном.')
     lines.append("")
+
+    lines.append("## 9. Дифф двух последних циклов")
+    lines.append("")
+    # Те же числа, что отдаёт CLI `diff` (пункт 30): раздел собирается из
+    # того же расчёта, ручных констант нет. На дереве с одним циклом диффа
+    # не существует — это отсутствие данных, и оно должно быть сказано
+    # словами, а не выглядеть как ноль.
+    try:
+        d = cycle_diff(memory_dir)
+    except MemoryInvalid as exc:
+        lines.append(f"Дифф не построен: {exc}.")
+        lines.append("")
+        return "\n".join(lines) + "\n"
+    lines.append(f'Сравнение `{d["from_file"]}` ({d["from_records"]} записей) '
+                 f'и `{d["to_file"]}` ({d["to_records"]} записей). Сопоставление — '
+                 f'по каноническому ключу записи; служебные поля и технический '
+                 f'шум в URL (query, хвост, завершающий слэш) правкой не считаются.')
+    lines.append("")
+    lines.extend(_table([
+        ["добавлено", len(d["added"])],
+        ["удалено", len(d["removed"])],
+        ["изменено", len(d["changed"])],
+        ["без изменений", d["unchanged"]],
+        ["пересечение ключей", d["shared"]],
+    ], ["переход", "записей"]))
+    lines.append("")
+    if d["changed"]:
+        field_totals: Dict[str, int] = {}
+        for entry in d["changed"]:
+            for field in entry["fields"]:
+                field_totals[field] = field_totals.get(field, 0) + 1
+        lines.append("По каким полям менялись записи:")
+        lines.append("")
+        lines.extend(_table(
+            [[field, count] for field, count in
+             sorted(field_totals.items(), key=lambda kv: (-kv[1], kv[0]))],
+            ["поле", "записей"],
+        ))
+    else:
+        lines.append("Ни одна запись не изменилась: между этими циклами корпус")
+        lines.append("только терял и приобретал записи целиком.")
     return "\n".join(lines) + "\n"
 
 
