@@ -12,6 +12,7 @@ from __future__ import annotations
 import io
 import json
 import os
+import re
 import shutil
 import stat
 import sys
@@ -24,7 +25,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from p3_memory import SYNC_DEFAULT_PROJECTS  # noqa: E402
 from p3_memory import attribution, canon, diff, gate, identity, loader, metrics, report  # noqa: E402
-from p3_memory.cli import build_parser, main as cli_main  # noqa: E402
+from p3_memory.cli import HANDLERS, build_parser, main as cli_main  # noqa: E402
 from p3_memory.paths import (  # noqa: E402
     PathRefused, append_section, atomic_write, check_chronicle, project_root, safe_path,
 )
@@ -817,6 +818,67 @@ class TestSearchProvenance(Base):
         text = out.getvalue()
         self.assertIn("professor_insights_cycle_", text)
         self.assertIn("←", text)
+
+
+class TestReadmeMirrorsCli(Base):
+    """Пункт 29: README пакета описывает настоящую поверхность CLI."""
+
+    README = Path(__file__).resolve().parent.parent / "p3_memory" / "README.md"
+
+    def setUp(self):
+        super().setUp()
+        self.text = self.README.read_text(encoding="utf-8")
+
+    def test_README_sushchestvuet(self):
+        self.assertTrue(self.README.is_file(), "нет p3_memory/README.md")
+
+    def test_kazhdaya_zaregeristrovannaya_podkomanda_opisana(self):
+        """Каждая команда HANDLERS упомянута в README — иначе документ врёт."""
+        missing = [name for name in sorted(HANDLERS)
+                   if f"`{name}" not in self.text]
+        self.assertEqual(missing, [], f"команды не описаны в README: {missing}")
+
+    def test_net_komand_iz_README_kotoryh_net_v_CLI(self):
+        """Обратное: выдуманных команд в README быть не должно."""
+        rows = re.findall(r"^\|\s*`(\w+)`\s*\|", self.text, re.M)
+        self.assertTrue(rows, "в README нет таблицы команд")
+        self.assertEqual(set(rows) - set(HANDLERS), set(),
+                         "в README есть команды, которых нет в CLI")
+        self.assertEqual(set(rows), set(HANDLERS),
+                         "таблица команд в README не покрывает весь CLI")
+
+    def test_kody_vozvrata_iz_0_1_2_Opisany(self):
+        self.assertIn("## Коды возврата", self.text)
+        self.assertIn("`0`", self.text)
+        self.assertIn("`1`", self.text)
+        self.assertIn("`2`", self.text)
+
+    def test_invarianty_napisany_slovom_o_flagakh(self):
+        for needle in ("--fix", "`CHRONICLE.md`", "атомарна"):
+            self.assertIn(needle, self.text)
+
+    def test_help_kazhdoy_podkomandy_zakanchivaetsya_kodom_0(self):
+        """argparse печатает help и выходит через SystemExit(0) — это и есть успех."""
+        out = io.StringIO()
+        for name in sorted(HANDLERS):
+            with redirect_stdout(out):
+                try:
+                    cli_main([name, "--help"])
+                except SystemExit as exc:
+                    self.assertEqual(exc.code, 0, f"`{name} --help` вернул {exc.code}")
+                else:
+                    self.fail(f"`{name} --help` не вызвал SystemExit")
+            self.assertIn("usage:", out.getvalue(), f"нет usage для {name}")
+            out.seek(0)
+            out.truncate()
+
+    def test_help_bez_komandy_pechataet_spoisok_i_kod_2(self):
+        out = io.StringIO()
+        with redirect_stdout(out):
+            code = cli_main([])
+        self.assertEqual(code, 2)
+        for name in sorted(HANDLERS):
+            self.assertIn(name, out.getvalue())
 
 
 # ---------------------------------------------------------------- пути
