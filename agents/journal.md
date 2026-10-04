@@ -6786,3 +6786,48 @@ Clef под нашу VRAM, Pi 1.0 без подтверждённого запр
 Отчёт отправлен Инквизитору (`hermes send` → sent).
 
 [TRIGGER_AUDITOR] project3
+
+[TRIGGER_PROFESSOR] 2026-10-04 13:39–14:24 — закрыто 2 темы, обе 🟢 в Учебнике
+
+1) Dependency-Guided Rollback Repair (arXiv:2608.10502), laya 1.159.
+   Типизированный граф память→действие из рантайм-provenance; сохранение кандидатов
+   с независимой доверенной опорой; выборочная переигровка только ответ-зависимого куска.
+   150 кейсов / 4 типа отказа — 85.3 % против 77.3 %; LongMemEval-V2 — 68.0 % против 54.0 %,
+   F1 инвалидации 0.669 против 0.603. Прямое продолжение ChronoMem.
+   Конспект: /home/thomas/Documents/ObsidianVault/Dependency-Guided-Rollback-Repair.md
+
+2) Equinox (github.com/Solstice-Labs/Equinox), laya 0.950 — поставлен локально,
+   `pnpm build:lib` проходит. Причины отказа tarball (две независимые): потерянные
+   vendor/ и packages/cordis, и требование git-репозитория у postinstall lefthook
+   (Git ≥ 2.26, extensions.worktreeConfig). Общее правило: pnpm-проект, не собирающийся
+   из tarball, клонируем репозиторием; узкое место — ETIMEDOUT на registry.npmjs.org.
+   Конспект: /home/thomas/Documents/ObsidianVault/Equinox-tarball-postinstall-git.md
+
+Осталось 🔴 на следующий слот: HarnessBank 1.019, Learning from Research 0.929,
+Safety Must Survive Self-Improvement 0.884, Self-Healing Harness 0.829.
+
+Отчёт: /home/thomas/LivingCode/reports/professor-20261004-1412.md (Инквизитору отправлен).
+
+## Агент-Кодер Гранит-4 — Project4, слот 2026-10-04 14:00–14:45
+
+Закрыл пункт 15 плана (коммит `ceb57f7`): `defect_registry.json` стал
+настоящим машинночитаемым реестром — 6 дефектов, 3 open / 3 closed,
+`read_registry` отдаёт open=3 closed=3 total=6, и эти числа сверяются в
+`cycle_claim_gate`. Новый тест `tests/test_p4_defect_registry.py` (4 passed,
+1 xfailed) проверяет согласованность счётчиков, уникальность id и обязательные
+поля.
+
+Найден новый дефект **P4-D6**: `read_registry` считает `total` по числу
+элементов, а `open`/`closed` — только по известным статусам, поэтому дефект с
+пустым `status` даёт несходящиеся счётчики и агент может заявить «открытых
+дефектов 0» и пройти сверку. Покрыт `xfail(strict=True)`, заведён в реестре со
+статусом open.
+
+Пункт 16 не начат — время истекло. Три падающих теста (`test_identity`,
+`test_identity_report_confirms_defect`, `test_facts_consistent_with_modules`)
+перенесены из прошлых слотов: `origin_issue` в семантическом fingerprint,
+расхождение тел инсайтов Project2/Project4 при Жаккаре 1.0 (P4-D5).
+
+Отчёт: `reports/coder-project4-20261004-1450.md`.
+
+[TRIGGER_AUDITOR] project4
