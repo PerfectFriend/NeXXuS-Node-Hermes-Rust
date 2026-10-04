@@ -166,8 +166,11 @@ def cmd_search(args) -> int:
         print("ничего не найдено")
         return EXIT_OK
     for row in rows:
+        first = row.get("first_file") or "?"
+        extra = (len(row["sources"]) - 1) if row["sources"] else 0
+        tail = f" ← {first}" + (f" (+{extra})" if extra > 0 else "")
         print(f"[{row['rank']}] {row['topic']} ({row['category']}) "
-              f"rel={row['relevance']} ×{row['occurrences']}")
+              f"rel={row['relevance']} ×{row['occurrences']}{tail}")
     return EXIT_OK
 
 

@@ -751,6 +751,74 @@ class TestSearch(Base):
         self.assertEqual(metrics.search("", memory_dir=self.memory, limit=-1), [])
 
 
+class TestSearchProvenance(Base):
+    """Пункт 28: каждая строка `search` несёт происхождение записи."""
+
+    def setUp(self):
+        super().setUp()
+        self.memory = self.fake_memory({
+            "professor_insights_cycle_001.json": [
+                make_record(topic="Граф знаний", url="https://a/g"),
+            ],
+            "professor_insights_cycle_1351.json": [
+                make_record(topic="Граф знаний", url="https://a/g"),
+                make_record(topic="Память агента", url="https://a/m"),
+            ],
+        })
+
+    def test_u_kazhdoy_stroki_est_proiskhozhdenie(self):
+        rows = metrics.search("", memory_dir=self.memory)
+        self.assertEqual(len(rows), 2)
+        for row in rows:
+            self.assertTrue(row["first_file"], row["topic"])
+            self.assertTrue(row["sources"], row["topic"])
+
+    def test_soglazie_s_kanonicheskim_korporom(self):
+        """Значения берутся из корпуса, а не склеиваются на ходу."""
+        canon_result = canon.corpus(self.memory)
+        expected = {
+            record["topic"]: (record["_first_file"], list(record["_sources"]))
+            for record in canon_result["records"]
+        }
+        for row in metrics.search("", memory_dir=self.memory):
+            self.assertEqual(
+                (row["first_file"], row["sources"]), expected[row["topic"]], row["topic"]
+            )
+
+    def test_pervyy_fil_zhe_iz_korpusa_a_ne_posledniy(self):
+        """Запись, впервые встреченная в цикле 1, не должна «переехать» в 1351."""
+        rows = metrics.search("Граф", memory_dir=self.memory)
+        self.assertEqual(rows[0]["first_file"], "professor_insights_cycle_001.json")
+        self.assertEqual(
+            rows[0]["sources"],
+            ["professor_insights_cycle_001.json", "professor_insights_cycle_1351.json"],
+        )
+
+    def test_kopiya_spiska_rezultatov_ne_razdelyaet_s_spiskom_korpusa(self):
+        """Правка выдачи не должна менять источники в каноническом корпусе."""
+        before = canon.corpus(self.memory)
+        metrics.search("", memory_dir=self.memory)
+        after = canon.corpus(self.memory)
+        self.assertEqual(before["records"], after["records"])
+
+    def test_na_shtatnom_korpuse_u_vsekh_strok_oba_polya(self):
+        rows = metrics.search("", memory_dir=REAL_MEMORY, limit=500)
+        self.assertTrue(rows)
+        for row in rows:
+            self.assertTrue(row["first_file"], row["topic"])
+            self.assertTrue(row["sources"], row["topic"])
+
+    def test_cli_bez_json_pechatayet_fayl_proiskhozhdeniya(self):
+        out = io.StringIO()
+        with redirect_stdout(out):
+            code = cli_main(["search", "agent", "--memory-dir", str(REAL_MEMORY),
+                             "--limit", "3"])
+        self.assertEqual(code, 0)
+        text = out.getvalue()
+        self.assertIn("professor_insights_cycle_", text)
+        self.assertIn("←", text)
+
+
 # ---------------------------------------------------------------- пути
 
 class TestSafePath(Base):

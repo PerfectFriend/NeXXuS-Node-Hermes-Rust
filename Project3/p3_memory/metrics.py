@@ -149,6 +149,7 @@ def search(query: str, memory_dir: Path = DEFAULT_DIR,
             "category": record.get("category"),
             "source_type": record.get("source_type"),
             "occurrences": record.get("_occurrences", 1),
+            "first_file": record.get("_first_file"),
             "sources": list(record.get("_sources") or []),
         })
     results.sort(key=lambda item: (-item["rank"], str(item["topic"])))
