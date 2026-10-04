@@ -1751,5 +1751,65 @@ class TestDiff(Base):
         self.assertEqual(code, 1)
 
 
+class TestCycles(Base):
+    """Пункт 26: покрытие циклов (cycles)."""
+
+    def test_coverage_synthetic_with_gap(self):
+        def rec(topic, url):
+            return make_record(topic=topic, url=url)
+        root = write_corpus(self.tmp, {
+            "professor_insights_cycle_001.json": [rec("А", "https://x/1")],
+            "professor_insights_cycle_003.json": [
+                rec("А", "https://x/1"), rec("Б", "https://x/2")],
+            "professor_insights_cycle_010.json": [rec("В", "https://x/3")],
+        })
+        result = diff.cycle_coverage(root)
+        self.assertEqual([c["file_cycle"] for c in result["cycles"]], [1, 3, 10])
+        self.assertEqual([c["records"] for c in result["cycles"]], [1, 2, 1])
+        self.assertEqual(result["numbering_gaps"], [[2, 2], [4, 9]])
+        self.assertEqual(result["record_deltas"][0]["records_delta"], 1)
+        self.assertEqual(result["record_deltas"][1]["records_delta"], -1)
+        self.assertEqual(result["first_cycle"], 1)
+        self.assertEqual(result["last_cycle"], 10)
+
+    def test_live_two_cycles(self):
+        # Штатное дерево: ровно два файла, 102 и 88 записей; по числам
+        # разрыв 2–1350 — это и есть честное покрытие.
+        result = diff.cycle_coverage(REAL_MEMORY)
+        self.assertEqual(len(result["cycles"]), 2)
+        self.assertEqual([c["records"] for c in result["cycles"]], [102, 88])
+        self.assertEqual(result["numbering_gaps"], [[2, 1350]])
+        self.assertEqual(result["record_deltas"][0]["records_delta"], -14)
+        self.assertEqual(result["first_cycle"], 1)
+        self.assertEqual(result["last_cycle"], 1351)
+
+    def test_empty_dir_no_cycles(self):
+        root = write_corpus(self.tmp, {})
+        result = diff.cycle_coverage(root)
+        self.assertEqual(result["cycles"], [])
+        self.assertIsNone(result["first_cycle"])
+        self.assertEqual(result["numbering_gaps"], [])
+        self.assertEqual(result["record_deltas"], [])
+
+    def test_cli_cycles_human_and_json(self):
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            code = cli_main(["cycles", "--memory-dir", str(REAL_MEMORY)])
+        out = buf.getvalue()
+        self.assertEqual(code, 0, out)
+        self.assertIn("цикл 1:", out)
+        self.assertIn("цикл 1351:", out)
+        self.assertIn("разрывы нумерации: 2–1350", out)
+        self.assertIn("-14", out)
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            code = cli_main(["cycles", "--json",
+                             "--memory-dir", str(REAL_MEMORY)])
+        self.assertEqual(code, 0)
+        payload = json.loads(buf.getvalue())
+        self.assertEqual(len(payload["cycles"]), 2)
+        self.assertEqual(payload["numbering_gaps"], [[2, 1350]])
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

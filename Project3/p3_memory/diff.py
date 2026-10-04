@@ -144,6 +144,39 @@ def diff_cycles(
     }
 
 
+def cycle_coverage(memory_dir: Path = DEFAULT_DIR) -> Dict[str, Any]:
+    """Покрытие циклов (фаза 3, пункт 26): какие циклы есть, сколько в них
+    записей, где в нумерации разрывы и как меняется число записей."""
+    memory_dir = Path(memory_dir)
+    files = discover(memory_dir)
+    cycles: List[Dict[str, Any]] = []
+    for path in sorted(files, key=lambda p: (cycle_number(p.name) or 0, p.name)):
+        data = load(path)
+        cycles.append({
+            "file": path.name,
+            "file_cycle": cycle_number(path.name),
+            "cycle_field": data.get("cycle"),
+            "records": len(data.get("insights") or []),
+        })
+    numbers = sorted({c["file_cycle"] for c in cycles
+                      if c["file_cycle"] is not None})
+    gaps = [[low + 1, high - 1] for low, high in zip(numbers, numbers[1:])
+            if high - low > 1]
+    deltas = [{
+        "from": prev["file"],
+        "to": cur["file"],
+        "records_delta": cur["records"] - prev["records"],
+    } for prev, cur in zip(cycles, cycles[1:])]
+    return {
+        "memory_dir": str(memory_dir),
+        "cycles": cycles,
+        "numbering_gaps": gaps,
+        "record_deltas": deltas,
+        "first_cycle": numbers[0] if numbers else None,
+        "last_cycle": numbers[-1] if numbers else None,
+    }
+
+
 def diff(
     memory_dir: Path = DEFAULT_DIR,
     ref_from: Optional[str] = None,
