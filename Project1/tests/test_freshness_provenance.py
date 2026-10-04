@@ -416,6 +416,29 @@ class TestFactBlockPhase4(unittest.TestCase):
         )
         self.assertEqual(path.read_text(encoding="utf-8"), before)
 
+    def test_stamp_recalculates_total_row_and_check_passes(self):
+        """Регресс на дефект фазы 5: stamp переписывал строки таблицы,
+        но оставлял строку ИТОГО как есть — сверка оставалась красной."""
+        self.tmp.write_memory(
+            "professor_insights_cycle_002.json",
+            document([good_insight(topic="В"), good_insight(topic="Г")]),
+        )
+        self.tmp.write_report(
+            "MEMORY_REPORT.md",
+            "| файл | всего | мусор | дубли | чистых |\n"
+            "|---|---|---|---|---|\n"
+            "| professor_insights_cycle_001.json | 2 | 0 | 0 | 2 |\n"
+            "| professor_insights_cycle_002.json | 2 | 0 | 0 | 2 |\n"
+            "| ИТОГО | 2 | 0 | 0 | 2 |\n",
+        )
+        self.assertFalse(freshness.check_report(self.tmp.root)["ok"])
+        self.assertEqual(main(["--root", str(self.tmp.root), "stamp"]), 0)
+        stamped = (self.tmp.root / "MEMORY_REPORT.md").read_text(encoding="utf-8")
+        self.assertIn("| **ИТОГО** | **4** | **0** | **0** | **4** |", stamped)
+        result = freshness.check_report(self.tmp.root)
+        self.assertEqual(result["total_mismatches"], [])
+        self.assertTrue(result["ok"], "stamp обязан доводить отчёт до проверяемого состояния")
+
     def test_live_report_has_every_known_fact(self):
         """Регресс на живой отчёт: блок фактов полон и совпадает с прогоном."""
         facts = freshness.parse_facts(

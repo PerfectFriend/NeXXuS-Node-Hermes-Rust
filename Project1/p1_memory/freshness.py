@@ -283,12 +283,35 @@ def stamp_table(text: str, rows: Dict[str, List[int]]) -> str:
     # Если строки не было вовсе — её нужно дописать, даже когда вставлялись
     # строки файлов: иначе таблица остаётся без итога.
     if total_at is not None:
-        # Числа не поменялись — сохраняем исходную строку байт в байт:
-        # жирность и оформление чужого отчёта не наше дело.
-        out.insert(total_at, total_line or total_row())
+        # Живой итог считаем всегда. Если числа совпали с отчётными —
+        # вставляем исходную строку байт в байт (жирность и оформление чужого
+        # отчёта не наше дело); если разошлись — пересчитанную.
+        fresh = total_row()
+        old_line = total_line
+        old = _rendered(old_line) if old_line else None
+        # Числа совпали — отдаём строку отчёта байт в байт (жирность и
+        # оформление чужого отчёта не наше дело); разошлись — пересчитанную.
+        if old_line is not None and old == _rendered(fresh):
+            out.insert(total_at, old_line)
+        else:
+            out.insert(total_at, fresh)
     else:
         out.append(total_row())
     return "\n".join(out) + ("\n" if text.endswith("\n") else "")
+
+
+def _rendered(line: str) -> Optional[List[int]]:
+    """Числа уже отрисованной строки таблицы (для сравнения «байт в байт»)."""
+    match = _ROW_RE.match(line)
+    if not match:
+        return None
+    cells = [_clean_cell(c) for c in match.group(1).split("|")]
+    if len(cells) < 5:
+        return None
+    try:
+        return [int(cells[i]) for i in range(1, 5)]
+    except ValueError:
+        return None
 
 
 def stamp_report(
