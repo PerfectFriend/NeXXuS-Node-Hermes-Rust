@@ -35,6 +35,7 @@ from p2_graph.loader import (  # noqa: E402
     iter_insights,
     load,
     load_all,
+    rotate_backups,
     strip_markers,
 )
 from p2_graph.validate import (  # noqa: E402
@@ -213,6 +214,79 @@ class TestAtomicWrite(TempDirCase):
         path = self.dir / "professor_insights_cycle_003.json"
         atomic_write(path, {"insights": [make_insight(topic="тест")]}, backup=False)
         self.assertIn("тест", path.read_text(encoding="utf-8"))
+
+
+# --------------------------------------------------- ротация бэкапов (п. 22)
+
+class TestBackupRotation(TempDirCase):
+    """Прежние копии не затираются: .bak -> .bak.1 -> .bak.2."""
+
+    def _write_versions(self):
+        """Три записи подряд в один файл; вернуты (файл, .bak, .bak.1, .bak.2)."""
+        path = write_memory(self.dir, "professor_insights_cycle_004.json", 1,
+                            [make_insight(topic="v1")])
+        names = [path.with_suffix(path.suffix + sfx) for sfx in ("", ".bak", ".bak.1", ".bak.2")]
+        for topic in ("v2", "v3", "v4"):
+            data = load(path)
+            data["insights"] = [make_insight(topic=topic)]
+            data["total_insights"] = 1
+            atomic_write(path, data)
+        return tuple(names)
+
+    def test_third_write_keeps_original_in_bak2(self):
+        live, bak, bak1, bak2 = self._write_versions()
+        self.assertEqual(load(bak2)["insights"][0]["topic"], "v1")
+
+    def test_previous_backup_is_not_overwritten(self):
+        live, bak, bak1, bak2 = self._write_versions()
+        self.assertEqual(load(bak)["insights"][0]["topic"], "v3")
+        self.assertEqual(load(bak1)["insights"][0]["topic"], "v2")
+        self.assertEqual(load(live)["insights"][0]["topic"], "v4")
+
+    def test_fourth_write_drops_only_the_oldest(self):
+        live, bak, bak1, bak2 = self._write_versions()
+        data = load(live)
+        data["insights"] = [make_insight(topic="v5")]
+        data["total_insights"] = 1
+        atomic_write(live, data)
+        self.assertEqual(load(bak)["insights"][0]["topic"], "v4")
+        self.assertEqual(load(bak1)["insights"][0]["topic"], "v3")
+        self.assertEqual(load(bak2)["insights"][0]["topic"], "v2")
+
+    def test_bak_chain_grows_only_from_third_write(self):
+        path = write_memory(self.dir, "professor_insights_cycle_005.json", 1,
+                            [make_insight(topic="v1")])
+        bak1 = path.with_suffix(path.suffix + ".bak.1")
+        bak2 = path.with_suffix(path.suffix + ".bak.2")
+        self.assertFalse(bak1.exists())
+        self.assertFalse(bak2.exists())
+        atomic_write(path, {"insights": [make_insight(topic="v2")], "total_insights": 1})
+        self.assertFalse(bak1.exists())
+        self.assertFalse(bak2.exists())
+        data = load(path)
+        data["insights"] = [make_insight(topic="v3")]
+        atomic_write(path, data)
+        self.assertTrue(bak1.exists())
+        self.assertFalse(bak2.exists())
+        data = load(path)
+        data["insights"] = [make_insight(topic="v4")]
+        atomic_write(path, data)
+        self.assertTrue(bak2.exists())
+        self.assertEqual(load(bak2)["insights"][0]["topic"], "v1")
+
+    def test_rotate_backups_on_missing_file_is_noop(self):
+        path = write_memory(self.dir, "professor_insights_cycle_006.json", 1, [make_insight()])
+        bak = path.with_suffix(path.suffix + ".bak")
+        rotate_backups(bak)
+        self.assertFalse(bak.exists())
+        self.assertFalse(bak.with_name(bak.name + ".1").exists())
+
+    def test_backup_false_leaves_no_bak_chain(self):
+        path = write_memory(self.dir, "professor_insights_cycle_007.json", 1, [make_insight()])
+        before = path.read_text(encoding="utf-8")
+        atomic_write(path, {"insights": [], "total_insights": 0}, backup=False)
+        self.assertEqual(sorted(p.name for p in self.dir.glob("*.bak*")), [])
+        self.assertNotEqual(path.read_text(encoding="utf-8"), before)
 
 
 # -------------------------------------------------------------- валидация

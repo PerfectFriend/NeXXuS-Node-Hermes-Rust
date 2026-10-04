@@ -99,13 +99,36 @@ def iter_insights(files: List[Dict[str, Any]]):
             yield enriched
 
 
+BAK_ROTATION = 2  # .bak.1 и .bak.2; .bak — живой бэкап последней записи
+
+
+def rotate_backups(backup_path: Path) -> None:
+    """Сдвинуть цепочку бэкапов на одну позицию, не затирая предыдущие.
+
+    `.bak.2` удаляется, `.bak.1` -> `.bak.2`, `.bak` -> `.bak.1`. Сдвиг идёт
+    от самой старой копии к самой свежей, иначе `.bak.2` затерся бы тем, что
+    в него перекладывается. Прежняя `.bak` не перезаписывается, а уходит в
+    `.bak.1`: после трёх записей в один файл `.bak.2` хранит исходник.
+    """
+    oldest = backup_path.with_name(backup_path.name + f".{BAK_ROTATION}")
+    if oldest.exists():
+        oldest.unlink()
+    previous = backup_path.with_name(backup_path.name + ".1")
+    if previous.exists():
+        os.replace(previous, oldest)
+    if backup_path.exists():
+        os.replace(backup_path, previous)
+
+
 def atomic_write(
     path: os.PathLike | str, data: Dict[str, Any], backup: bool = True
 ) -> "Path | None":
     """Записать JSON атомарно: write-to-tmp + os.replace, с бэкапом исходника.
 
     Гарантии: при сбое сериализации known-good файл не тронут, временный
-    файл удаляется. Возвращает путь к бэкапу (или None, если бэкап не делался).
+    файл удаляется. Бэкап всегда живой файл `.bak`; прежние копии не
+    затираются, а сдвигаются в `.bak.1` и `.bak.2` (см. rotate_backups).
+    Возвращает путь к бэкапу (или None, если бэкап не делался).
     """
     path = Path(path)
     payload = json.dumps(data, ensure_ascii=False, indent=2) + "\n"
@@ -113,6 +136,7 @@ def atomic_write(
     backup_path: Path | None = None
     if backup and path.exists():
         backup_path = path.with_suffix(path.suffix + ".bak")
+        rotate_backups(backup_path)
         shutil.copy2(path, backup_path)
 
     fd, tmp_name = tempfile.mkstemp(dir=str(path.parent), prefix=path.name + ".", suffix=".tmp")
