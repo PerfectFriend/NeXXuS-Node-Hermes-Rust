@@ -1420,6 +1420,13 @@ class TestGate(Base):
         (proj / gate.REGISTRY_NAME).write_text(
             json.dumps(registry, ensure_ascii=False), encoding="utf-8"
         )
+        # Целые артефакты: с пунктом 40 подпроект без хроники и отчёта больше
+        # не является «чистым», и тесты ниже проверяли бы уже не числа.
+        (proj / "memory").mkdir()
+        (proj / "CHRONICLE.md").write_text("## Цикл\n\nСделан.\n", encoding="utf-8")
+        (proj / "DUPLICITY_REPORT.md").write_text(
+            report.build_report(proj / "memory"), encoding="utf-8"
+        )
         return proj
 
     def test_fakt_schitany_iz_realnogo_progona(self):
@@ -2796,6 +2803,123 @@ class TestLossIsNamed(Base):
             self.assertTrue(str(entry["topic"] or "").strip(), entry)
             self.assertTrue(str(entry["category"] or "").strip(), entry)
         self.assertEqual(d["moved"], [])
+
+
+class TestArtifactsGate(Base):
+    """Пункт 40: артефакты как факт для закрытия цикла.
+
+    Гейт `tools/cycle_claim_gate.py` про числа прогона и реестра дефектов;
+    хроника и отчёт в его фактах не участвуют, поэтому зелёный прогон при
+    разорванной хронике закрывал цикл. Тесты ниже фиксируют новое поведение:
+    такие факты обязаны давать расхождение, а целые артефакты — код 0.
+    """
+
+    def project_with_artifacts(self, chronicle="## Цикл\n\nСделан.\n",
+                               report_text=None):  # None — файл не создаётся
+        """Временный проект с целыми артефактами (или с указанными поломками)."""
+        proj = self.tmp / "art"
+        proj.mkdir(parents=True)
+        (proj / gate.REGISTRY_NAME).write_text(
+            json.dumps({"defects": [{"id": "D-1", "status": "closed"}]}),
+            encoding="utf-8")
+        # Память проекта — источник истины для отчёта; build_report по этому
+        # же пути строит ровно то, что потом проверит check_report.
+        (proj / "memory").mkdir()
+        if chronicle is not None:
+            (proj / "CHRONICLE.md").write_text(chronicle, encoding="utf-8")
+        if report_text is None:
+            report_text = report.build_report(proj / "memory")
+        if report_text is not None:
+            (proj / "DUPLICITY_REPORT.md").write_text(report_text,
+                                                     encoding="utf-8")
+        return proj
+
+    def test_zelenyy_progon_pri_bitoy_hronike_ne_zakryvaet_cikl(self):
+        proj = self.project_with_artifacts(chronicle="## Цикл\n\n## Цикл\n\nСделан.\n")
+        facts = gate.build_facts(proj, run=False, artifacts=True)
+        artifacts = facts["artifacts"]
+        self.assertFalse(artifacts["ok"])
+        self.assertFalse(artifacts["chronicle"]["ok"])
+        problems = gate.artifact_defects(facts)
+        self.assertTrue(problems, problems)
+        self.assertTrue(any("хроника" in p for p in problems), problems)
+        # Ручная сборка заявления по фактам: числа точные, но цикл закрыт.
+        claim = {"tests_passed": 2, "tests_total": 2, "defects_closed": 1,
+                 "cycle_closed": True}
+        self.assertEqual(gate.gate_exit(facts, claim), 2)
+        self.assertTrue(any("хроника" in p
+                            for p in gate.gate_check(facts, claim)))
+
+    def test_ustarevshiy_otchet_ne_zakryvaet_cikl(self):
+        proj = self.project_with_artifacts(report_text="отчёт из прошлой жизни\n")
+        facts = gate.build_facts(proj, run=False)
+        self.assertFalse(facts["artifacts"]["ok"])
+        self.assertFalse(facts["artifacts"]["report"]["ok"])
+        problems = gate.artifact_defects(facts)
+        self.assertTrue(any("отчёт" in p for p in problems), problems)
+        claim = {"tests_passed": 2, "tests_total": 2, "defects_closed": 1,
+                 "cycle_closed": True}
+        self.assertEqual(gate.gate_exit(facts, claim), 2)
+
+    def test_net_fajla_artofakta_tozhe_raskhожdenie(self):
+        proj = self.project_with_artifacts(chronicle=None, report_text=None)
+        facts = gate.build_facts(proj, run=False)
+        self.assertFalse(facts["artifacts"]["ok"])
+        problems = gate.artifact_defects(facts)
+        self.assertTrue(any("файл отсутствует" in p or "нет строки" in p
+                            or "no report file" in p or "отчёт" in p
+                            for p in problems), problems)
+
+    def test_celye_artifakty_dayut_kod_0(self):
+        proj = self.project_with_artifacts()
+        facts = gate.build_facts(proj, run=False)
+        self.assertTrue(facts["artifacts"]["ok"], facts["artifacts"])
+        self.assertEqual(gate.artifact_defects(facts), [])
+        claim = {"tests_passed": 2, "tests_total": 2, "defects_closed": 1,
+                 "cycle_closed": True}
+        # прогон помечен как отсутствующий, поэтому честный код 1-го уровня
+        # недостижим — проверяем именно артефакты: они претензий не дают.
+        problems = gate.artifact_defects(facts)
+        self.assertEqual(problems, [])
+        self.assertTrue(any("прогон" in p.lower()
+                            for p in gate.gate_check(facts, claim)))
+
+    def test_artifakty_vyключаются_flagom(self):
+        proj = self.project_with_artifacts(chronicle=None)
+        facts = gate.build_facts(proj, run=False, artifacts=False)
+        self.assertNotIn("artifacts", facts)
+        self.assertEqual(gate.artifact_defects(facts), [])
+
+    def test_dajdzhest_nazyvaet_sostoyanie_artifaktov(self):
+        facts = {"test_run": {"passed": 2, "failed": 0, "collected": 2},
+                 "defect_registry": {"open": 0, "closed": 1, "total": 1},
+                 "artifacts": {"chronicle": {"ok": True, "problems": []},
+                               "report": {"ok": False,
+                                          "problems": ["отчёт устарел"]},
+                               "ok": False}}
+        digest = gate.facts_digest(facts)
+        self.assertIn("артефакты биты", digest)
+        self.assertIn("отчёт о дублировании", digest)
+        facts["artifacts"] = {"chronicle": {"ok": True, "problems": []},
+                              "report": {"ok": True, "problems": []},
+                              "ok": True}
+        self.assertIn("артефакты целы", gate.facts_digest(facts))
+        facts["artifacts"] = None
+        self.assertIn("артефакты не проверялись", gate.facts_digest(facts))
+
+    def test_zhivoy_proekt_imeet_celye_artifakty(self):
+        # Перфетушировать тесты на временных файлах нельзя: если бы артефакты
+        # в самом Project3 были биты, гейт падал бы на каждом прогоне.
+        facts = gate.build_facts(project_root(), run=False)
+        self.assertTrue(facts["artifacts"]["ok"], facts["artifacts"])
+
+    def test_cli_gate_vidit_artifakty(self):
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            cli_main(["--json", "gate", "--no-run"])
+        payload = json.loads(buf.getvalue())
+        self.assertIn("artifacts", payload)
+        self.assertTrue(payload["artifacts"]["ok"], payload["artifacts"])
 
 
 if __name__ == "__main__":

@@ -46,6 +46,10 @@ CLOSED_STATUSES = ("closed", "done", "fixed", "resolved")
 
 GATE_REL = ("tools", "cycle_claim_gate.py")
 
+#: Артефакты, целостность которых нужна для закрытия цикла.
+ARTIFACT_FILES = (("chronicle", "CHRONICLE.md", "хроника"),
+                  ("report", "DUPLICITY_REPORT.md", "отчёт о дублировании"))
+
 
 def livingcode_root() -> Path:
     """Корень LivingCode (родитель каталога Project3)."""
@@ -274,8 +278,14 @@ def registry_entries(project=None, name: str = REGISTRY_NAME) -> List[Dict[str, 
 
 
 def build_facts(project=None, junit=None, target: Optional[str] = None,
-                run: bool = True) -> Dict[str, Any]:
-    """Собрать `facts` для гейта: `{"test_run": …, "defect_registry": …}`."""
+                run: bool = True, artifacts: bool = True) -> Dict[str, Any]:
+    """Собрать `facts` для гейта.
+
+    `{"test_run": …, "defect_registry": …, "artifacts": …}`. Последняя
+    секция добавлена пунктом 40: зелёный прогон при разорванной хронике —
+    это не «цикл закрыт», а «тесты прошли». `artifacts=False` оставляет
+    прежнее поведение для вызовов, которым артефакты не нужны.
+    """
     project = Path(project or project_root())
     if junit is not None:
         test_run: Dict[str, Any] = read_junit(junit)
@@ -285,7 +295,70 @@ def build_facts(project=None, junit=None, target: Optional[str] = None,
     else:
         test_run = {"error": "прогон запрошен как отсутствующий (--no-run): "
                              "заявление о зелёных тестах нечем подтвердить"}
-    return {"test_run": test_run, "defect_registry": read_registry(project)}
+    facts: Dict[str, Any] = {"test_run": test_run,
+                             "defect_registry": read_registry(project)}
+    if artifacts:
+        facts["artifacts"] = build_artifacts(project)
+    return facts
+
+
+def build_artifacts(project=None) -> Dict[str, Any]:
+    """Факт `artifacts`: целы ли артефакты, на которых держится цикл.
+
+    Числа прогона и реестр говорят, что код работает. Они ничего не говорят
+    о том, что работа записана: агент может зелёные тесты сопровождать
+    битой хроникой и устаревшим отчётом — и по старым правилам такой цикл
+    закрывался. Здесь оба артефакта проверяются тем же кодом, что и в CLI
+    (`check_chronicle`, `check_report`), чтобы гейт и команда `--check`
+    не могли разойтись во мнениях.
+    """
+    project = Path(project or project_root())
+    from .paths import check_chronicle
+    from .report import check_report
+
+    artifacts: Dict[str, Any] = {}
+    for key, filename, label in ARTIFACT_FILES:
+        target = project / filename
+        try:
+            if key == "chronicle":
+                res = check_chronicle(target)
+                ok, problems = res["ok"], list(res["problems"])
+            else:
+                # Память ИМЕННО проверяемого проекта: сверка с чужим
+                # каталогом дала бы расхождение на любом временном проекте
+                # и молчаливую победу на настоящем, если у него свой путь.
+                res = check_report(target, memory_dir=project / "memory")
+                ok = bool(res["ok"])
+                problems = [] if ok else _report_problems(res)
+            artifacts[key] = {"path": str(target), "ok": ok,
+                              "problems": problems, "label": label}
+        except Exception as exc:  # noqa: BLE001 — факт не должен ронять сбор
+            artifacts[key] = {"path": str(target), "ok": False,
+                              "label": label,
+                              "problems": [f"{label} не проверен: {exc}"]}
+    artifacts["ok"] = all(item["ok"] for item in artifacts.values()
+                          if isinstance(item, dict))
+    return artifacts
+
+
+def _report_problems(res: Dict[str, Any]) -> List[str]:
+    """Человекочитаемые претензии к отчёту из результата `check_report`."""
+    problems: List[str] = []
+    reason = res.get("reason")
+    if reason:
+        problems.append(f"отчёт о дублировании: {reason}")
+        return problems
+    for line in (res.get("missing_lines") or [])[:3]:
+        problems.append(f"в отчёте нет строки: {line}")
+    for line in (res.get("extra_lines") or [])[:3]:
+        problems.append(f"в отчёте лишняя строка: {line}")
+    difference = res.get("difference")
+    if difference:
+        problems.append(f"отчёт устарел: {difference.get('kind', 'расхождение')} "
+                        f"на строке {difference.get('line', '?')}")
+    if not problems:
+        problems.append("отчёт о дублировании не совпадает с build_report()")
+    return problems
 
 
 def load_gate(repo=None):
@@ -350,11 +423,45 @@ def claim_defects(facts: Dict[str, Any], claim: Dict[str, Any]) -> List[str]:
     return problems
 
 
+def artifact_defects(facts: Dict[str, Any]) -> List[str]:
+    """Битые или устаревшие артефакты — расхождение, как падение теста.
+
+    Секция `artifacts` добавлена пунктом 40 и проверяется здесь, а не
+    гейтом: горячий `tools/cycle_claim_gate.py` править нельзя. Логика
+    та же, что у `fact_defects`: отсутствие факта не выдаётся за успех.
+    """
+    value = facts.get("artifacts")
+    if value is None:
+        return []
+    if not isinstance(value, dict):
+        return [f"секция артефактов неожиданной структуры: {type(value).__name__}"]
+    problems: List[str] = []
+    if value.get("ok"):
+        return problems
+    for key, _filename, label in ARTIFACT_FILES:
+        item = value.get(key)
+        if item is None:
+            problems.append(f"{label} не проверена — цикл нечем закрывать")
+            continue
+        if not isinstance(item, dict):
+            problems.append(f"{label}: неожиданная структура проверки")
+            continue
+        if item.get("ok"):
+            continue
+        for problem in item.get("problems") or ["проверка не дала объяснения"]:
+            problems.append(f"{label}: {problem}")
+    if not problems:
+        problems.append("артефакты не целы — цикл закрывать нельзя")
+    return problems
+
+
 def gate_check(facts: Dict[str, Any], claim: Dict[str, Any],
                repo=None) -> List[str]:
     """Сверяющее заявление с фактами. Пусто — подтверждено."""
     problems = list(load_gate(repo).check(claim, facts))
-    for extra in (fact_defects(facts), claim_defects(facts, claim)):
+    extra_lists = (fact_defects(facts), claim_defects(facts, claim),
+                   artifact_defects(facts))
+    for extra in extra_lists:
         for item in extra:
             if item not in problems:
                 problems.append(item)
@@ -467,14 +574,27 @@ def facts_digest(facts: Dict[str, Any]) -> str:
     else:
         reg_part = (f"open={reg.get('open', '-')} closed={reg.get('closed', '-')} "
                     f"total={reg.get('total', '-')}")
-    return f"{run_part}; {reg_part}"
+    art = facts.get("artifacts")
+    if art is None:
+        art_part = "артефакты не проверялись"
+    elif not isinstance(art, dict):
+        art_part = f"артефакты неожиданной структуры ({type(art).__name__})"
+    elif art.get("ok"):
+        art_part = "артефакты целы"
+    else:
+        broken = [label for key, _f, label in ARTIFACT_FILES
+                  if not (art.get(key) or {}).get("ok")]
+        art_part = ("артефакты биты: " + ", ".join(broken)) if broken \
+            else "артефакты биты"
+    return f"{run_part}; {reg_part}; {art_part}"
 
 
 __all__ = [
     "REGISTRY_NAME", "OPEN_STATUSES", "CLOSED_STATUSES", "GATE_REL",
     "candidate_pytests", "resolve_pytest", "read_junit", "run_tests",
     "read_registry", "registry_by_status", "registry_entries", "registry_path",
-    "build_facts", "load_gate", "fact_defects", "claim_defects", "gate_check",
+    "build_facts", "build_artifacts", "artifact_defects", "load_gate",
+    "fact_defects", "claim_defects", "gate_check",
     "gate_exit", "claim_from_facts", "claim_case", "facts_digest",
     "honesty_probe",
     "livingcode_root",
