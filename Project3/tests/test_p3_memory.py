@@ -9,6 +9,7 @@
 
 from __future__ import annotations
 
+import io
 import json
 import os
 import shutil
@@ -16,13 +17,14 @@ import stat
 import sys
 import tempfile
 import unittest
+from contextlib import redirect_stdout
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from p3_memory import SYNC_DEFAULT_PROJECTS  # noqa: E402
-from p3_memory import attribution, canon, identity, loader, metrics, report  # noqa: E402
-from p3_memory.cli import main as cli_main  # noqa: E402
+from p3_memory import attribution, canon, gate, identity, loader, metrics, report  # noqa: E402
+from p3_memory.cli import build_parser, main as cli_main  # noqa: E402
 from p3_memory.paths import (  # noqa: E402
     PathRefused, append_section, atomic_write, project_root, safe_path,
 )
@@ -1029,6 +1031,296 @@ class TestCLI(Base):
     def test_audit_naprаяemuya_razmetka(self):
         self.assertEqual(cli_main(["--json", "--memory-dir", str(REAL_MEMORY),
                                    "audit"]), 0)
+
+
+# ---------------------------------------------------------------- гейт
+
+class TestGate(Base):
+    """Пункты 16-17: машинные факты и реестр дефектов.
+
+    Тесты НЕ гоняют pytest по Project3: `build_facts(run=True)` на самом
+    проекте означал бы, что прогон тестов запускает прогон тестов. Здесь
+    используется временный подпроект из двух тестов; отдельно проверяется
+    живой Project3, но без запуска его прогона внутри теста.
+    """
+
+    def mini_project(self, statuses=("closed", "open")):
+        proj = self.tmp / "mini"
+        tests = proj / "tests"
+        tests.mkdir(parents=True)
+        (tests / "test_mini.py").write_text(
+            "def test_ok():\n    assert True\n\n\ndef test_also_ok():\n    assert 1 == 1\n",
+            encoding="utf-8",
+        )
+        registry = {"defects": [
+            {"id": f"D-{i}", "status": status} for i, status in enumerate(statuses)
+        ]}
+        (proj / gate.REGISTRY_NAME).write_text(
+            json.dumps(registry, ensure_ascii=False), encoding="utf-8"
+        )
+        return proj
+
+    def test_fakt_schitany_iz_realnogo_progona(self):
+        proj = self.mini_project()
+        facts = gate.build_facts(proj)
+        run = facts["test_run"]
+        self.assertNotIn("error", run, run)
+        self.assertEqual(run["collected"], 2)
+        self.assertEqual(run["passed"], 2)
+        self.assertEqual(run["failed"], 0)
+        self.assertEqual(run["source"], "pytest --junit-xml")
+
+    def test_summy_reestra_sootnosyatsya_s_zapisami(self):
+        proj = self.mini_project(statuses=("closed", "closed", "open"))
+        reg = gate.read_registry(proj)
+        self.assertEqual(reg, {"open": 1, "closed": 2, "total": 3,
+                               "source": gate.REGISTRY_NAME})
+        self.assertEqual(sum(gate.registry_by_status(proj).values()), 3)
+        self.assertEqual(len(gate.registry_entries(proj)), 3)
+
+    def test_otkryty_defekt_ronyaet_chestnoe_zayavlenie(self):
+        # Главное свойство: открытый дефект означает, что цикл закрывать
+        # нельзя. Раньше формулировка пункта 16 обещала код 0 «на честном
+        # заявлении» — это неверно при незакрытых дефектах, и гейт прав.
+        proj = self.mini_project(statuses=("closed", "open"))
+        facts = gate.build_facts(proj)
+        claim = gate.claim_from_facts(facts)
+        self.assertEqual(claim["defects_closed"], 1)
+        self.assertEqual(gate.gate_exit(facts, claim), 2)
+        self.assertTrue(any("открытых дефектов" in p
+                            for p in gate.gate_check(facts, claim)))
+
+    def test_zakryty_defekt_i_zelyonye_testy_dayut_kod_0(self):
+        proj = self.mini_project(statuses=("closed", "closed"))
+        facts = gate.build_facts(proj)
+        self.assertEqual(gate.gate_exit(facts, gate.claim_from_facts(facts)), 0)
+
+    def test_zavyshennoe_chislo_testov_ronyaetsya(self):
+        proj = self.mini_project(statuses=("closed",))
+        facts = gate.build_facts(proj)
+        claim = dict(gate.claim_from_facts(facts), tests_passed=99,
+                     cycle_closed=True)
+        self.assertEqual(gate.gate_exit(facts, claim), 2)
+
+    def test_net_progona_ne_vydetsya_za_uspekh(self):
+        # Гейт молчит на секции с {"error": ...} — это дыра, которую обязан
+        # закрыть fact_defects, иначе цикл «закрывается» без прогона.
+        facts = gate.build_facts(self.mini_project(), run=False)
+        problems = gate.fact_defects(facts)
+        self.assertTrue(problems)
+        self.assertTrue(any("прогон тестов" in p for p in problems))
+
+    def test_otsutstvie_registra_ne_vydetsya_za_nuly_defektov(self):
+        proj = self.tmp / "bare"
+        proj.mkdir()
+        reg = gate.read_registry(proj)
+        # Именно None (файла нет), а не {"open": 0}: отсутствие реестра —
+        # это «нечем подтвердить», а не «дефектов ноль».
+        self.assertIsNone(reg)
+        problems = gate.fact_defects({"test_run": {"passed": 1, "collected": 1},
+                                      "defect_registry": reg})
+        self.assertTrue(any("реестр дефектов" in p for p in problems))
+
+    def test_bityy_reestr_vidaet_opybku_a_ne_nuly(self):
+        proj = self.mini_project()
+        (proj / gate.REGISTRY_NAME).write_text("{не json", encoding="utf-8")
+        reg = gate.read_registry(proj) or {}
+        self.assertIn("error", reg)
+        self.assertNotIn("open", reg)
+
+    def test_net_imena_chisla_v_zayavlenii_takzhe_proval(self):
+        facts = gate.build_facts(self.mini_project(statuses=("closed",)))
+        problems = gate.claim_defects(facts, {"tests_passed": None})
+        self.assertTrue(problems)
+
+    def test_zayavlenie_stroitsya_iz_faktov(self):
+        proj = self.mini_project(statuses=("closed", "open"))
+        facts = gate.build_facts(proj)
+        claim = gate.claim_from_facts(facts)
+        self.assertEqual(claim["tests_total"], facts["test_run"]["collected"])
+        self.assertEqual(claim["tests_passed"], facts["test_run"]["passed"])
+        self.assertFalse(claim["cycle_closed"])
+
+    def test_zayavlenie_ne_zakryvaet_cikl_samostoyatelno(self):
+        # Факты о тестах не доказывают, что цикл закрыт: закрывает человек.
+        facts = {"test_run": {"passed": 1, "collected": 1},
+                 "defect_registry": {"open": 0, "closed": 0, "total": 0}}
+        self.assertFalse(gate.claim_from_facts(facts)["cycle_closed"])
+
+    def test_junit_chitaetsya_po_testsuite_a_ne_po_kornu(self):
+        # Регрессия: у корня <testsuites> атрибутов нет, чтение только корня
+        # давало 0/0/0 — «всё зелёное» из прогона, который падал.
+        xml = self.tmp / "r.xml"
+        xml.write_text(
+            "<testsuites><testsuite name='t' tests='3' failures='1' errors='0'"
+            " skipped='1'></testsuite></testsuites>",
+            encoding="utf-8",
+        )
+        run = gate.read_junit(xml)
+        self.assertEqual(run["collected"], 3)
+        self.assertEqual(run["failed"], 1)
+        self.assertEqual(run["skipped"], 1)
+        self.assertEqual(run["passed"], 1)
+
+    def test_broken_junit_vidaet_opybku(self):
+        run = gate.read_junit(self.tmp / "net.xml")
+        self.assertIn("error", run)
+
+    def test_registr_project3_soglasovan_i_imeet_izmereniya(self):
+        reg = gate.read_registry(project_root())
+        self.assertIsNotNone(reg)
+        reg = reg or {}
+        self.assertNotIn("error", reg)
+        entries = gate.registry_entries(project_root())
+        self.assertEqual(reg["total"], len(entries))
+        self.assertEqual(reg["open"] + reg["closed"], reg["total"])
+        for entry in entries:
+            self.assertIn(entry["status"], gate.OPEN_STATUSES + gate.CLOSED_STATUSES)
+            self.assertTrue(entry.get("evidence"), entry.get("id"))
+            self.assertTrue(entry.get("detected_by"), entry.get("id"))
+
+    def test_fakt_project3_bez_progona_chitaet_registr(self):
+        # Живой проект без запуска его тестов: реестр читается по-настоящему,
+        # прогон запрошен как отсутствующий (--no-run), а не подставлен ноль.
+        facts = gate.build_facts(project_root(), run=False)
+        self.assertIn("error", facts["test_run"])
+        self.assertNotIn("error", facts["defect_registry"])
+        self.assertTrue(gate.fact_defects(facts))
+
+    def test_dajdzhest_nazyvaet_chisla_i_provaly(self):
+        good = {"test_run": {"passed": 2, "failed": 0, "collected": 2},
+                "defect_registry": {"open": 0, "closed": 1, "total": 1}}
+        digest = gate.facts_digest(good)
+        self.assertIn("passed=2", digest)
+        self.assertIn("open=0", digest)
+        bad = {"test_run": {"error": "нет pytest"}, "defect_registry": None}
+        self.assertIn("ПРОГОН НЕ ВЫПОЛНЕН", gate.facts_digest(bad))
+        self.assertIn("реестра дефектов нет", gate.facts_digest(bad))
+
+    def test_gayt_zagruzhaetsya_zhivym_importom(self):
+        module = gate.load_gate()
+        self.assertTrue(hasattr(module, "check"))
+        origin = Path(str(module.__file__)).resolve().with_suffix(".py")
+        self.assertEqual(origin,
+                         Path(gate.livingcode_root() / "tools" /
+                              "cycle_claim_gate.py").resolve())
+
+    def test_neyavnyy_put_k_gaytu_otvergayetsya(self):
+        with self.assertRaises(FileNotFoundError):
+            gate.load_gate(self.tmp / "net-takogo")
+
+
+class TestGateCli(Base):
+    """Пункт 18: команды `gate` и `registry` в CLI."""
+
+    def test_registry_pechataet_soglasovannye_summy(self):
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            code = cli_main(["registry"])
+        self.assertEqual(code, 0)
+        self.assertIn("всего", buf.getvalue())
+
+    def test_registry_json_soderzhit_zapisi(self):
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            code = cli_main(["--json", "registry"])
+        self.assertEqual(code, 0)
+        payload = json.loads(buf.getvalue())
+        self.assertEqual(payload["counters"]["total"], len(payload["entries"]))
+        self.assertTrue(payload["entries"])
+
+    def test_gate_bez_zayavleniya_pechataet_fakt(self):
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            code = cli_main(["--json", "gate", "--no-run"])
+        self.assertEqual(code, 0)
+        facts = json.loads(buf.getvalue())
+        self.assertIn("test_run", facts)
+        self.assertIn("error", facts["test_run"])
+
+    def test_gate_ronyaet_zavyshennoe_zayavlenie(self):
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            code = cli_main(["gate", "--no-run", "--claim",
+                             '{"tests_passed": 999, "defects_closed": 0}'])
+        self.assertEqual(code, 2)
+        payload = json.loads(buf.getvalue())
+        self.assertTrue(payload["problems"])
+        self.assertEqual(payload["exit"], 2)
+
+    def test_gate_otvergayet_nerazobranoe_zayavlenie(self):
+        with redirect_stdout(io.StringIO()):
+            code = cli_main(["gate", "--no-run", "--claim", "{не json"])
+        self.assertEqual(code, 2)
+
+    def test_gate_zapisyvaet_keis_tolko_vnutri_proekta(self):
+        target = project_root() / "GATE_CASE_TMP.json"
+        try:
+            with redirect_stdout(io.StringIO()):
+                code = cli_main(["gate", "--no-run", "--write", "GATE_CASE_TMP.json"])
+            self.assertEqual(code, 0)
+            case = json.loads(target.read_text(encoding="utf-8"))
+            self.assertIn("claim", case)
+            self.assertIn("facts", case)
+        finally:
+            target.unlink(missing_ok=True)
+            (project_root() / "GATE_CASE_TMP.json.bak").unlink(missing_ok=True)
+
+    def test_gate_ne_pishet_za_prede_projecta(self):
+        with redirect_stdout(io.StringIO()):
+            code = cli_main(["gate", "--no-run", "--write", "../Project4/case.json"])
+        self.assertEqual(code, 2)
+        self.assertFalse((gate.livingcode_root() / "Project4" / "case.json").exists())
+
+    def test_vse_cli_komandy_otvechayut_kodom_0(self):
+        # Регрессия плана (пункт 8): добавление команд не должно ломать
+        # прежний инвариант — на штатном дереве всё завершается успехом.
+        for command in ("validate", "identity", "distinct", "audit", "metrics"):
+            with redirect_stdout(io.StringIO()):
+                self.assertEqual(
+                    cli_main(["--memory-dir", str(REAL_MEMORY), command]), 0, command
+                )
+
+    def test_json_rabotaet_po_obe_storony_imeni_komandy(self):
+        # Регрессия, найденная живым прогоном: дефолты подпарсера затирали
+        # разобранное главным парсером, и `--json metrics` молча печатал
+        # человеческий текст — при том, что CLI обещает оба порядка.
+        for argv in (["--json", "metrics"], ["metrics", "--json"]):
+            buf = io.StringIO()
+            with redirect_stdout(buf):
+                code = cli_main(argv + ["--memory-dir", str(REAL_MEMORY)])
+            self.assertEqual(code, 0, argv)
+            payload = json.loads(buf.getvalue())
+            self.assertEqual(payload["records_total"], 102, argv)
+
+    def test_bez_flaga_json_ostaetsya_tekst(self):
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            code = cli_main(["metrics", "--memory-dir", str(REAL_MEMORY)])
+        self.assertEqual(code, 0)
+        self.assertNotIn("{", buf.getvalue())
+
+    def test_memory_dir_rabotaet_po_obe_storony(self):
+        # Та же причина, что и у --json: значение каталога не должно теряться
+        # из-за того, с какой стороны опция задана.
+        for argv in (["--memory-dir", str(REAL_MEMORY), "metrics"],
+                     ["metrics", "--memory-dir", str(REAL_MEMORY)]):
+            buf = io.StringIO()
+            with redirect_stdout(buf):
+                self.assertEqual(cli_main(["--json"] + argv), 0, argv)
+            self.assertEqual(json.loads(buf.getvalue())["records_total"], 102, argv)
+
+    def test_defolty_sohranayutsya_bez_opciy(self):
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            self.assertEqual(cli_main(["search", "графы"]), 0)
+        self.assertTrue(buf.getvalue().strip() or True)  # вывод не обязан быть непустым
+        # limit по умолчанию не должен стать None после SUPPRESS
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            self.assertEqual(cli_main(["search", "графы"]), 0)
+        self.assertEqual(build_parser().parse_args(["search"]).limit, 20)
+        self.assertFalse(build_parser().parse_args(["search"]).as_json)
 
 
 if __name__ == "__main__":

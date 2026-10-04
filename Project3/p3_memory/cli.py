@@ -14,6 +14,10 @@ from typing import Any, List, Optional
 
 from .attribution import addressing_from_disk
 from .canon import corpus, save_canon
+from .gate import (
+    build_facts, claim_from_facts, facts_digest, gate_check, read_registry,
+    registry_by_status, registry_entries,
+)
 from .identity import distinguish, identity_report
 from .loader import DEFAULT_DIR, MemoryInvalid, load as load_one, validate_corpus
 from .metrics import metrics as compute_metrics, search
@@ -225,6 +229,88 @@ def cmd_chronicle(args) -> int:
     return EXIT_OK
 
 
+def cmd_gate(args) -> int:
+    """Печать машинных фактов и (по --claim) их сверка живым гейтом.
+
+    По умолчанию печатается JSON фактов — это то, что гейт принимает на
+    вход. С `--claim` сверяется заявление агента и возвращается код гейта:
+    0 — подтверждено, 2 — расхождение.
+    """
+    facts = build_facts(target=args.target, run=not args.no_run)
+    if args.write:
+        try:
+            from .paths import safe_path
+
+            safe_path(args.write)
+        except PathRefused as exc:
+            print(f"отказ: {exc}", file=sys.stderr)
+            return EXIT_USAGE
+    if args.claim:
+        try:
+            claim = json.loads(args.claim)
+        except json.JSONDecodeError as exc:
+            print(f"заявление не разобрано: {exc}", file=sys.stderr)
+            return EXIT_USAGE
+        problems = gate_check(facts, claim)
+        print(json.dumps(
+            {"facts_digest": facts_digest(facts), "problems": problems,
+             "exit": 0 if not problems else 2},
+            ensure_ascii=False, indent=2))
+        if args.write:
+            _write_case(args.write, {"name": args.name, "claim": claim,
+                                     "facts": facts})
+        return 0 if not problems else 2
+    if args.write:
+        _write_case(args.write, {"name": args.name,
+                                 "claim": claim_from_facts(facts),
+                                 "facts": facts})
+    print(json.dumps(facts, ensure_ascii=False, indent=2))
+    return EXIT_OK
+
+
+def _write_case(relative: str, case: dict) -> None:
+    from .paths import atomic_write, safe_path
+
+    target = safe_path(relative)
+    atomic_write(target, json.dumps(case, ensure_ascii=False, indent=2) + "\n",
+                 backup=False)
+    print(f"кейс записан в {target.name}")
+
+
+def cmd_registry(args) -> int:
+    """Показать реестр дефектов и его согласованность.
+
+    `--json` печатает ТОЛЬКО JSON: смешивание человеческого текста и JSON в
+    одном потоке ломает разбор вывода потребителем (тест поймал это на
+    живом прогоне, а не на чтении кода).
+    """
+    reg = read_registry(project_root())
+    if args.as_json:
+        payload = {
+            "counters": reg,
+            "by_status": (registry_by_status(project_root())
+                          if reg is not None and "error" not in reg else {}),
+            "entries": (registry_entries(project_root())
+                        if reg is not None and "error" not in reg else []),
+        }
+        print(json.dumps(payload, ensure_ascii=False, indent=2))
+        return EXIT_OK if reg is not None and "error" not in reg else EXIT_FAIL
+    if reg is None:
+        print("реестра дефектов нет")
+        return EXIT_FAIL
+    if "error" in reg:
+        print(f"реестр не разобран: {reg['error']}")
+        return EXIT_FAIL
+    counts = registry_by_status(project_root())
+    print(f"всего {reg['total']}, открыто {reg['open']}, закрыто {reg['closed']}")
+    for status, count in sorted(counts.items()):
+        print(f"  {status}: {count}")
+    for entry in registry_entries(project_root()):
+        marker = "OPEN " if entry.get("status") in ("open", "new", "wip", "todo") else "CLOSED"
+        print(f"  [{marker}] {entry.get('id')}: {entry.get('title')}")
+    return EXIT_OK
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="p3_memory",
@@ -243,44 +329,70 @@ def build_parser() -> argparse.ArgumentParser:
         description="Project3 — память Профессора: загрузка, канонизация, аудит",
         parents=[common],
     )
+    # Подпарсер получает КОПИЮ общих опций, и его значения по умолчанию
+    # затирают разобранные главным парсером: `--json metrics` молча печатал
+    # человеческий текст вместо JSON. `argparse.SUPPRESS` как default не даёт
+    # подпарсеру ничего записать, поэтому побеждает явно заданное значение.
+    sub_common = argparse.ArgumentParser(add_help=False)
+    sub_common.add_argument("--memory-dir", default=argparse.SUPPRESS,
+                            help="каталог memory (по умолчанию ./memory)")
+    sub_common.add_argument("--json", dest="as_json",
+                            action="store_true", default=argparse.SUPPRESS,
+                            help="вывод в JSON")
+    sub_common.add_argument("--limit", type=int, default=argparse.SUPPRESS,
+                            help="сколько строк печатать")
+    # Базы для значений, если опция не задана ни слева, ни справа.
+    parser.set_defaults(as_json=False, memory_dir=None, limit=20)
     sub = parser.add_subparsers(dest="command", parser_class=argparse.ArgumentParser)
 
-    sub.add_parser("validate", parents=[common],
+    sub.add_parser("validate", parents=[sub_common],
                    help="проверить схему всех memory-файлов")
-    sub.add_parser("identity", parents=[common],
+    sub.add_parser("identity", parents=[sub_common],
                    help="сравнить тело Project3 с соседними проектами")
-    sub.add_parser("distinct", parents=[common],
+    sub.add_parser("distinct", parents=[sub_common],
                    help="записи, которых нет ни у соседей")
-    sub.add_parser("audit", parents=[common],
+    sub.add_parser("audit", parents=[sub_common],
                    help="аудит адресации applicable_projects")
-    sub.add_parser("metrics", parents=[common], help="метрики корпуса")
+    sub.add_parser("metrics", parents=[sub_common], help="метрики корпуса")
 
-    p_load = sub.add_parser("load", parents=[common],
+    p_load = sub.add_parser("load", parents=[sub_common],
                             help="прочитать один memory-файл")
     p_load.add_argument("path")
 
-    p_search = sub.add_parser("search", parents=[common], help="поиск по корпусу")
+    p_search = sub.add_parser("search", parents=[sub_common], help="поиск по корпусу")
     p_search.add_argument("query", nargs="?")
     p_search.add_argument("--category")
     p_search.add_argument("--source-type")
     p_search.add_argument("--min-score", type=float)
 
-    p_report = sub.add_parser("report", parents=[common],
+    p_report = sub.add_parser("report", parents=[sub_common],
                               help="собрать DUPLICITY_REPORT.md")
     p_report.add_argument("--fix", action="store_true", help="записать файл")
     p_report.add_argument("--out", help="путь внутри проекта")
 
-    p_canon = sub.add_parser("canon", parents=[common], help="канонический корпус")
+    p_canon = sub.add_parser("canon", parents=[sub_common], help="канонический корпус")
     p_canon.add_argument("--fix", action="store_true", help="записать файл")
     p_canon.add_argument("--out", help="путь внутри проекта")
 
-    p_chron = sub.add_parser("chronicle", parents=[common],
+    p_chron = sub.add_parser("chronicle", parents=[sub_common],
                              help="дописать раздел в CHRONICLE.md")
     p_chron.add_argument("--title", required=True)
     p_chron.add_argument("--body")
     p_chron.add_argument("--line", dest="lines", action="append")
     p_chron.add_argument("--file", help="файл внутри проекта вместо CHRONICLE.md")
     p_chron.add_argument("--no-backup", action="store_true")
+
+    p_gate = sub.add_parser("gate", parents=[sub_common],
+                            help="машинные факты для tools/cycle_claim_gate.py")
+    p_gate.add_argument("--claim", help="заявление агента JSON для сверки")
+    p_gate.add_argument("--name", default="project3", help="имя кейса")
+    p_gate.add_argument("--target", help="что гонять (например tests/)")
+    p_gate.add_argument("--no-run", action="store_true",
+                        help="не запускать прогон, а зафиксировать его отсутствие")
+    p_gate.add_argument("--write", help="записать кейс в файл внутри проекта")
+
+    sub.add_parser("registry", parents=[sub_common],
+                   help="реестр дефектов Project3")
 
     return parser
 
@@ -296,6 +408,8 @@ HANDLERS = {
     "report": cmd_report,
     "canon": cmd_canon,
     "chronicle": cmd_chronicle,
+    "gate": cmd_gate,
+    "registry": cmd_registry,
 }
 
 
