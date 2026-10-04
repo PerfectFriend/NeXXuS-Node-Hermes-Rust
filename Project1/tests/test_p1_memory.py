@@ -625,7 +625,11 @@ class DoctorCliTests(unittest.TestCase):
 
 
 class CrossFileTests(unittest.TestCase):
-    """Кросс-файловая дедупликация: победитель выбирается по synced_at."""
+    """Кросс-файловая дедупликация.
+
+    Правило выбора победителя: более поздний `timestamp` записи, при равенстве —
+    более ранний `synced_at` файла, затем имя файла, затем позиция.
+    """
 
     def setUp(self):
         self.tmp = TempProject()
@@ -725,6 +729,55 @@ class CrossFileTests(unittest.TestCase):
         second = merged_view(list(reversed(pairs)))
         self.assertEqual(first, second)
 
+    def test_fresher_record_wins_over_earlier_file(self):
+        """Поздний timestamp записи побеждает даже у файла с ранним synced_at.
+
+        Замер `tests/probe_winner.py`: номер цикла в имени файла не дата
+        (cycle_1351 записан раньше cycle_001), поэтому правило «побеждает ранний
+        файл» закрепляло устаревшее содержимое.
+        """
+        url = "https://example.org/fresh.md"
+        a = self.tmp.write(
+            "professor_insights_cycle_1351.json",
+            document([good_insight(source_url=url, summary="Устаревшая копия",
+                                   timestamp="2026-08-14T00:00:00+00:00")],
+                     cycle=1351, synced_at="2026-08-14T00:00:00+00:00"),
+        )
+        b = self.tmp.write(
+            "professor_insights_cycle_001.json",
+            document([good_insight(source_url=url, summary="Свежая копия",
+                                   timestamp="2026-08-16T08:10:33+00:00")],
+                     synced_at="2026-08-16T08:10:33+00:00"),
+        )
+        docs = [load(a), load(b)]
+        pairs = [(a, docs[0]), (b, docs[1])]
+        plan, stats = plan_crossfile(pairs)
+        self.assertEqual(stats["cross_file_duplicates"], 1)
+        late = [e for e in plan if "1351" in e["path"].name][0]
+        self.assertEqual(late["kept"], [])
+        self.assertEqual(merged_view(pairs)[0]["summary"], "Свежая копия")
+
+    def test_missing_timestamp_loses_to_stamped_record(self):
+        """Запись без timestamp не ломает ранжирование: она проигрывает помеченной."""
+        url = "https://example.org/nots.md"
+        without_stamp = good_insight(source_url=url)
+        without_stamp.pop("timestamp")
+        a = self.tmp.write(
+            "professor_insights_cycle_001.json",
+            document([without_stamp], synced_at="2026-08-14T00:00:00+00:00"),
+        )
+        b = self.tmp.write(
+            "professor_insights_cycle_002.json",
+            document([good_insight(source_url=url, summary="Вторая")], cycle=2,
+                     synced_at="2026-08-16T08:10:33+00:00"),
+        )
+        docs = [load(a), load(b)]
+        pairs = [(a, docs[0]), (b, docs[1])]
+        plan, stats = plan_crossfile(pairs)
+        self.assertEqual(stats["cross_file_duplicates"], 1)
+        self.assertEqual([e for e in plan if "cycle_001" in e["path"].name][0]["kept"], [])
+        self.assertEqual(len([e for e in plan if "cycle_002" in e["path"].name][0]["kept"]), 1)
+
 
 class CrossFileCliTests(unittest.TestCase):
     """`dedupe --scope all` через CLI: dry-run, --fix, идемпотентность."""
@@ -802,7 +855,14 @@ class CrossFileCliTests(unittest.TestCase):
 
 
 class RealDataCrossFileTests(unittest.TestCase):
-    """Реальные файлы Project1: измеренный дефект кросс-файловых дублей."""
+    """Реальные файлы Project1: измеренный дефект кросс-файловых дублей.
+
+    Числа зафиксированы харнессом `tests/harness_crossfile.py` (2026-10-03):
+    190 записей, 100 уникальных пар `(topic, source_url)`, из них 84 пары
+    встречаются сразу в двух файлах. Тест — регресс: если данные памяти
+    обновятся новым циклом Профессора, числа изменятся, и это нужно увидеть
+    осознанно (пересчитать харнессом), а не молча получить зелёный прогон.
+    """
 
     def test_measured_duplicate_count(self):
         pairs = list(crossfile_pairs(PROJECT_ROOT))
@@ -817,6 +877,26 @@ class RealDataCrossFileTests(unittest.TestCase):
         # после глобальной очистки ключи не должны повторяться между файлами
         keys = [dedupe_key(i) for i in merged_view(pairs)]
         self.assertEqual(len(keys), len(set(keys)))
+
+    def test_harness_numbers_hold(self):
+        """Регресс на числа харнесса: 190 входных, 84 кросс-файловых, 100 kept."""
+        pairs = list(crossfile_pairs(PROJECT_ROOT))
+        _, stats = plan_crossfile(pairs)
+        self.assertEqual(stats["input"], 190, stats)
+        self.assertEqual(stats["cross_file_duplicates"], 84, stats)
+        self.assertEqual(stats["kept"], 100, stats)
+
+    def test_real_run_of_harness_reports_same(self):
+        """Тот же замер реальным запуском харнесса, а не импортом модуля."""
+        import subprocess
+        script = PROJECT_ROOT / "tests" / "harness_crossfile.py"
+        proc = subprocess.run([sys.executable, str(script)],
+                              capture_output=True, text=True, timeout=120)
+        self.assertEqual(proc.returncode, 0, proc.stderr[-800:])
+        report = json.loads(proc.stdout[proc.stdout.index("{"):proc.stdout.rindex("}") + 1])
+        self.assertEqual(report["records"], 190)
+        self.assertEqual(report["unique_pairs"], 100)
+        self.assertEqual(report["cross_file_pairs"], 84)
 
 
 def crossfile_pairs(root):
