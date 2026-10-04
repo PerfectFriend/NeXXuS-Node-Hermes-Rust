@@ -966,6 +966,50 @@ class TestReport(Base):
                          target.read_text(encoding="utf-8"))
         self.assertTrue(target.exists())
 
+    def test_zakommitovannyy_otchet_ne_ustarel(self):
+        """Пункт 23: закоммиченный DUPLICITY_REPORT.md обязан совпадать с тем,
+        что порождает код.
+
+        Класс дефекта, который здесь закрывается: пункт плана может быть
+        выполнен по коду (метод `build_report` печатает новый раздел) и при
+        этом считаться выполненным, пока артефакт на диске — старая версия
+        без этого раздела. Тогда отчёт в репозитории врёт читателю, а все
+        тесты раздела зелёные, потому что проверяют `build_report()`, а не
+        файл. Реально это случилось: `a618ef1` (пункт 19) и `d89f68b`
+        (пункт 14) добавили разделы 8 и 3.1 в код, но артефакт на диске
+        остался от 09:13 без них.
+
+        Тест сравнивает файл с тем, что даёт код, и падает с перечнем
+        недостающих строк — иначе «отчёт устарел» нечем диагностировать.
+        """
+        on_disk_path = project_root() / "DUPLICITY_REPORT.md"
+        self.assertTrue(on_disk_path.exists(),
+                        "DUPLICITY_REPORT.md отсутствует — отчёт должен быть "
+                        "закоммичен вместе с кодом, который его порождает")
+        on_disk = on_disk_path.read_text(encoding="utf-8")
+        fresh = report.build_report(REAL_MEMORY)
+
+        if fresh == on_disk:
+            return
+
+        # Диагностика: какие заголовки есть в коде, но нет в артефакте.
+        headings = [ln for ln in fresh.splitlines() if ln.startswith("## ")]
+        missing = [h for h in headings if h not in on_disk]
+        only_disk = [ln for ln in on_disk.splitlines() if ln.startswith("## ")]
+        extra = [h for h in only_disk if h not in fresh]
+        report_sections = [h for h in missing if "Реестр дефектов" in h]
+
+        self.fail(
+            "DUPLICITY_REPORT.md устарел относительно build_report(). "
+            f"В артефакте {len(on_disk.splitlines())} строк, "
+            f"код порождает {len(fresh.splitlines())}. "
+            f"Отсутствуют разделы: {missing or '—'}; "
+            f"лишние: {extra or '—'}. "
+            f"Реестр дефектов в артефакте: "
+            f"{'есть' if not report_sections else 'отсутствует'}. "
+            "Починить: python3 -m p3_memory report --fix"
+        )
+
 
 # ---------------------------------------------------------------- CLI
 
