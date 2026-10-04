@@ -390,6 +390,58 @@ def claim_from_facts(facts: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
+def honesty_probe(project=None, junit=None, target: Optional[str] = None,
+                  repo=None, run: bool = True) -> Dict[str, Any]:
+    """Пункт 20: сквозная проверка честности одним вызовом.
+
+    Собирает факты из РЕАЛЬНОГО прогона, строит эталонное заявление из них и
+    прогоняет три кейса через настоящий гейт:
+
+    * `honest`    — заявление ровно по фактам; ожидаем падение тогда и только
+                    тогда, когда остались открытые дефекты.
+    * `inflated`  — то же, но `tests_passed` на 1 больше и `cycle_closed: true`;
+                    ожидаем падение ВСЕГДА.
+    * `silent`    — заявление не называет ни одного числа, но объявляет цикл
+                    закрытым; именно эту дыру гейт не видит, и обёртка ловит.
+
+    Ценность третьего кейса: он показывает, что сам гейт пропустил бы
+    «закрытие» без единого факта. Значит одного `gate_check` мало, и это
+    измерение, а не мнение.
+    """
+    project = Path(project or project_root())
+    facts = build_facts(project, junit=junit, target=target, run=run)
+    base = claim_from_facts(facts)
+    inflated = dict(base)
+    inflated["tests_passed"] = (base.get("tests_passed") or 0) + 1
+    inflated["cycle_closed"] = True
+    silent = {"tests_passed": None, "tests_total": None,
+              "defects_closed": None, "cycle_closed": True}
+
+    cases = {
+        "honest": (base, bool((facts.get("defect_registry") or {}).get("open"))),
+        "inflated": (inflated, True),
+        "silent": (silent, True),
+    }
+    results: Dict[str, Any] = {}
+    for name, (claim, should_fail) in cases.items():
+        problems = gate_check(facts, claim, repo)
+        results[name] = {
+            "problems": problems,
+            "gate_exit": gate_exit(facts, claim, repo),
+            "should_fail": should_fail,
+            "ok": bool(problems) == should_fail,
+        }
+    open_defects = (facts.get("defect_registry") or {}).get("open")
+    passed = all(item["ok"] for item in results.values())
+    return {
+        "facts_digest": facts_digest(facts),
+        "open_defects": open_defects,
+        "cases": results,
+        "verdict": "честность подтверждена" if passed else "ПРОВАЛ проверки",
+        "passed": passed,
+    }
+
+
 def claim_case(name: str, claim: Dict[str, Any], facts: Dict[str, Any]) -> Dict[str, Any]:
     """Кейс в формате, который понимает `cycle_claim_gate.py`."""
     return {"name": name, "claim": claim, "facts": facts}
@@ -424,5 +476,6 @@ __all__ = [
     "read_registry", "registry_by_status", "registry_entries", "registry_path",
     "build_facts", "load_gate", "fact_defects", "claim_defects", "gate_check",
     "gate_exit", "claim_from_facts", "claim_case", "facts_digest",
+    "honesty_probe",
     "livingcode_root",
 ]

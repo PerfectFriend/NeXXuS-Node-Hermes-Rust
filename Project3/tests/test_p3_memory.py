@@ -1237,6 +1237,84 @@ class TestGate(Base):
                          Path(gate.livingcode_root() / "tools" /
                               "cycle_claim_gate.py").resolve())
 
+    def test_honesty_probe_na_chistom_podproekte(self):
+        # На подпроекте без открытых дефектов честное заявление обязано
+        # пройти, а завышенное и молчащее — упасть.
+        proj = self.mini_project(statuses=("closed", "closed"))
+        result = gate.honesty_probe(proj)
+        self.assertTrue(result["passed"], result["cases"])
+        self.assertEqual(result["cases"]["honest"]["problems"], [])
+        self.assertEqual(result["cases"]["honest"]["gate_exit"], 0)
+        self.assertFalse(result["cases"]["honest"]["should_fail"])
+        for name in ("inflated", "silent"):
+            self.assertTrue(result["cases"][name]["problems"], name)
+            self.assertEqual(result["cases"][name]["gate_exit"], 2, name)
+
+    def test_honesty_probe_lovit_zavyyshennye_chisla(self):
+        proj = self.mini_project(statuses=("closed",))
+        result = gate.honesty_probe(proj)
+        inflated = result["cases"]["inflated"]
+        self.assertTrue(inflated["problems"])
+        self.assertTrue(any("заявлено тестов зелёных" in p
+                            for p in inflated["problems"]), inflated["problems"])
+
+    def test_honesty_probe_lovit_molchashchee_zayavlenie(self):
+        # Ни одного числа + «цикл закрыт»: дыра, которую видит только обёртка.
+        proj = self.mini_project(statuses=("closed",))
+        result = gate.honesty_probe(proj)
+        silent = result["cases"]["silent"]
+        self.assertEqual(silent["gate_exit"], 2)
+        self.assertTrue(any("не называет число" in p for p in silent["problems"]),
+                        silent["problems"])
+
+    def test_chestnoe_zayavlenie_padaet_poka_otkryty_defekty(self):
+        # Пока открытые дефекты есть, честное заявление тоже должно падать —
+        # иначе «честно» означало бы «всё зелёное», а не «по фактам».
+        proj = self.mini_project(statuses=("closed", "open"))
+        result = gate.honesty_probe(proj)
+        self.assertTrue(result["cases"]["honest"]["should_fail"])
+        self.assertEqual(result["cases"]["honest"]["gate_exit"], 2)
+        self.assertEqual(result["open_defects"], 1)
+        self.assertTrue(result["passed"], result["cases"])
+
+    def test_honesty_probe_ne_progonyan_net_kak_zaglushka(self):
+        # --no-run: фактов нет, и проверка обязана это признать, а не
+        # объявить успех по нулям.
+        proj = self.mini_project(statuses=("closed",))
+        result = gate.honesty_probe(proj, run=False)
+        self.assertIn("ПРОГОН НЕ ВЫПОЛНЕН", result["facts_digest"])
+        for name, case in result["cases"].items():
+            self.assertTrue(case["problems"], name)
+
+    def test_honesty_cli_bez_progona_rabotaet(self):
+        # ВАЖНО: здесь --no-run. Вариант с реальным прогоном Project3 внутри
+        # теста Project3 — это рекурсия: прогон запускает сам себя. Именно
+        # поэтому все проверки honesty_probe идут на временном подпроекте,
+        # а живой прогон Project3 выполняется отдельной командой вручную.
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            code = cli_main(["honesty", "--no-run"])
+        self.assertEqual(code, 0, buf.getvalue())
+        self.assertIn("итог:", buf.getvalue())
+        self.assertIn("ПРОГОН НЕ ВЫПОЛНЕН", buf.getvalue())
+
+    def test_honesty_cli_json_struktura(self):
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            code = cli_main(["--json", "honesty", "--no-run"])
+        self.assertEqual(code, 0, buf.getvalue())
+        payload = json.loads(buf.getvalue())
+        self.assertTrue(payload["passed"])
+        self.assertEqual(sorted(payload["cases"]), ["honest", "inflated", "silent"])
+        # Факта прогона нет: все три кейса обязаны это называть, и ни одно
+        # число прогона не должно появиться как «0 тестов».
+        for name, case in payload["cases"].items():
+            self.assertTrue(case["problems"], name)
+            self.assertTrue(
+                any("прогон" in p.lower() for p in case["problems"]),
+                f"{name}: {case['problems']}",
+            )
+
     def test_neyavnyy_put_k_gaytu_otvergayetsya(self):
         with self.assertRaises(FileNotFoundError):
             gate.load_gate(self.tmp / "net-takogo")

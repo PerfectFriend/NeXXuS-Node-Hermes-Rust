@@ -15,8 +15,8 @@ from typing import Any, List, Optional
 from .attribution import addressing_from_disk
 from .canon import corpus, save_canon
 from .gate import (
-    build_facts, claim_from_facts, facts_digest, gate_check, read_registry,
-    registry_by_status, registry_entries,
+    build_facts, claim_from_facts, facts_digest, gate_check, honesty_probe,
+    read_registry, registry_by_status, registry_entries,
 )
 from .identity import distinguish, identity_report
 from .loader import DEFAULT_DIR, MemoryInvalid, load as load_one, validate_corpus
@@ -277,6 +277,29 @@ def _write_case(relative: str, case: dict) -> None:
     print(f"кейс записан в {target.name}")
 
 
+def cmd_honesty(args) -> int:
+    """Сквозная проверка честности (пункт 20).
+
+    Три кейса: честное заявление по фактам, завышенное на 1 тест, и молчащее
+    «цикл закрыт» без единого числа. Код 0 — все кейсы сработали как
+    предписано; 2 — проверка не сработала, то есть система перестала ловить
+    ложное утверждение.
+    """
+    result = honesty_probe(target=args.target, run=not args.no_run)
+    if args.as_json:
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+    else:
+        print(f"факты: {result['facts_digest']}")
+        for name, case in result["cases"].items():
+            verdict = "пойман" if case["problems"] else "пропущен"
+            expect = "должен падать" if case["should_fail"] else "должен пройти"
+            print(f"  {name}: {verdict} (код {case['gate_exit']}, {expect})")
+            for problem in case["problems"]:
+                print(f"      - {problem}")
+        print(f"итог: {result['verdict']}")
+    return EXIT_OK if result["passed"] else EXIT_FAIL
+
+
 def cmd_registry(args) -> int:
     """Показать реестр дефектов и его согласованность.
 
@@ -394,6 +417,12 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_parser("registry", parents=[sub_common],
                    help="реестр дефектов Project3")
 
+    p_honesty = sub.add_parser("honesty", parents=[sub_common],
+                               help="сквозная проверка честности против гейта")
+    p_honesty.add_argument("--target", help="что гонять (например tests/)")
+    p_honesty.add_argument("--no-run", action="store_true",
+                           help="не запускать прогон, а зафиксировать его отсутствие")
+
     return parser
 
 
@@ -410,6 +439,7 @@ HANDLERS = {
     "chronicle": cmd_chronicle,
     "gate": cmd_gate,
     "registry": cmd_registry,
+    "honesty": cmd_honesty,
 }
 
 
