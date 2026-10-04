@@ -33,8 +33,20 @@ __all__ = [
     "freshness_report",
     "origin_findings",
     "field_profile",
+    "consolidate_insights",
+    "stale_duplicates",
+    "plan_freshness_fix",
+    "apply_freshness_fix",
+    "MARK_SUPERSEDED",
+    "MARK_ORIGIN",
     "CONSTANT_SHARE",
 ]
+
+# Пометки, которые `--fix` проставляет прямо в записи. Не служебные поля с
+# подчёркиванием: они должны быть видны тому, кто читает файл глазами, —
+# именно ради этого пункт 19 и формулировался как «разметить», а не «удалить».
+MARK_SUPERSEDED = "superseded_by"
+MARK_ORIGIN = "origin_issue"
 
 # Порог «поле ничего не различает»: одно значение у этой доли записей.
 CONSTANT_SHARE = 0.9
@@ -234,6 +246,10 @@ def freshness_report(files: Sequence[Dict[str, Any]]) -> Dict[str, Any]:
 
     # Потери: для каждого файла-инверсии считаем, сколько его записей
     # дублируют запись из БОЛЕЕ СВЕЖЕГО файла, стоящего раньше.
+    #
+    # Уже помеченные записи (`superseded_by`, пункт 19) из счёта исключены:
+    # после `--fix` дефект считается закрытым, и повторный прогон обязан
+    # дать 0 — иначе метка ничего не значит, а только прячет данные.
     lost = 0
     details: List[Dict[str, Any]] = []
     for row in rows:
@@ -242,6 +258,7 @@ def freshness_report(files: Sequence[Dict[str, Any]]) -> Dict[str, Any]:
         here = next(d for d in files if d.get("_path") == row["file"])
         here_fresh = row["freshness"]
         lost_keys = 0
+        marked = 0
         for earlier in rows:
             if earlier["freshness"] is None or here_fresh is None:
                 continue
@@ -253,18 +270,23 @@ def freshness_report(files: Sequence[Dict[str, Any]]) -> Dict[str, Any]:
                 for i in other.get("insights") or []
                 if isinstance(i, dict)
             }
-            keys_here = {
-                (str(i.get("topic", "")), str(i.get("source_url", "")))
-                for i in here.get("insights") or []
-                if isinstance(i, dict)
-            }
-            lost_keys += len(keys_other & keys_here)
+            for i in here.get("insights") or []:
+                if not isinstance(i, dict):
+                    continue
+                key = (str(i.get("topic", "")), str(i.get("source_url", "")))
+                if key not in keys_other:
+                    continue
+                if MARK_SUPERSEDED in i:
+                    marked += 1
+                else:
+                    lost_keys += 1
         details.append(
             {
                 "file": row["file"],
                 "cycle": row["cycle"],
                 "synced_at": row["synced_at"],
                 "overwritten_by_fresher": lost_keys,
+                "already_marked_superseded": marked,
             }
         )
         lost += lost_keys
@@ -312,8 +334,17 @@ def _is_nav_topic(topic: str) -> bool:
     return tail.isdigit()
 
 
-def origin_findings(items: Iterable[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    """Записи с подменённым происхождением (список с причиной и местом)."""
+def origin_findings(
+    items: Iterable[Dict[str, Any]], skip_acknowledged: bool = True
+) -> List[Dict[str, Any]]:
+    """Записи с подменённым происхождением (список с причиной и местом).
+
+    `skip_acknowledged` — не считать находкой запись, в которой эта причина
+    уже записана (`origin_issue`, пункт 19). Иначе `--fix` не мог бы закрыть
+    дефект: находка останется в отчёте и после того, как файл помечен.
+    Причина помечается как решённая (список `reasons`), поэтому
+    подтверждённая пометка и новая подмена — разные вещи.
+    """
     findings: List[Dict[str, Any]] = []
     for idx, item in enumerate(items):
         if not isinstance(item, dict):
@@ -328,17 +359,140 @@ def origin_findings(items: Iterable[Dict[str, Any]]) -> List[Dict[str, Any]]:
             reasons.append("source_type=textbook, но source_url не ведёт в vault (.md)")
         if _is_nav_topic(topic):
             reasons.append("topic вида 'X: <id>' — навигация сканера, а не тема")
-        if reasons:
-            findings.append(
+        if not reasons:
+            continue
+        if skip_acknowledged:
+            already = item.get(MARK_ORIGIN)
+            if isinstance(already, list) and set(already) >= set(reasons):
+                continue
+        findings.append(
+            {
+                "index": idx,
+                "topic": topic,
+                "source_url": url,
+                "source_type": stype,
+                "reasons": reasons,
+            }
+        )
+    return findings
+
+
+# --- Разметка устаревшего (`--fix`, пункт 19) ------------------------------
+
+
+def stale_duplicates(files: Sequence[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Записи, которые уже представлены в более свежем файле.
+
+    Для каждой такой записи известен источник свежести (файл, чья
+    `synced_at` больше), поэтому пометка не выдумывает provenance — она
+    называет конкретный файл, из которого запись пришла в виде дубля.
+    """
+    rows = file_order_report(files)
+    out: List[Dict[str, Any]] = []
+    for row in rows:
+        if not row["inverted"]:
+            continue
+        here = next(d for d in files if d.get("_path") == row["file"])
+        here_fresh = row["freshness"]
+        if here_fresh is None:
+            continue
+        for earlier in rows:
+            if earlier["freshness"] is None or earlier["freshness"] <= here_fresh:
+                continue
+            other = next(d for d in files if d.get("_path") == earlier["file"])
+            keys_other = {
+                (str(i.get("topic", "")), str(i.get("source_url", "")))
+                for i in other.get("insights") or []
+                if isinstance(i, dict)
+            }
+            for idx, item in enumerate(here.get("insights") or []):
+                if not isinstance(item, dict):
+                    continue
+                key = (str(item.get("topic", "")), str(item.get("source_url", "")))
+                if key not in keys_other:
+                    continue
+                if MARK_SUPERSEDED in item:
+                    continue
+                out.append(
+                    {
+                        "file": row["file"],
+                        "index": idx,
+                        "topic": key[0],
+                        "source_url": key[1],
+                        "kind": "superseded",
+                        "superseded_by": earlier["file"],
+                        "superseded_by_synced_at": earlier["synced_at"],
+                        "own_synced_at": row["synced_at"],
+                    }
+                )
+    return out
+
+
+def plan_freshness_fix(files: Sequence[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Что именно `--fix` собирается сделать: устаревшие дубли + происхождение.
+
+    Ничего не применяет. Порядок важен: сначала разметка устаревших дублей
+    (по файлам), затем находки происхождения — обе операции только добавляют
+    поля, ни одну запись не удаляют.
+    """
+    plan = stale_duplicates(files)
+    # Происхождение считаем ПОФАЙЛОВО: индексы origin_findings сквозные по
+    # переданному потоку, а разметка адресована конкретной записи в
+    # конкретном файле. Сквозной индекс здесь поставил бы пометку на
+    # соседнюю тему другого файла.
+    for data in files:
+        own = [i for i in (data.get("insights") or []) if isinstance(i, dict)]
+        by_index = {id(i): n for n, i in enumerate(own)}
+        for finding in origin_findings(own):
+            pos = by_index.get(id(own[finding["index"]]))
+            if pos is None:
+                continue
+            plan.append(
                 {
-                    "index": idx,
-                    "topic": topic,
-                    "source_url": url,
-                    "source_type": stype,
-                    "reasons": reasons,
+                    "kind": "origin",
+                    "file": data.get("_path"),
+                    "index": pos,
+                    "topic": finding["topic"],
+                    "source_url": finding["source_url"],
+                    "reasons": finding["reasons"],
                 }
             )
-    return findings
+    return plan
+
+
+def apply_freshness_fix(
+    data: Dict[str, Any], plan: Sequence[Dict[str, Any]]
+) -> Tuple[Dict[str, Any], int]:
+    """Разметить записи файла по плану. Возвращает (новые данные, сколько помечено).
+
+    Мутирует глубокие копии, а не загруженный объект: `load()` уже отдаёт
+    разобранный JSON, и молчаливая правка его на месте сделала бы
+    невоспроизводимым dry-run, который печатался до этого вызова.
+    """
+    import copy
+
+    out = copy.deepcopy({k: v for k, v in data.items() if not k.startswith("_")})
+    insights = out.get("insights") or []
+    count = 0
+    for step in plan:
+        idx = step.get("index")
+        if not isinstance(idx, int) or idx < 0 or idx >= len(insights):
+            continue
+        item = insights[idx]
+        if not isinstance(item, dict):
+            continue
+        if step.get("kind") == "superseded":
+            item[MARK_SUPERSEDED] = {
+                "file": step.get("superseded_by"),
+                "synced_at": step.get("superseded_by_synced_at"),
+            }
+        elif step.get("kind") == "origin":
+            item[MARK_ORIGIN] = step.get("reasons") or []
+        else:
+            continue
+        count += 1
+    out["total_insights"] = len(insights)
+    return out, count
 
 
 # --- Константность полей --------------------------------------------------

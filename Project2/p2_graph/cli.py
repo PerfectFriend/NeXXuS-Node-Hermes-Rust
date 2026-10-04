@@ -361,13 +361,36 @@ def cmd_query(args) -> int:
 
 def cmd_freshness(args) -> int:
     """Свежесть корпуса: инверсии порядка имён, потери, подменённое происхождение."""
-    from .provenance import freshness_report, origin_findings
+    from .provenance import apply_freshness_fix, freshness_report, origin_findings, plan_freshness_fix
 
     data = _collect(args)
     files = data.get("files") or []
     if not files:
         print("Нет файлов памяти для анализа.")
         return EXIT_DATA
+
+    plan = plan_freshness_fix(files)
+    written: List[str] = []
+    if args.fix and plan:
+        by_file: Dict[str, List[Dict[str, Any]]] = {}
+        for step in plan:
+            by_file.setdefault(str(step.get("file")), []).append(step)
+        for f in files:
+            steps = by_file.get(str(f.get("_path")))
+            if not steps:
+                continue
+            new_data, count = apply_freshness_fix(f, steps)
+            if count:
+                atomic_write(f["_path"], new_data)
+                written.append(str(f["_path"]))
+        # Отчёт после --fix обязан считать состояние НА ДИСКЕ, а не то, что
+        # лежит в памяти с момента загрузки: иначе команда рапортовала бы о
+        # только что исправленных дефектах, и exit-код был бы ложью.
+        files = load_all(args.memory_dir)
+        data["files"] = files
+        data["insights"] = list(iter_insights(files))
+        plan = plan_freshness_fix(files)
+
     rep = freshness_report(files)
     kept, _stats = clean_insights(data["insights"])
     findings = origin_findings(kept)
@@ -382,6 +405,10 @@ def cmd_freshness(args) -> int:
                 "lost_detail": rep["lost_detail"],
                 "origin_findings": findings,
                 "origin_count": len(findings),
+                "fix_plan": len(plan),
+                "fix_superseded": sum(1 for s in plan if s.get("kind") == "superseded"),
+                "fix_origin": sum(1 for s in plan if s.get("kind") == "origin"),
+                "fixed_files": written,
             },
             ensure_ascii=False, indent=2,
         ))
@@ -391,6 +418,20 @@ def cmd_freshness(args) -> int:
         return EXIT_DATA if rep["lost"] else EXIT_OK
 
     print(f"Файлов памяти: {len(rep['files'])}")
+    if args.fix:
+        mode = "ИСПРАВЛЕНО" if written else "нечего исправлять"
+        print(
+            f"Разметка: помечено устаревших дублей {sum(1 for s in plan if s.get('kind') == 'superseded')}, "
+            f"подменённых происхождений {sum(1 for s in plan if s.get('kind') == 'origin')} — {mode}"
+        )
+        for p in written:
+            print(f"  записан: {p}")
+    else:
+        print(
+            "dry-run (без --fix ничего не записано): к разметке "
+            f"{sum(1 for s in plan if s.get('kind') == 'superseded')} устаревших дублей, "
+            f"{sum(1 for s in plan if s.get('kind') == 'origin')} подменённых происхождений"
+        )
     if rep["order_is_chronological"]:
         print("Порядок чтения совпадает с хронологией: да")
     else:
@@ -460,6 +501,8 @@ def build_parser() -> argparse.ArgumentParser:
 
     fz = sub.add_parser("freshness", help="свежесть корпуса и подменённое происхождение")
     fz.add_argument("--json", action="store_true")
+    fz.add_argument("--fix", action="store_true",
+                    help="разметить устаревшие дубли и подменённое происхождение (атомарно)")
     fz.set_defaults(func=cmd_freshness)
     return p
 
