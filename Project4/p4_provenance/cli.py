@@ -4,7 +4,7 @@
     python -m p4_provenance <команда> [аргументы]
 
 Команды: validate, load, fingerprint, repro, identity, audit, metrics, search,
-canon, canary, report.
+canon, canary, report, gate, honesty.
 
 Код возврата 0 — успех (в том числе DRIFT у canary: это подтверждение, что дефект
 жив, а не сбой инструмента). Код 1 — ошибка данных или неожиданный статус.
@@ -228,6 +228,30 @@ def cmd_gate(args: argparse.Namespace) -> int:
     return 0 if not problems else 2
 
 
+def cmd_honesty(args: argparse.Namespace) -> int:
+    """Пункт 16: сквозная проба — настоящий прогон, настоящий гейт, ложь роняется.
+
+    Код 0 — все завышенные заявления отвергнуты И числа честного заявления
+    сошлись с прогоном. Код 2 — хоть одна ложь прошла (дефект инструмента) либо
+    сбор фактов разошёлся с честным заявлением.
+    """
+    from .honesty import honesty_probe, render_probe, verdict_exit
+    from .paths import inside_root
+
+    project = Path(args.project) if args.project else paths.PROJECT_DIR
+    probe = honesty_probe(project, args.repo or REPO, target=args.target, run=not args.no_run)
+    if args.out:
+        target = inside_root(args.out)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(render_probe(probe) + "\n", encoding="utf-8")
+        print(f"проба записана: {target}", file=sys.stderr)
+    if args.json:
+        _out(probe)
+    else:
+        print(render_probe(probe))
+    return verdict_exit(probe)
+
+
 COMMANDS = {
     "validate": cmd_validate,
     "load": cmd_load,
@@ -242,6 +266,7 @@ COMMANDS = {
     "canary": cmd_canary,
     "report": cmd_report,
     "gate": cmd_gate,
+    "honesty": cmd_honesty,
 }
 
 
@@ -301,6 +326,17 @@ def build_parser() -> argparse.ArgumentParser:
     gate_parser.add_argument("--claim", help="файл заявления (JSON) или - для stdin")
     gate_parser.add_argument("--name", default="project4", help="имя кейса")
     gate_parser.add_argument("--save", help="записать кейс в файл внутри Project4")
+
+    honesty_parser = sub.add_parser(
+        "honesty",
+        help="сквозная проба честности: настоящий прогон, настоящий гейт, ложь роняется",
+    )
+    honesty_parser.add_argument("--project", help="каталог проекта (по умолчанию Project4)")
+    honesty_parser.add_argument("--target", help="что прогонять pytest-ом (например tests)")
+    honesty_parser.add_argument("--no-run", action="store_true",
+                               help="не прогонять тесты (проба обязана это отвергнуть)")
+    honesty_parser.add_argument("--json", action="store_true", help="полный JSON пробы")
+    honesty_parser.add_argument("--out", help="записать разбор в файл внутри Project4")
 
     for name, func in COMMANDS.items():
         sub.choices[name].set_defaults(func=func)
