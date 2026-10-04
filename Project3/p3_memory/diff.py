@@ -128,6 +128,31 @@ def _view(record: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
+def _is_moved(old_record: Dict[str, Any], new_records: Dict[str, Any]) -> bool:
+    """Запись сменила категорию, но не пропала.
+
+    Ключ дедупликации — тема + категория + URL (`canon.record_key`), так
+    что смена одной только категории меняет ключ, и в диффе запись
+    выглядит как удалённая плюс добавленная. Это ложное удаление: она
+    никуда не девалась, а переехала в другую категорию. Переезд
+    отличаем по совпадению URL и темы при другой категории.
+    """
+    url = _norm_url(old_record.get("source_url"))
+    if url is None:
+        return False
+    topic = normalize_text(old_record.get("topic"))
+    old_category = _norm_value("category", old_record.get("category"))
+    for new_key in new_records:
+        candidate = new_records[new_key]
+        if _norm_url(candidate.get("source_url")) != url:
+            continue
+        if normalize_text(candidate.get("topic")) != topic:
+            continue
+        if _norm_value("category", candidate.get("category")) != old_category:
+            return True
+    return False
+
+
 def diff_cycles(
     data_from: Dict[str, Any], data_to: Dict[str, Any]
 ) -> Dict[str, Any]:
@@ -141,6 +166,7 @@ def diff_cycles(
 
     added: List[Dict[str, Any]] = []
     removed: List[Dict[str, Any]] = []
+    moved: List[Dict[str, Any]] = []
     changed: List[Dict[str, Any]] = []
     rewritten: List[Dict[str, Any]] = []
     unchanged = 0
@@ -163,7 +189,15 @@ def diff_cycles(
             rewritten.append({"topic": new[key].get("topic"), "fields": fields})
     for key in old:
         if key not in new:
-            removed.append(_view(old[key]))
+            entry = _view(old[key])
+            # Пропала или переехала: ключ дедупликации включает
+            # `category`, поэтому смена категории сама по себе выглядит
+            # как удаление. Считать это пропажей нельзя — читатель увидит
+            # потерю записи там, где её лишь переложили в другую рубрику.
+            if _is_moved(old[key], new):
+                moved.append(entry)
+            else:
+                removed.append(entry)
 
     return {
         "from_file": data_from.get("_source_file"),
@@ -174,6 +208,7 @@ def diff_cycles(
         "to_records": len(data_to.get("insights") or []),
         "added": added,
         "removed": removed,
+        "moved": moved,
         "changed": changed,
         "rewritten": rewritten,
         "unchanged": unchanged,

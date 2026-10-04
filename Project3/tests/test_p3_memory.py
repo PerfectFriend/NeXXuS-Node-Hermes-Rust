@@ -2362,5 +2362,88 @@ class TestReportTellsRewriteFromEdit(Base):
         self.assertIn("По каким полям менялись записи:", text)
 
 
+class TestLossIsNamed(Base):
+    """Пропавшее названо, а не просто посчитано (пункт 34).
+
+    «удалено 16» ничего не говорит читателю: какие записи исчезли и
+    потерялись ли они на самом деле. Ключ дедупликации включает
+    `category`, поэтому смена категории выглядит удалением — и это
+    должно быть названо переездом, а не потерей.
+    """
+
+    def test_smena_kategorii_daet_moved_a_ne_removed(self):
+        root = write_corpus(self.tmp, {
+            "professor_insights_cycle_001.json": [
+                make_record(topic="А", url="https://x.com/a", category="Старая"),
+            ],
+            "professor_insights_cycle_002.json": [
+                make_record(topic="А", url="https://x.com/a", category="Новая"),
+            ],
+        })
+        d = diff.diff(root)
+        self.assertEqual(d["removed"], [])
+        self.assertEqual(len(d["moved"]), 1)
+        self.assertEqual(d["moved"][0]["topic"], "А")
+        self.assertEqual(d["moved"][0]["category"], "Старая")
+        # Запись при этом и добавлена — ключ-то поменялся.
+        self.assertEqual(len(d["added"]), 1)
+
+    def test_nastoyashchaya_propazha_dayot_removed(self):
+        root = write_corpus(self.tmp, {
+            "professor_insights_cycle_001.json": [
+                make_record(topic="А", url="https://x.com/a"),
+                make_record(topic="Б", url="https://x.com/b"),
+            ],
+            "professor_insights_cycle_002.json": [
+                make_record(topic="А", url="https://x.com/a"),
+            ],
+        })
+        d = diff.diff(root)
+        self.assertEqual(len(d["removed"]), 1)
+        self.assertEqual(d["moved"], [])
+        self.assertEqual(d["removed"][0]["topic"], "Б")
+
+    def test_su_mma_pereezda_i_propazhi_ravna_klostyam(self):
+        # Пропасть плюс переезд — это ровно все ключи, которых нет в
+        # новом цикле под своим именем.
+        def rec(topic, url, category="К"):
+            return make_record(topic=topic, url=url, category=category)
+        root = write_corpus(self.tmp, {
+            "professor_insights_cycle_001.json": [
+                rec("А", "https://x.com/a"),
+                rec("Б", "https://x.com/b"),
+                rec("В", "https://x.com/c", "Старая"),
+            ],
+            "professor_insights_cycle_002.json": [
+                rec("А", "https://x.com/a"),
+                rec("В", "https://x.com/c", "Новая"),
+            ],
+        })
+        d = diff.diff(root)
+        self.assertEqual(len(d["removed"]) + len(d["moved"]), 2)
+        self.assertEqual(len(d["removed"]), 1)
+        self.assertEqual(len(d["moved"]), 1)
+
+    def test_kazhdaya_removed_zapis_nazvana(self):
+        # Числа «удалено 16» достаточно только если каждую запись
+        # можно назвать: тема, категория или URL. Поле `source_url` в
+        # корпусе опционально (есть запись с темой `Unknown` вовсе без
+        # него), поэтому опознание идёт по любому непустому полю.
+        for entry in diff.diff(REAL_MEMORY)["removed"]:
+            self.assertTrue(
+                any(str(entry.get(field) or "").strip()
+                    for field in ("topic", "category", "source_url")),
+                f"запись не опознана ни одним полем: {entry}",
+            )
+
+    def test_shtatnyy_korpus_nazyvaet_kazhduyu_iz_16(self):
+        d = diff.diff(REAL_MEMORY)
+        self.assertEqual(len(d["removed"]), 16)
+        for entry in d["removed"]:
+            self.assertTrue(str(entry["topic"] or "").strip(), entry)
+            self.assertTrue(str(entry["category"] or "").strip(), entry)
+        self.assertEqual(d["moved"], [])
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
