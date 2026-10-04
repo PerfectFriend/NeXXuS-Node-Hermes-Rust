@@ -18,6 +18,7 @@ from .gate import (
     build_facts, claim_from_facts, facts_digest, gate_check, honesty_probe,
     read_registry, registry_by_status, registry_entries,
 )
+from .diff import diff, diff_text
 from .identity import distinguish, identity_report
 from .loader import DEFAULT_DIR, MemoryInvalid, load as load_one, validate_corpus
 from .metrics import metrics as compute_metrics, search
@@ -334,6 +335,14 @@ def cmd_registry(args) -> int:
     return EXIT_OK
 
 
+def cmd_diff(args) -> int:
+    result = diff(
+        _memory_dir(args), args.ref_from, args.ref_to,
+    )
+    _out(result, args.as_json, diff_text(result, args.limit))
+    return EXIT_OK
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="p3_memory",
@@ -423,6 +432,13 @@ def build_parser() -> argparse.ArgumentParser:
     p_honesty.add_argument("--no-run", action="store_true",
                            help="не запускать прогон, а зафиксировать его отсутствие")
 
+    p_diff = sub.add_parser("diff", parents=[sub_common],
+                            help="дифф двух циклов (по умолчанию два последних)")
+    p_diff.add_argument("ref_from", nargs="?",
+                        help="число цикла или имя файла (по умолчанию предпоследний)")
+    p_diff.add_argument("ref_to", nargs="?",
+                        help="число цикла или имя файла (по умолчанию последний)")
+
     return parser
 
 
@@ -440,6 +456,7 @@ HANDLERS = {
     "gate": cmd_gate,
     "registry": cmd_registry,
     "honesty": cmd_honesty,
+    "diff": cmd_diff,
 }
 
 

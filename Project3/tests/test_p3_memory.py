@@ -23,7 +23,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from p3_memory import SYNC_DEFAULT_PROJECTS  # noqa: E402
-from p3_memory import attribution, canon, gate, identity, loader, metrics, report  # noqa: E402
+from p3_memory import attribution, canon, diff, gate, identity, loader, metrics, report  # noqa: E402
 from p3_memory.cli import build_parser, main as cli_main  # noqa: E402
 from p3_memory.paths import (  # noqa: E402
     PathRefused, append_section, atomic_write, project_root, safe_path,
@@ -1548,6 +1548,141 @@ class TestGateCli(Base):
         finally:
             target.unlink(missing_ok=True)
             (project_root() / (target.name + ".bak")).unlink(missing_ok=True)
+
+
+class TestDiff(Base):
+    """Дифф циклов (фаза 3, пункт 24)."""
+
+    def _write_three(self):
+        def rec(topic, url, score=0.7, summary="Сводка"):
+            return make_record(topic=topic, url=url, score=score, summary=summary)
+        cycle_001 = [
+            rec("А", "https://x.com/a?utm=1"),
+            rec("Б", "https://x.com/b", score=0.5),
+            rec("В", "https://x.com/c"),
+        ]
+        cycle_002 = [
+            rec("А", "https://x.com/a/"),  # query/хвост — не изменение
+            rec("Б", "https://x.com/b", score=0.9),
+            rec("Г", "https://x.com/d"),
+        ]
+        cycle_003 = [
+            rec("А", "https://x.com/a/", summary="  Сводка "),  # пробелы — не изменение
+            rec("Б", "https://x.com/b", score=0.9, summary="Иная сводка"),
+            rec("Г", "https://x.com/d"),
+        ]
+        return write_corpus(
+            self.tmp,
+            {
+                "professor_insights_cycle_001.json": cycle_001,
+                "professor_insights_cycle_002.json": cycle_002,
+                "professor_insights_cycle_003.json": cycle_003,
+            },
+        )
+
+    def test_diff_add_remove_change_stable(self):
+        root = self._write_three()
+        result = diff.diff(root, "001", "002")
+        self.assertEqual(result["from_records"], 3)
+        self.assertEqual(result["to_records"], 3)
+        self.assertEqual(len(result["added"]), 1)
+        self.assertEqual(result["added"][0]["topic"], "Г")
+        self.assertEqual(len(result["removed"]), 1)
+        self.assertEqual(result["removed"][0]["topic"], "В")
+        self.assertEqual(len(result["changed"]), 1)
+        self.assertEqual(result["changed"][0]["topic"], "Б")
+        self.assertEqual(result["changed"][0]["fields"], ["relevance_score"])
+        self.assertEqual(result["unchanged"], 1)
+        self.assertEqual(result["shared"], 2)
+        self.assertEqual(result["from_file"], "professor_insights_cycle_001.json")
+        self.assertEqual(result["to_file"], "professor_insights_cycle_002.json")
+
+    def test_whitespace_case_and_url_slop_are_not_changes(self):
+        root = self._write_three()
+        result = diff.diff(root, "002", "003")
+        self.assertEqual(len(result["changed"]), 1)
+        self.assertEqual(result["changed"][0]["topic"], "Б")
+        self.assertEqual(result["changed"][0]["fields"], ["summary"])
+        self.assertEqual(result["unchanged"], 2)
+        self.assertEqual(len(result["added"]), 0)
+        self.assertEqual(len(result["removed"]), 0)
+
+    def test_default_pair_is_two_last_cycles(self):
+        root = self._write_three()
+        result = diff.diff(root)
+        self.assertEqual(result["from_file"], "professor_insights_cycle_002.json")
+        self.assertEqual(result["to_file"], "professor_insights_cycle_003.json")
+        # Явное указание по числу цикла даёт то же самое.
+        explicit = diff.diff(root, "2", "3")
+        self.assertEqual(result, explicit)
+
+    def test_cycle_number_beats_file_name_ordering(self):
+        # Поимённо 0999 раньше 100, по номеру — нет.
+        def rec(topic, url):
+            return make_record(topic=topic, url=url)
+        root = write_corpus(
+            self.tmp,
+            {
+                "professor_insights_cycle_100.json": [rec("А", "https://x.com/a")],
+                "professor_insights_cycle_0999.json": [rec("А", "https://x.com/a"),
+                                                       rec("Б", "https://x.com/b")],
+            },
+        )
+        result = diff.diff(root)
+        self.assertEqual(result["from_file"], "professor_insights_cycle_100.json")
+        self.assertEqual(result["to_file"], "professor_insights_cycle_0999.json")
+        self.assertEqual(len(result["added"]), 1)
+
+    def test_missing_cycle_raises(self):
+        root = self._write_three()
+        with self.assertRaises(loader.MemoryInvalid):
+            diff.diff(root, "999")
+
+    def test_less_than_two_cycles_raises(self):
+        root = write_corpus(
+            self.tmp,
+            {"professor_insights_cycle_001.json": [make_record()]},
+        )
+        with self.assertRaises(loader.MemoryInvalid):
+            diff.diff(root)
+
+    def test_live_001_vs_1351_matches_independent_recount(self):
+        data_from = loader.load(REAL_MEMORY / "professor_insights_cycle_001.json")
+        data_to = loader.load(REAL_MEMORY / "professor_insights_cycle_1351.json")
+        result = diff.diff_cycles(data_from, data_to)
+        old_keys = {canon.record_key(r) for r in data_from["insights"]}
+        new_keys = {canon.record_key(r) for r in data_to["insights"]}
+        self.assertEqual(len(result["added"]), len(new_keys - old_keys))
+        self.assertEqual(len(result["removed"]), len(old_keys - new_keys))
+        self.assertEqual(result["shared"], len(old_keys & new_keys))
+        self.assertEqual(result["shared"],
+                         result["unchanged"] + len(result["changed"]))
+        self.assertEqual(result["from_records"], len(data_from["insights"]))
+        self.assertEqual(result["to_records"], len(data_to["insights"]))
+
+    def test_cli_diff(self):
+        root = self._write_three()
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            code = cli_main(["diff", "--memory-dir", str(root)])
+        out = buf.getvalue()
+        self.assertEqual(code, 0, out)
+        self.assertIn("diff циклов", out)
+        self.assertIn("изменено: 1", out)
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            code = cli_main(["diff", "--json", "--memory-dir", str(root)])
+        self.assertEqual(code, 0)
+        payload = json.loads(buf.getvalue())
+        for key in ("added", "removed", "changed", "unchanged", "shared"):
+            self.assertIn(key, payload)
+
+    def test_cli_diff_missing_cycle_exits_1(self):
+        root = self._write_three()
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            code = cli_main(["diff", "999", "--memory-dir", str(root)])
+        self.assertEqual(code, 1)
 
 
 if __name__ == "__main__":
