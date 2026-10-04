@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 from .canon import normalize_text, record_key
 from .loader import DEFAULT_DIR, MemoryInvalid, discover, load
@@ -128,7 +128,7 @@ def _view(record: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
-def _is_moved(old_record: Dict[str, Any], new_records: Dict[str, Any]) -> bool:
+def _is_moved(old_record: Dict[str, Any], new_records: Iterable[Dict[str, Any]]) -> bool:
     """Запись сменила категорию, но не пропала.
 
     Ключ дедупликации — тема + категория + URL (`canon.record_key`), так
@@ -142,8 +142,7 @@ def _is_moved(old_record: Dict[str, Any], new_records: Dict[str, Any]) -> bool:
         return False
     topic = normalize_text(old_record.get("topic"))
     old_category = _norm_value("category", old_record.get("category"))
-    for new_key in new_records:
-        candidate = new_records[new_key]
+    for candidate in new_records:
         if _norm_url(candidate.get("source_url")) != url:
             continue
         if normalize_text(candidate.get("topic")) != topic:
@@ -153,16 +152,43 @@ def _is_moved(old_record: Dict[str, Any], new_records: Dict[str, Any]) -> bool:
     return False
 
 
+def group_by_key(
+    data: Dict[str, Any]
+) -> Dict[str, List[Dict[str, Any]]]:
+    """Записи цикла, сгруппированные по каноническому ключу.
+
+    Ключ — не уникальный идентификатор записи, а признак дедупликации:
+    одна и та же пара «тема + категория + URL» может встречаться в
+    цикле несколько раз (в штатном корпусе ключ ``unknown|ai
+    engineering|`` встречается дважды в цикле 001 и трижды в 1351).
+    Складывать записи в ``dict[key] = record`` нельзя: последний
+    экземпляр затирает предыдущие, и кратность молча теряется. Раньше
+    из 102 записей цикла 001 в расчёт попадало 101, а из 88 записей
+    1351 — 86, и равенства «удалено + переехало + общее = было
+    записей» не сходились ни на одной стороне.
+
+    Поэтому по ключу хранится **список**: сравнение ведётся как
+    мультимножество, лишние экземпляры попадают в ``added``/``removed``,
+    а общие — сравниваются попарно.
+    """
+    groups: Dict[str, List[Dict[str, Any]]] = {}
+    for record in data.get("insights") or []:
+        groups.setdefault(record_key(record), []).append(record_fields(record))
+    return groups
+
+
 def diff_cycles(
     data_from: Dict[str, Any], data_to: Dict[str, Any]
 ) -> Dict[str, Any]:
-    """Сравнить два загруженных цикла (списки ``insights``)."""
-    old: Dict[str, Dict[str, Any]] = {}
-    for record in data_from.get("insights") or []:
-        old[record_key(record)] = record_fields(record)
-    new: Dict[str, Dict[str, Any]] = {}
-    for record in data_to.get("insights") or []:
-        new[record_key(record)] = record_fields(record)
+    """Сравнить два загруженных цикла (списки ``insights``).
+
+    Сравнение ведётся как мультимножество: один и тот же канонический
+    ключ может встретиться в цикле несколько раз, и кратность должна
+    сохраниться в обе стороны — иначе расчёт «удалено + переехало +
+    общее = было записей» не сходится (см. ``group_by_key``).
+    """
+    old = group_by_key(data_from)
+    new = group_by_key(data_to)
 
     added: List[Dict[str, Any]] = []
     removed: List[Dict[str, Any]] = []
@@ -170,34 +196,60 @@ def diff_cycles(
     changed: List[Dict[str, Any]] = []
     rewritten: List[Dict[str, Any]] = []
     unchanged = 0
-    for key in new:
-        if key not in old:
-            added.append(_view(new[key]))
+    for key, new_records in new.items():
+        old_records = old.get(key)
+        if not old_records:
+            # Ключ новый целиком — либо действительно новая запись, либо
+            # лишний экземпляр уже известного ключа: у нового цикла
+            # их больше, чем у старого. Для читателя это одно и то же
+            # («появилась запись»), и прятать различие незачем.
+            added.extend(_view(record) for record in new_records)
             continue
-        fields = changed_fields(old[key], new[key])
-        if not fields:
-            unchanged += 1
-            continue
-        substantive = [name for name in fields if name not in VOLATILE_FIELDS]
-        if substantive:
-            changed.append({"topic": new[key].get("topic"), "fields": fields})
-        else:
-            # Отметка времени сменилась, содержание нет: это перезапись,
-            # а не правка. Реестр урезать нельзя — молчаливое исчезновение
-            # 85 записей из отчёта было бы не менее ложью, чем ложное
-            # «изменено».
-            rewritten.append({"topic": new[key].get("topic"), "fields": fields})
-    for key in old:
-        if key not in new:
-            entry = _view(old[key])
+        # Кратности сравниваем попарно: первый экземпляр против
+        # первого, второй против второго, и так далее. Лишние с любой
+        # стороны считаем появлением/пропажей, а не затиранием.
+        for old_record, new_record in zip(old_records, new_records):
+            fields = changed_fields(old_record, new_record)
+            if not fields:
+                unchanged += 1
+                continue
+            substantive = [name for name in fields if name not in VOLATILE_FIELDS]
+            if substantive:
+                changed.append({"topic": new_record.get("topic"), "fields": fields})
+            else:
+                # Отметка времени сменилась, содержание нет: это перезапись,
+                # а не правка. Реестр урезать нельзя — молчаливое исчезновение
+                # 85 записей из отчёта было бы не менее ложью, чем ложное
+                # «изменено».
+                rewritten.append({"topic": new_record.get("topic"), "fields": fields})
+        added.extend(_view(record) for record in new_records[len(old_records):])
+    for key, old_records in old.items():
+        new_records = new.get(key)
+        if not new_records:
             # Пропала или переехала: ключ дедупликации включает
             # `category`, поэтому смена категории сама по себе выглядит
             # как удаление. Считать это пропажей нельзя — читатель увидит
             # потерю записи там, где её лишь переложили в другую рубрику.
-            if _is_moved(old[key], new):
-                moved.append(entry)
+            # Искать переезд надо по **всем** новым записям, а не только
+            # по тем, чей ключ совпал: переехавшая запись стоит уже под
+            # другим ключом.
+            new_all = [record for records in new.values() for record in records]
+            for old_record in old_records:
+                if _is_moved(old_record, new_all):
+                    moved.append(_view(old_record))
+                else:
+                    removed.append(_view(old_record))
+            continue
+        # У нового цикла таких записей меньше — лишние старые экземпляры
+        # пропали. Переезд для них проверяем отдельно, а то лишний дубль
+        # засчитался бы пропажей там, где его на самом деле не стало.
+        removed_any = old_records[len(new_records):]
+        new_all = [record for records in new.values() for record in records]
+        for old_record in removed_any:
+            if _is_moved(old_record, new_all):
+                moved.append(_view(old_record))
             else:
-                removed.append(entry)
+                removed.append(_view(old_record))
 
     return {
         "from_file": data_from.get("_source_file"),

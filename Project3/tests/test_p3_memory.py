@@ -19,6 +19,7 @@ import sys
 import tempfile
 import unittest
 from contextlib import redirect_stdout
+from collections import Counter
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -1843,17 +1844,43 @@ class TestDiff(Base):
             diff.diff(root)
 
     def test_live_001_vs_1351_matches_independent_recount(self):
+        # Пересчёт ведётся из сырых файлов, без `diff_cycles`, и по
+        # кратностям (`Counter`), а не по множествам: канонический ключ
+        # не уникален, в штатном корпусе он встречается дважды в цикле
+        # 001 и трижды в 1351. Считать множеством — значит повторить
+        # ровно тот баг, который этот тест обязан ловить.
         data_from = loader.load(REAL_MEMORY / "professor_insights_cycle_001.json")
         data_to = loader.load(REAL_MEMORY / "professor_insights_cycle_1351.json")
         result = diff.diff_cycles(data_from, data_to)
-        old_keys = {canon.record_key(r) for r in data_from["insights"]}
-        new_keys = {canon.record_key(r) for r in data_to["insights"]}
-        self.assertEqual(len(result["added"]), len(new_keys - old_keys))
-        self.assertEqual(len(result["removed"]), len(old_keys - new_keys))
-        self.assertEqual(result["shared"], len(old_keys & new_keys))
-        self.assertEqual(result["shared"],
-                         result["unchanged"] + len(result["changed"])
-                         + len(result["rewritten"]))
+        old_keys = Counter(canon.record_key(r) for r in data_from["insights"])
+        new_keys = Counter(canon.record_key(r) for r in data_to["insights"])
+
+        # Ключ, встречающийся у обоих циклов, даёт shared в обе стороны;
+        # избыток сверх меньшей кратности — added или removed. Перебор
+        # идёт по объединению ключей: ключ, которого не было вовсе, в
+        # счётчике старого цикла просто отсутствует, но даёт added.
+        shared = sum(min(old_keys[key], new_keys[key]) for key in old_keys.keys() | new_keys.keys())
+        added = sum(max(0, new_keys[key] - old_keys[key]) for key in old_keys.keys() | new_keys.keys())
+        lost = sum(max(0, old_keys[key] - new_keys[key]) for key in old_keys.keys() | new_keys.keys())
+
+        self.assertEqual(result["shared"], shared)
+        self.assertEqual(len(result["added"]), added)
+        self.assertEqual(len(result["removed"]) + len(result["moved"]), lost)
+        # Главное равенство: обе стороны сходятся с исходным числом
+        # записей, ни одна не теряется и не удваивается.
+        self.assertEqual(
+            len(result["removed"]) + len(result["moved"]) + result["shared"],
+            result["from_records"],
+        )
+        self.assertEqual(
+            len(result["added"]) + len(result["moved"]) + result["shared"],
+            result["to_records"],
+        )
+        self.assertEqual(
+            result["shared"],
+            result["unchanged"] + len(result["changed"])
+            + len(result["rewritten"]),
+        )
         self.assertEqual(result["from_records"], len(data_from["insights"]))
         self.assertEqual(result["to_records"], len(data_to["insights"]))
 
@@ -2270,7 +2297,11 @@ class TestVolatileFieldsAreNotEdits(Base):
 
     def test_shtatnyy_korpus_dannye_o_klase_lozhi(self):
         # Живая проверка фазы 4: между 001 и 1351 содержательных правок
-        # нет вовсе, все 85 расхождений — смена отметки времени.
+        # нет вовсе, все 86 расхождений — смена отметки времени. Число
+        # 86, а не 85: ключ `unknown|ai engineering|` встречается в
+        # цикле 001 дважды, в 1351 трижды, и пара сравнений учитывает
+        # оба старых экземпляра. Старое 85 получалось затиранием дублей
+        # в `dict[key] = record`.
         d = diff.diff(REAL_MEMORY)
         self.assertEqual(
             len(d["changed"]) + len(d["rewritten"]) + d["unchanged"],
@@ -2290,17 +2321,26 @@ class TestVolatileFieldsAreNotEdits(Base):
                 set(entry["fields"]) - set(diff.VOLATILE_FIELDS), set(),
                 "в rewritten неустойчивые поля и только они",
             )
-        # Числа именно такие — иначе тест проходит вхолостую.
-        self.assertEqual(len(d["rewritten"]), 85)
+        # Числа именно такие — иначе тест проходит вхолостую. `rewritten`
+        # сверяется с исходным числом записей, а не с числом уникальных
+        # ключей: схлопывание дублей недопустимо ни в коде, ни в тесте.
+        self.assertEqual(len(d["rewritten"]), 86)
         self.assertEqual(d["changed"], [])
         self.assertEqual(d["unchanged"], 0)
+        # И сходимость сходится: 16 + 0 + 86 = 102 было, 2 + 0 + 86 = 88 стало.
+        self.assertEqual(
+            len(d["removed"]) + len(d["moved"]) + d["shared"], d["from_records"],
+        )
+        self.assertEqual(
+            len(d["added"]) + len(d["moved"]) + d["shared"], d["to_records"],
+        )
 
 
 class TestReportTellsRewriteFromEdit(Base):
     """Отчёт различает перезапись и правку (пункт 33).
 
     Проверяется то свойство, ради которого пункт написан: на штатном
-    корпусе 85 перезаписей не попадают в строку «изменено», и читатель
+    корпусе 86 перезаписей не попадают в строку «изменено», и читатель
     не может принять их за правку памяти.
     """
 
@@ -2321,7 +2361,7 @@ class TestReportTellsRewriteFromEdit(Base):
         )
         self.assertEqual(self._row(text, "изменено (содержательно)"), "0")
         self.assertEqual(
-            self._row(text, "перезаписано (только отметка времени)"), "85")
+            self._row(text, "перезаписано (только отметка времени)"), "86")
         # Голой строки «изменено» быть не должно: именно она читалась
         # как «память переписывают».
         self.assertNotIn("| изменено |", text)
