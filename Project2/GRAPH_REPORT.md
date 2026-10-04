@@ -29,8 +29,8 @@
 
 | тип | ключ | узлов | доля |
 | --- | --- | --- | --- |
-| shares_tag | `learned` | 100 | 1.0 |
 | shares_tag | `textbook` | 100 | 1.0 |
+| shares_tag | `learned` | 100 | 1.0 |
 | same_category | `Textbook` | 100 | 1.0 |
 
 ## Чувствительность к порогу
@@ -49,22 +49,22 @@
 
 | # | узел | тема | степень | relevance | score |
 | --- | --- | --- | --- | --- | --- |
-| 1 | n0029 | The Art of Computer Programming, Vol. 1: Fundamental Algorithms | 4 | 0.9 | 3.8 |
-| 2 | n0030 | The Art of Computer Programming, Vol. 2: Seminumerical Algorithms | 4 | 0.9 | 3.8 |
-| 3 | n0031 | The Art of Computer Programming, Vol. 3: Sorting and Searching | 4 | 0.9 | 3.8 |
-| 4 | n0032 | The Art of Computer Programming, Vol. 4A: Combinatorial Algorithms | 4 | 0.9 | 3.8 |
-| 5 | n0033 | The Art of Computer Programming, Vol. 4B: Combinatorial Algorithms | 4 | 0.9 | 3.8 |
-| 6 | n0075 | Design Systems as Code (lib.pen / Penpot components) | 3 | 0.9 | 2.85 |
-| 7 | n0076 | AI-Assisted Design-to-Code Workflows | 2 | 0.9 | 1.9 |
-| 8 | n0073 | pen.dev — Design in IDE, Land in Code | 2 | 0.9 | 1.9 |
-| 9 | n0000 | Graph Engineering Fundamentals | 1 | 0.9 | 0.95 |
-| 10 | n0010 | Graphthulhu / Engraph Deep Dive | 1 | 0.9 | 0.95 |
-| 11 | n0003 | Loop vs Graph vs Harness Engineering | 1 | 0.9 | 0.95 |
-| 12 | n0093 | MoneyPrinterTurbo — AI Short Video Generation | 1 | 0.9 | 0.95 |
+| 1 | t52f8ecc84193 | The Art of Computer Programming, Vol. 1: Fundamental Algorithms | 4 | 0.9 | 3.8 |
+| 2 | tffd42371befa | The Art of Computer Programming, Vol. 2: Seminumerical Algorithms | 4 | 0.9 | 3.8 |
+| 3 | t1b0749300fc3 | The Art of Computer Programming, Vol. 3: Sorting and Searching | 4 | 0.9 | 3.8 |
+| 4 | t50a51de23c3d | The Art of Computer Programming, Vol. 4A: Combinatorial Algorithms | 4 | 0.9 | 3.8 |
+| 5 | tc40e026239d6 | The Art of Computer Programming, Vol. 4B: Combinatorial Algorithms | 4 | 0.9 | 3.8 |
+| 6 | te06e42271882 | Design Systems as Code (lib.pen / Penpot components) | 3 | 0.9 | 2.85 |
+| 7 | t61042db02475 | AI-Assisted Design-to-Code Workflows | 2 | 0.9 | 1.9 |
+| 8 | t9c198cdc2afb | pen.dev — Design in IDE, Land in Code | 2 | 0.9 | 1.9 |
+| 9 | t7cf85cc07606 | Graph Engineering Fundamentals | 1 | 0.9 | 0.95 |
+| 10 | t36f8dcbffa77 | Graphthulhu / Engraph Deep Dive | 1 | 0.9 | 0.95 |
+| 11 | t81801b5b4f91 | Loop vs Graph vs Harness Engineering | 1 | 0.9 | 0.95 |
+| 12 | t62cceac3f634 | MoneyPrinterTurbo — AI Short Video Generation | 1 | 0.9 | 0.95 |
 
 ## Что из этого следует
 
-Крупнейшая компонента (5 узла): «The Art of Computer Programming, Vol. 1: Fundamental Algorithms», «The Art of Computer Programming, Vol. 2: Seminumerical Algorithms», «The Art of Computer Programming, Vol. 3: Sorting and Searching» и ещё 2. Эти темы связаны общими значимыми словами — настоящая связь, а не метаданные.
+Крупнейшая компонента (5 узла): «The Art of Computer Programming, Vol. 3: Sorting and Searching», «The Art of Computer Programming, Vol. 4A: Combinatorial Algorithms», «The Art of Computer Programming, Vol. 1: Fundamental Algorithms» и ещё 2. Эти темы связаны общими значимыми словами — настоящая связь, а не метаданные.
 Изолированных узлов 83 из 100 (83%). Остальное держится на перечисленных компонентах.
 Подавлено неразличающих ключей: 3 (`shares_tag`, `shares_tag`, `same_category`). Ключ, покрывающий больше половины узлов, — константа, а не структура: он соединил бы все узлы попарно.
 Держат структуру: {'token_overlap': 18}. Если в будущем `professor_sync.py` начнёт различать теги и категории по темам, добавятся и остальные типы рёбер.

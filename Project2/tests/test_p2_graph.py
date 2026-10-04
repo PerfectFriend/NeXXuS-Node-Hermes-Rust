@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import json
 import os
+import random
 import sys
 import tempfile
 import unittest
@@ -18,8 +19,10 @@ sys.path.insert(0, str(ROOT))
 from p2_graph import EDGE_TYPES  # noqa: E402
 from p2_graph.cli import EXIT_DATA, EXIT_OK, EXIT_USAGE, main  # noqa: E402
 from p2_graph.graph import (  # noqa: E402
+    assign_node_ids,
     build_graph,
     centrality,
+    content_node_id,
     edge_type_counts,
     metrics,
     node_id,
@@ -350,7 +353,8 @@ class TestBuildGraph(unittest.TestCase):
         rows = [make_insight(topic="A", source_url="n.md"),
                 make_insight(topic="B", source_url="n.md")]
         g = build_graph(rows, edge_types=("same_source",))
-        self.assertEqual(g["edges"], [("n0000", "n0001", "same_source")])
+        ids = {n["topic"]: n["id"] for n in g["nodes"]}
+        self.assertEqual(g["edges"], [(ids["A"], ids["B"], "same_source")])
 
     def test_same_topic_edge(self):
         rows = [make_insight(topic="A", source_url="1.md"),
@@ -375,8 +379,9 @@ class TestBuildGraph(unittest.TestCase):
         rows = [make_insight(topic="A", source_url="n.md", tags=["ml"], category="A"),
                 make_insight(topic="B", source_url="n.md", tags=["ml"], category="B")]
         g = build_graph(rows)
+        ids = {n["topic"]: n["id"] for n in g["nodes"]}
         pairs = {(u, v) for u, v, _ in g["edges"]}
-        self.assertEqual(pairs, {("n0000", "n0001")})
+        self.assertEqual(pairs, {(ids["A"], ids["B"])})
         self.assertEqual(len(g["edges"]), 2)
 
     def test_degree_sum_equals_twice_edges(self):
@@ -391,7 +396,8 @@ class TestBuildGraph(unittest.TestCase):
         rows = [make_insight(topic="A", source_url="1.md", tags=["a"], category="A"),
                 make_insight(topic="B", source_url="2.md", tags=["b"], category="B")]
         g = build_graph(rows)
-        self.assertEqual(sorted(g["isolated"]), ["n0000", "n0001"])
+        ids = {n["topic"]: n["id"] for n in g["nodes"]}
+        self.assertEqual(sorted(g["isolated"]), sorted(ids.values()))
 
     def test_constant_tags_are_suppressed(self):
         rows = [make_insight(topic=f"T{i}", tags=["learned"]) for i in range(10)]
@@ -452,11 +458,12 @@ class TestMetrics(unittest.TestCase):
             rows.append(make_insight(topic=f"Solo{i}", source_url=f"s{i}.md",
                                      tags=[f"u{i}"], category=f"Solo{i}"))
         g = build_graph(rows, edge_types=("shares_tag",))
+        ids = {n["topic"]: n["id"] for n in g["nodes"]}
         top = centrality(g, top=4)
         self.assertEqual({row["topic"] for row in top},
                          {"Core0", "Core1", "Core2", "Core3"})
         self.assertTrue(all(row["degree"] == 3 for row in top))
-        self.assertEqual(g["isolated"], sorted(f"n{i:04d}" for i in range(4, 10)))
+        self.assertEqual(set(g["isolated"]), {ids[f"Solo{i}"] for i in range(6)})
 
     def test_density_zero_without_edges(self):
         rows = [make_insight(topic=f"T{i}", source_url=f"{i}.md", tags=[f"g{i}"])
@@ -678,6 +685,61 @@ class TestGraphReport(TempDirCase):
         payload = json.loads(buf2.getvalue())
         self.assertIn(f"- узлов: {payload['nodes']}", text)
         self.assertIn(f"- рёбер: {payload['edges']}", text)
+
+
+class TestStableNodeIds(TempDirCase):
+    """Пункт 21 плана: идентификатор узла не зависит от порядка записей.
+
+    Измерено на живом корпусе до правки: при перестановке тем менялся id
+    у 101 темы из 101, то есть публикуемые ссылки GRAPH_REPORT.md рождались
+    заново при каждом запуске.
+    """
+
+    def corpus(self):
+        rows = [
+            make_insight(topic=f"Тема {i}", summary=f"сводка {i} alpha",
+                        category="Учебник", source_url=f"{i}.md")
+            for i in range(8)
+        ]
+        write_memory(self.dir, "professor_insights_cycle_001.json", 1, rows)
+        return rows
+
+    def test_ids_survive_permutation(self):
+        rows = self.corpus()
+        base = {n["topic"]: n["id"] for n in build_graph(rows)["nodes"]}
+        rev = {n["topic"]: n["id"] for n in build_graph(list(reversed(rows)))["nodes"]}
+        self.assertEqual(base, rev)
+
+    def test_ids_survive_shuffle_on_real_corpus(self):
+        rows = list(iter_insights(load_all(REAL_MEMORY)))
+        direct = {n["topic"]: n["id"] for n in build_graph(rows)["nodes"]}
+        shuffled = list(rows)
+        random.Random(7).shuffle(shuffled)
+        other = {n["topic"]: n["id"] for n in build_graph(shuffled)["nodes"]}
+        self.assertTrue(direct)
+        self.assertEqual(direct, other)
+        self.assertEqual(len(assign_node_ids(rows)), len(rows))
+
+    def test_id_does_not_depend_on_position(self):
+        rows = self.corpus()
+        ids = [n["id"] for n in build_graph(rows)["nodes"]]
+        self.assertNotIn(rows[0]["topic"] + rows[1]["topic"], "".join(ids))
+
+    def test_identical_keys_get_distinct_ids(self):
+        a = make_insight(topic="Дубль", source_url="x.md")
+        b = make_insight(topic="Дубль", source_url="x.md")
+        nodes = build_graph([a, b])["nodes"]
+        self.assertNotEqual(nodes[0]["id"], nodes[1]["id"])
+        self.assertEqual(len({n["id"] for n in nodes}), 2)
+
+    def test_content_hash_is_deterministic(self):
+        row = make_insight(topic="Стабильная", source_url="s.md")
+        self.assertEqual(content_node_id(row), content_node_id(dict(row)))
+
+    def test_node_keeps_pos_for_legacy_lookups(self):
+        rows = self.corpus()
+        nodes = build_graph(rows)["nodes"]
+        self.assertEqual([n["pos"] for n in nodes], list(range(len(rows))))
 
 
 if __name__ == "__main__":

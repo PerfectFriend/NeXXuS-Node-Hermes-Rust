@@ -13,6 +13,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import re
 from typing import Any, Dict, Iterable, List, Sequence, Set, Tuple
 
@@ -56,7 +57,53 @@ def tokens_of(text: str) -> Set[str]:
 
 
 def node_id(index: int) -> str:
+    """Идентификатор узла по позиции.
+
+    ОСТОРОЖНО: он зависит от порядка корпуса и не переживает его перестановку
+    (дефект фазы 2/4, измерен: 101 тема из 101 меняет id при shuffle). Поэтому
+    `build_graph` по умолчанию использует `content_node_ids`, а этот хелпер
+    остаётся только для тестов и обратной совместимости.
+    """
     return f"n{index:04d}"
+
+
+def content_node_id(item: Dict[str, Any]) -> str:
+    """Идентификатор узла из содержимого записи, а не из её позиции.
+
+    Ключ — тройка (topic, source_url, category), то есть ровно те поля, по
+    которым записи уже дедуплицируются и группируются. Смысл: опубликованный
+    в отчёте `n0029` обязан продолжать указывать на ту же тему после любой
+    перезаписи корпуса; идентификатор, живущий в `enumerate`, этого не даёт.
+
+    Коллизии (два разных инсайта с одинаковой тройкой — такое возможно, пока
+    дедуп отключён) не роняют построение: `assign_node_ids` разводит их
+    суффиксом `-2`, `-3`, сохраняя уникальность рёбер.
+    """
+    key = "\x1f".join(
+        (
+            str(item.get("topic", "")),
+            str(item.get("source_url", "")),
+            str(item.get("category", "")),
+        )
+    )
+    return "t" + hashlib.sha1(key.encode("utf-8")).hexdigest()[:12]
+
+
+def assign_node_ids(insights: Sequence[Dict[str, Any]]) -> List[str]:
+    """Стабильные id для всех записей; коллизии разводятся суффиксом.
+
+    Суффикс зависит от порядка появления среди **коллизионных** записей, а
+    не от позиции во всём корпусе: обычные узлы (без коллизий) от перестановки
+    не зависят ничем.
+    """
+    seen: Dict[str, int] = {}
+    out: List[str] = []
+    for item in insights:
+        base = content_node_id(item)
+        seen[base] = seen.get(base, 0) + 1
+        n = seen[base]
+        out.append(base if n == 1 else f"{base}-{n}")
+    return out
 
 
 def _tags(item: Dict[str, Any]) -> Set[str]:
@@ -96,10 +143,12 @@ def build_graph(
         "token_overlap",
     )
     nodes: List[Dict[str, Any]] = []
+    ids = assign_node_ids(insights)
     for idx, item in enumerate(insights):
         nodes.append(
             {
-                "id": node_id(idx),
+                "id": ids[idx],
+                "pos": idx,
                 "topic": str(item.get("topic", "")),
                 "category": str(item.get("category", "")),
                 "source_url": str(item.get("source_url", "")),
@@ -140,7 +189,7 @@ def build_graph(
         for a_i in range(len(members)):
             for b_i in range(a_i + 1, len(members)):
                 u, v = members[a_i], members[b_i]
-                uid, vid = node_id(u), node_id(v)
+                uid, vid = ids[u], ids[v]
                 pair = (uid, vid) if uid < vid else (vid, uid)
                 pair_types.setdefault(pair, set()).add(kind)
 
@@ -188,7 +237,7 @@ def build_graph(
         for (u, v), count in shared.items():
             if count < min_shared:
                 continue
-            uid, vid = node_id(u), node_id(v)
+            uid, vid = ids[u], ids[v]
             pair = (uid, vid) if uid < vid else (vid, uid)
             pair_types.setdefault(pair, set()).add("token_overlap")
 
