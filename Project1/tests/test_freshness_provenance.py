@@ -135,6 +135,32 @@ class TestCheckReport(unittest.TestCase):
         self.assertFalse(result["ok"])
         self.assertEqual(result["test_count_mismatches"][0]["report"], 49)
 
+    def test_test_claim_with_number_after_word_is_seen(self):
+        # Регресс ложного OK: форма «тесты `tests/...` — 49 зелёных» ставит
+        # число ПОСЛЕ слова «тесты», старая регулярка её не читала.
+        text = (
+            "`p1_memory/` версии 1.0.0, тесты `tests/test_p1_memory.py` — 49 зелёных.\n"
+        )
+        self.assertEqual(freshness.declared_tests(text), [49])
+
+    def test_test_claim_after_word_is_checked_end_to_end(self):
+        self.tmp.write_memory("professor_insights_cycle_001.json", document([good_insight()]))
+        self.tmp.write_report("MEMORY_REPORT.md", (
+            "| файл | всего | мусор | дубли | чистых |\n"
+            "|---|---|---|---|---|\n"
+            "| professor_insights_cycle_001.json | 1 | 0 | 0 | 1 |\n"
+            "| ИТОГО | 1 | 0 | 0 | 1 |\n"
+            "\nкод версии 1.0.0, тесты `tests/test_p1_memory.py` — 49 зелёных.\n"
+        ))
+        result = freshness.check_report(self.tmp.root)
+        self.assertFalse(result["ok"])
+        self.assertEqual(result["test_count_mismatches"][0]["report"], 49)
+
+    def test_unrelated_counts_without_test_word_are_ignored(self):
+        # Числа вида «42 дубля» не должны попадать в заявленные числа тестов.
+        self.tmp.write_report("MEMORY_REPORT.md", "Измерено 42 дубля и 184 чистых.\n")
+        self.assertEqual(freshness.declared_tests("Измерено 42 дубля и 184 чистых.\n"), [])
+
     def test_missing_report_is_not_ok_but_not_crash(self):
         result = freshness.check_report(self.tmp.root)
         self.assertFalse(result["exists"])
