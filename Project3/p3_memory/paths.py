@@ -11,6 +11,7 @@ import shutil
 import stat
 import tempfile
 from pathlib import Path
+from typing import Any, Dict, List
 
 
 class PathRefused(Exception):
@@ -103,3 +104,48 @@ def append_section(path: Path, heading: str, body: str,
     section = f"\n## {safe_heading}\n\n{safe_body}\n"
     atomic_write(path, existing.rstrip("\n") + "\n" + section, backup=backup)
     return True
+
+
+def check_chronicle(path: os.PathLike | str) -> Dict[str, Any]:
+    """Аудит хроники (фаза 3, пункт 27): только чтение, ничего не пишет.
+
+    Проверяет: маркеры LivingCode в начале файла, пустой файл,
+    отсутствие перевода строки в конце, уникальность заголовков
+    разделов «## ». `ok=True` — файл годен; иначе список претензий.
+    """
+    path = Path(path)
+    from .loader import strip_markers
+    result: Dict[str, Any] = {
+        "path": str(path),
+        "ok": False,
+        "problems": [],
+        "headings": [],
+        "duplicate_headings": [],
+    }
+    if not path.is_file():
+        result["problems"].append("файл отсутствует")
+        return result
+    raw = path.read_text(encoding="utf-8")
+    if not raw.strip():
+        result["problems"].append("файл пустой")
+        return result
+    text, removed = strip_markers(raw)
+    if removed:
+        result["problems"].append(f"маркеры в начале файла: {removed}")
+    if not raw.endswith("\n"):
+        result["problems"].append("файл не заканчивается переводом строки")
+    headings: List[str] = [
+        line[3:].strip() for line in text.splitlines() if line.startswith("## ")
+    ]
+    result["headings"] = headings
+    seen: Dict[str, int] = {}
+    duplicates: List[str] = []
+    for heading in headings:
+        seen[heading] = seen.get(heading, 0) + 1
+        if seen[heading] == 2:
+            duplicates.append(heading)
+    result["duplicate_headings"] = duplicates
+    if duplicates:
+        result["problems"].append(f"повторяющиеся заголовки: {duplicates}")
+    result["ok"] = not result["problems"]
+    return result

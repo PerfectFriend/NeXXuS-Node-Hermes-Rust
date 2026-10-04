@@ -233,11 +233,27 @@ def cmd_canon(args) -> int:
 
 def cmd_chronicle(args) -> int:
     try:
-        from .paths import safe_path
+        from .paths import check_chronicle, safe_path
 
         target = safe_path(args.file) if args.file else project_root() / "CHRONICLE.md"
     except PathRefused as exc:
         print(f"отказ: {exc}", file=sys.stderr)
+        return EXIT_USAGE
+    if args.check:
+        result = check_chronicle(target)
+        if args.as_json:
+            print(json.dumps(result, ensure_ascii=False, indent=2))
+        elif result["ok"]:
+            print(f"хроника чиста: {result['path']} "
+                  f"({len(result['headings'])} разделов)")
+        else:
+            print(f"претензии к хронике: {result['path']}")
+            for problem in result["problems"]:
+                print(f"  - {problem}")
+        return EXIT_OK if result["ok"] else EXIT_FAIL
+    if not args.check and not args.title:
+        print("ошибка: нужен --title (или --check для аудита)",
+              file=sys.stderr)
         return EXIT_USAGE
     body = args.body or "\n".join(line.lstrip("- ") for line in (args.lines or []))
     appended = append_section(target, args.title, body, backup=not args.no_backup)
@@ -450,11 +466,13 @@ def build_parser() -> argparse.ArgumentParser:
 
     p_chron = sub.add_parser("chronicle", parents=[sub_common],
                              help="дописать раздел в CHRONICLE.md")
-    p_chron.add_argument("--title", required=True)
+    p_chron.add_argument("--title")
     p_chron.add_argument("--body")
     p_chron.add_argument("--line", dest="lines", action="append")
     p_chron.add_argument("--file", help="файл внутри проекта вместо CHRONICLE.md")
     p_chron.add_argument("--no-backup", action="store_true")
+    p_chron.add_argument("--check", action="store_true",
+                         help="аудит файла (exit 0/1), ничего не пишет")
 
     p_gate = sub.add_parser("gate", parents=[sub_common],
                             help="машинные факты для tools/cycle_claim_gate.py")

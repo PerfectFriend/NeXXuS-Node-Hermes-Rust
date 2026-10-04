@@ -26,7 +26,7 @@ from p3_memory import SYNC_DEFAULT_PROJECTS  # noqa: E402
 from p3_memory import attribution, canon, diff, gate, identity, loader, metrics, report  # noqa: E402
 from p3_memory.cli import build_parser, main as cli_main  # noqa: E402
 from p3_memory.paths import (  # noqa: E402
-    PathRefused, append_section, atomic_write, project_root, safe_path,
+    PathRefused, append_section, atomic_write, check_chronicle, project_root, safe_path,
 )
 
 REAL_MEMORY = project_root() / "memory"
@@ -1749,6 +1749,92 @@ class TestDiff(Base):
         with redirect_stdout(buf):
             code = cli_main(["diff", "999", "--memory-dir", str(root)])
         self.assertEqual(code, 1)
+
+
+class TestChronicleCheck(Base):
+    """Пункт 27: read-only аудит CHRONICLE.md + починка."""
+
+    CLEAN = "# Project 3 Chronicle\n\n## Cycle 1 — a\n\nтекст\n"
+    MARKED = "# HOT\n" + CLEAN
+    DUP = ("## Cycle 1 — a\n\nтекст\n\n---\n\n")
+
+    def write(self, text):
+        path = self.tmp / "CHRONICLE.md"
+        path.write_text(text, encoding="utf-8")
+        return path
+
+    def test_clean_file_is_ok(self):
+        res = check_chronicle(self.write(self.CLEAN))
+        self.assertTrue(res["ok"])
+        self.assertEqual(res["problems"], [])
+        self.assertEqual(res["headings"], ["Cycle 1 — a"])
+
+    def test_marker_in_head_is_reported(self):
+        res = check_chronicle(self.write(self.MARKED))
+        self.assertFalse(res["ok"])
+        self.assertTrue(any("маркер" in p for p in res["problems"]), res["problems"])
+
+    def test_duplicate_heading_is_reported(self):
+        res = check_chronicle(self.write(self.CLEAN[:-1] + "\n\n---\n\n" + self.DUP))
+        self.assertFalse(res["ok"])
+        self.assertEqual(res["duplicate_headings"], ["Cycle 1 — a"])
+
+    def test_missing_file(self):
+        res = check_chronicle(self.tmp / "net-takogo.md")
+        self.assertFalse(res["ok"])
+        self.assertIn("файл отсутствует", res["problems"])
+
+    def test_missing_trailing_newline(self):
+        res = check_chronicle(self.write(self.CLEAN.rstrip("\n")))
+        self.assertFalse(res["ok"])
+        self.assertTrue(any("перевод" in p for p in res["problems"]), res["problems"])
+
+    def test_empty_file(self):
+        res = check_chronicle(self.write(""))
+        self.assertFalse(res["ok"])
+        self.assertTrue(res["problems"])
+
+    def test_repair_removes_marker_and_duplicate(self):
+        from tools.chronicle_repair import main as repair_main
+
+        path = self.write(self.MARKED + "\n---\n\n" + self.DUP)
+        self.assertFalse(check_chronicle(path)["ok"])
+        self.assertEqual(repair_main([str(path), "--apply"]), 0)
+        fixed = path.read_text(encoding="utf-8")
+        self.assertNotIn("# HOT", fixed)
+        self.assertEqual(fixed.count("## Cycle 1 — a"), 1)
+        self.assertTrue(check_chronicle(path)["ok"], check_chronicle(path)["problems"])
+
+    def test_repair_is_idempotent(self):
+        from tools.chronicle_repair import main as repair_main
+
+        path = self.write(self.MARKED + "\n---\n\n" + self.DUP)
+        self.assertEqual(repair_main([str(path), "--apply"]), 0)
+        first = path.read_text(encoding="utf-8")
+        self.assertEqual(repair_main([str(path), "--apply"]), 0)
+        self.assertEqual(path.read_text(encoding="utf-8"), first)
+
+    def test_repair_dry_run_keeps_file(self):
+        from tools.chronicle_repair import main as repair_main
+
+        original = self.MARKED + "\n---\n\n" + self.DUP
+        path = self.write(original)
+        self.assertEqual(repair_main([str(path)]), 1)
+        self.assertEqual(path.read_text(encoding="utf-8"), original)
+
+    def test_cli_chronicle_check_live_file(self):
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            code = cli_main(["chronicle", "--check"])
+        self.assertEqual(code, 0, buf.getvalue())
+        self.assertIn("хроника чиста", buf.getvalue())
+
+    def test_cli_chronicle_check_refuses_path_outside_project(self):
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            code = cli_main(["chronicle", "--check", "--file", str(self.write(self.MARKED))])
+        self.assertEqual(code, 2)
+        self.assertEqual(self.write(self.MARKED).read_text(encoding="utf-8"), self.MARKED)
 
 
 class TestCycles(Base):
