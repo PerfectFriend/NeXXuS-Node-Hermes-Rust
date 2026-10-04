@@ -26,6 +26,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from p3_memory import SYNC_DEFAULT_PROJECTS  # noqa: E402
 from p3_memory import attribution, canon, diff, gate, identity, loader, metrics, report  # noqa: E402
+from p3_memory.loader import discover  # noqa: E402
 from p3_memory.cli import HANDLERS, build_parser, main as cli_main  # noqa: E402
 from p3_memory.paths import (  # noqa: E402
     PathRefused, append_section, atomic_write, check_chronicle, project_root, safe_path,
@@ -2053,6 +2054,99 @@ class TestCycles(Base):
         payload = json.loads(buf.getvalue())
         self.assertEqual(len(payload["cycles"]), 2)
         self.assertEqual(payload["numbering_gaps"], [[2, 1350]])
+
+
+class TestMultisetIntegrity(Base):
+    """Пункт 36: дубль по ключу — свойство всего корпуса, не пары циклов.
+
+    Проба `tools/probe_multiset_whole_corpus.py` показала: дубль ровно
+    один ключ `unknown|ai engineering|`, кратность 2 в цикле 001 и 3 в
+    1351. Второй пробой выяснено и то, **что** это за записи: три копии
+    одной и той же записи с пустыми `source_url`, `summary` и `tags` —
+    честный дубль, а не разные записи под одним ключом. Именно поэтому
+    хранить кратность и нельзя, и нужно.
+    """
+
+    def test_v_kazhdogo_klyucha_vo_vsekh_ciklakh_schitaetsya_kratnost(self):
+        for path in discover(REAL_MEMORY):
+            data = loader.load(path)
+            keys = Counter(canon.record_key(r) for r in data["insights"])
+            self.assertEqual(sum(keys.values()), len(data["insights"]),
+                             f"{path.name}: сумма кратностей разошлась")
+            groups = diff.group_by_key(data)
+            self.assertEqual(sorted(len(v) for v in groups.values()),
+                             sorted(keys.values()),
+                             f"{path.name}: group_by_key потеряла кратность")
+
+    def test_dubl_v_korpuse_imenno_odno_klyucha_i_izvestnaya_kratnost(self):
+        # Числа зафиксированы намеренно: если корпус пополнится и
+        # кратность изменится, тест об этом скажет, а не промолчит.
+        found = {}
+        for path in discover(REAL_MEMORY):
+            data = loader.load(path)
+            keys = Counter(canon.record_key(r) for r in data["insights"])
+            found[path.name] = {k: c for k, c in keys.items() if c > 1}
+        for name, dups in found.items():
+            self.assertEqual(
+                list(dups), ["unknown|ai engineering|"],
+                f"{name}: неожиданные дублевые ключи {list(dups)}",
+            )
+            self.assertEqual(list(dups.values()), [2 if "001" in name else 3])
+        # И суммарно: 190 записей против 187 групп, три записи — лишние
+        # экземпляры. Столько терял код, считавший по множеству ключей.
+        self.assertEqual(
+            sum(len(loader.load(p)["insights"]) for p in discover(REAL_MEMORY)),
+            190,
+        )
+
+    def test_dubli_odinoковy_po_vsem_polyam_a_nee_raznye_zapisi(self):
+        # Разбираем, что именно стоит под дублевым ключом: в 1351 это
+        # три полных копии одной записи, в 001 — две записи, различающиеся
+        # только отметкой времени. Оба случая обязаны дожить до диффа
+        # целиком: иначе «исправление» кратности было бы списанием
+        # различий в мусор.
+        for name, copies in (("professor_insights_cycle_001.json", 2),
+                             ("professor_insights_cycle_1351.json", 3)):
+            data = loader.load(REAL_MEMORY / name)
+            records = [r for r in data["insights"]
+                       if canon.record_key(r) == "unknown|ai engineering|"]
+            self.assertEqual(len(records), copies)
+            bodies = {
+                json.dumps({k: v for k, v in r.items() if k != "timestamp"},
+                           sort_keys=True, ensure_ascii=False)
+                for r in records
+            }
+            self.assertEqual(len(bodies), 1, f"{name}: тело у дублей разное")
+            self.assertEqual(records[0]["source_url"], "")
+            self.assertEqual(records[0]["topic"], "Unknown")
+
+    def test_diff_sohranyaet_kratnost_dublya(self):
+        # Сквозной путь: дифф обязан показать все 86 общих записей, а не
+        # 85, и равенства должны сойтись с точностью до единицы.
+        d = diff.diff(REAL_MEMORY)
+        self.assertEqual(d["shared"], 86)
+        self.assertEqual(len(d["rewritten"]) + d["unchanged"]
+                         + len(d["changed"]), d["shared"])
+        self.assertEqual(len(d["removed"]) + len(d["moved"]) + d["shared"],
+                         d["from_records"])
+        self.assertEqual(len(d["added"]) + len(d["moved"]) + d["shared"],
+                         d["to_records"])
+
+    def test_izbytochnyy_ekzemplyar_popadaet_v_added_a_ne_rastvoryaetsya(self):
+        # В 1351 дублей три против двух в 001: лишний экземпляр обязан
+        # попасть в added и быть назван, а не раствориться.
+        data_from = loader.load(REAL_MEMORY / "professor_insights_cycle_001.json")
+        data_to = loader.load(REAL_MEMORY / "professor_insights_cycle_1351.json")
+        result = diff.diff_cycles(data_from, data_to)
+        self.assertEqual(len(result["added"]), 2)
+        # Ровно один «лишний» дубль и ровно одна по-настоящему новая
+        # запись: обе среди added, и дубль — с пустым URL.
+        extra = [d for d in result["added"] if d["topic"] == "Unknown"]
+        self.assertEqual(len(extra), 1)
+        self.assertEqual(extra[0]["category"], "AI Engineering")
+        # И никаких молчаливых потерь на второй стороне равенства.
+        self.assertEqual(len(result["removed"]) + len(result["moved"])
+                         + result["shared"], result["from_records"])
 
 
 def _section_rows(text, heading):
