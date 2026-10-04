@@ -67,23 +67,47 @@ def build_report(memory_dir: Path = DEFAULT_DIR) -> str:
 
     lines.append("## 3. Кросс-проектная идентичность")
     lines.append("")
+    lines.append("Два уровня ответа: **содержание** (совпадают ли сами записи) и")
+    lines.append("**байты** (совпадают ли файлы). Расхождение байтов при совпадении")
+    lines.append("содержания — это служебная надстройка соседа, а не другие данные.")
+    lines.append("")
     ident_rows = []
     for name, res in ident["per_sibling"].items():
         if "error" in res:
-            ident_rows.append([name, "ошибка", res["error"][:60], "—"])
+            ident_rows.append([name, "ошибка", res["error"][:60], "—", "—"])
             continue
+        if res["identical"]:
+            verdict = "идентичен по содержанию"
+        else:
+            verdict = "отличается"
+        if not res["byte_identical"]:
+            overlay = res.get("service_overlay") or {}
+            fields = ", ".join(f'{k}×{v}' for k, v in (overlay.get("fields") or {}).items())
+            byte_part = f'нет ({fields})' if fields else "нет"
+        else:
+            byte_part = "да"
         ident_rows.append([
             name,
-            "идентичен" if res["identical"] else "отличается",
+            verdict,
             f'{res["shared_keys"]}/{res["own_keys"]}',
             f'{res["jaccard"]:.4f}',
+            byte_part,
         ])
-    lines.extend(_table(ident_rows, ["сосед", "тело", "общих ключей", "Жаккар"]))
+    lines.extend(_table(ident_rows, ["сосед", "содержание", "общих ключей",
+                                     "Жаккар", "байты равны"]))
     lines.append("")
     if ident["all_identical"]:
-        lines.append(f'**Тело Project3 ({ident["own_records"]} записей) — Идентичен всем соседям '
-                     f'без единого отличия.** Собственных ключей, не встречающихся')
-        lines.append(f'ни у соседа: {ident["distinct_keys"]}.')
+        lines.append(f'**Тело Project3 ({ident["own_records"]} записей) — идентично по '
+                     f'содержанию ВСЕМ соседям без единого различия.** Собственных '
+                     f'ключей, не встречающихся ни у соседа: {ident["distinct_keys"]}.')
+        if ident["service_only_siblings"]:
+            fields = ", ".join(f'`{k}`' for k in ident["service_overlay_fields"])
+            lines.append("")
+            lines.append(f'Оговорка: файлы совпадают байт в байт не со всеми — '
+                         f'у {", ".join(ident["service_only_siblings"])} в записи '
+                         f'есть служебная надстройка ({fields}), которой нет в '
+                         f'Project3. Это пометка о происхождении записи, а не '
+                         f'её содержимое: множества ключей совпадают полностью.')
     else:
         lines.append(f'Тело Project3 совпало с соседями: '
                      f'{", ".join(ident["identical_siblings"]) or "ни с одним"}. '

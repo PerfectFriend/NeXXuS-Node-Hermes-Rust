@@ -77,15 +77,28 @@ def cmd_identity(args) -> int:
     if args.as_json:
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return EXIT_OK
-    print(f"Project3: {result['own_records']} записей, хэш тела {result['own_hash']}")
+    print(f"Project3: {result['own_records']} записей, "
+          f"хэш содержания {result['own_hash']}, "
+          f"хэш байтов {result['own_byte_hash']}")
     for name, res in result["per_sibling"].items():
         if "error" in res:
             print(f"  {name}: ошибка — {res['error']}")
             continue
-        verdict = "ИДЕНТИЧЕН" if res["identical"] else "отличается"
-        print(f"  {name}: {verdict}, общих ключей {res['shared_keys']}/{res['own_keys']}, "
+        if res["identical"]:
+            verdict = "идентичен по содержанию"
+        else:
+            verdict = "отличается"
+        bytes_note = "байты равны" if res["byte_identical"] else "байты НЕ равны"
+        overlay = res.get("service_overlay") or {}
+        if not res["byte_identical"] and overlay.get("fields"):
+            fields = ", ".join(f"{k}×{v}" for k, v in overlay["fields"].items())
+            bytes_note += f" (служебная надстройка соседа: {fields})"
+        print(f"  {name}: {verdict}, {bytes_note}, "
+              f"общих ключей {res['shared_keys']}/{res['own_keys']}, "
               f"Жаккар {res['jaccard']}")
-    print(f"все соседи идентичны: {'да' if result['all_identical'] else 'нет'}; "
+    print(f"все соседи идентичны по содержанию: "
+          f"{'да' if result['all_identical'] else 'нет'}; "
+          f"байт в байт: {', '.join(result['byte_identical_siblings']) or 'никто'}; "
           f"собственных ключей: {result['distinct_keys']}")
     return EXIT_OK
 

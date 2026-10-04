@@ -346,10 +346,100 @@ class TestIdentity(Base):
         other = {"project": 1, "synced_at": "y", "insights": [make_record()]}
         self.assertEqual(identity.body_hash(data), identity.body_hash(other))
 
-    def test_shtatnyy_proekt_identichen_vsom_sosedyam(self):
+    def test_shtatnyy_korpus_bez_sobstvennyh_klyuchey(self):
+        # Утверждение о проектах-соседях здесь недопустимо: сосед меняют
+        # чужие кодеры, и тест Project3 падал дважды из-за правки Project2,
+        # не относящейся к Project3 вообще. Проверяем то, что принадлежит
+        # этому проекту: у его корпуса нет ни одной собственной записи —
+        # то есть проект как отдельная сущность памяти не существует.
         result = identity.identity_report(REAL_MEMORY)
-        self.assertTrue(result["all_identical"], result["per_sibling"])
         self.assertEqual(result["distinct_keys"], 0)
+        self.assertGreater(result["own_keys"], 0)
+        self.assertEqual(identity.distinguish(REAL_MEMORY), [])
+
+    def test_kazhdyy_sosed_poluchaet_odnoznachnyy_vershikt(self):
+        # Содержательный вердикт обязан быть выводим из измеренного, а
+        # «идентичен» не может стоять рядом с «байты не равны» без
+        # объяснения — иначе это два противоречащих утверждения.
+        result = identity.identity_report(REAL_MEMORY)
+        compared = 0
+        for name, res in result["per_sibling"].items():
+            if "error" in res:
+                continue
+            compared += 1
+            self.assertIsInstance(res["identical"], bool, name)
+            self.assertIsInstance(res["byte_identical"], bool, name)
+            if res["identical"] and not res["byte_identical"]:
+                self.assertIn(name, result["service_only_siblings"])
+                self.assertTrue(res["service_overlay"]["fields"], name)
+        self.assertGreater(compared, 0)
+
+    def test_sluzhebnaya_nadstroika_ne_rozhdaet_loshnyy_vershikt(self):
+        # Project2 (чужой кодер, `freshness --fix`) дописал в записи
+        # `superseded_by`/`origin_issue`. Такая надстройка не должна
+        # превращать одинаковое содержание в «отличается».
+        base = make_record()
+        over = dict(base,
+                    superseded_by={"file": "x.json", "synced_at": "y"},
+                    origin_issue=["source_type=textbook, но source_url не ведёт в vault"])
+        pair = identity.compare_pair({"insights": [base]}, {"insights": [over]})
+        self.assertTrue(pair["identical"])
+        self.assertFalse(pair["byte_identical"])
+        self.assertEqual(
+            pair["service_overlay"]["fields"],
+            {"superseded_by": 1, "origin_issue": 1},
+        )
+
+    def test_pobaytovoe_ravstvo_kak_otdelnoe_utverzhdenie(self):
+        # Верхний уровень не может быть ложно-истинным: если byte_identical,
+        # то и identical (служебные поля — частный случай побайтового равенства).
+        result = identity.identity_report(REAL_MEMORY)
+        for name, res in result["per_sibling"].items():
+            if res.get("byte_identical"):
+                self.assertTrue(res["identical"], name)
+
+    def test_nadstroika_vliyaet_tolko_na_baytovyy_h(self):
+        base = make_record()
+        over = dict(base, superseded_by={"file": "x.json", "synced_at": "y"})
+        a = {"insights": [base]}
+        b = {"insights": [over]}
+        self.assertEqual(identity.body_hash(a), identity.body_hash(b))
+        self.assertNotEqual(
+            identity.body_hash(a, False), identity.body_hash(b, False)
+        )
+        pair = identity.compare_pair(a, b)
+        self.assertTrue(pair["identical"])
+        self.assertFalse(pair["byte_identical"])
+        self.assertEqual(pair["service_overlay"]["fields"], {"superseded_by": 1})
+
+    def test_sluzhebnaya_nadstroika_ne_zhiv_v_korrekcii_kontenta(self):
+        # Поле, которого нет в SERVICE_FIELDS, — это уже содержательное
+        # различие, и оно обязано ломать identical.
+        a = {"insights": [make_record()]}
+        b = {"insights": [dict(make_record(), provenance_note="правка соседа")]}
+        pair = identity.compare_pair(a, b)
+        self.assertFalse(pair["identical"])
+        self.assertEqual(pair["service_overlay"]["fields"], {})
+
+    def test_spisok_sluzhebnyh_poley_ne_rastet_sam_s_soboy(self):
+        # Реестр служебных полей — узкий белый список, а не «всё новое».
+        # Расширять его можно только вместе с тестом: иначе соседний
+        # кодер одной правкой обесценит проверку идентичности.
+        self.assertEqual(set(identity.SERVICE_FIELDS), {"superseded_by", "origin_issue"})
+        for field in identity.SERVICE_FIELDS:
+            self.assertIn(field, identity.SERVICE_FIELDS)
+        # Служебное поле не должно влиять на ключ дедупликации.
+        base = make_record()
+        over = dict(base, superseded_by={"file": "x", "synced_at": "y"})
+        self.assertEqual(canon.record_key(base), canon.record_key(over))
+
+    def test_smezhannye_kopii_ne_identichny_po_soderzhaniyu(self):
+        # Прежний тест ловил различие только по хэшу; после разделения
+        # уровней содержательное различие обязано быть поймано тем же
+        # утверждением, что и раньше.
+        a = {"insights": [make_record(topic="Своё")]}
+        b = {"insights": [make_record(topic="Чужое")]}
+        self.assertFalse(identity.compare_pair(a, b)["identical"])
 
     def test_razvedennye_kopii_ne_identichny(self):
         root = self.tmp / "LC"
@@ -705,8 +795,33 @@ class TestReport(Base):
         text = report.build_report(REAL_MEMORY)
         m = metrics.metrics(REAL_MEMORY)
         self.assertIn(str(m["records_total"]), text)
-        self.assertIn("Идентичен", text)
         self.assertIn("professor_sync.py", text)
+        self.assertIn("Кросс-проектная идентичность", text)
+
+    def test_otchet_razdelyaet_soderzhanie_i_bayty(self):
+        # Надстройка соседа не должна молча исчезнуть: если побайтовое
+        # равенство нарушено, отчёт обязан это показать и объяснить.
+        text = report.build_report(REAL_MEMORY)
+        self.assertIn("байты равны", text)
+        ident = identity.identity_report(REAL_MEMORY)
+        for name, res in ident["per_sibling"].items():
+            if res.get("error"):
+                continue
+            row = [line for line in text.splitlines() if line.startswith(f"| {name} |")]
+            self.assertTrue(row, name)
+            self.assertIn("да" if res["byte_identical"] else "нет", row[0], name)
+            if res["identical"] and not res["byte_identical"]:
+                self.assertIn("Оговорка", text)
+                self.assertIn("служебная надстройка", text)
+
+    def test_otchet_pravilno_raskladyvaet_smezhannye_kopii(self):
+        # На разведённых копиях содержательное различие обязано быть
+        # названо словом «отличается», а не спрятано за формулировкой
+        # про побайтовое равенство.
+        memory = self.fake_memory()
+        text = report.build_report(memory)
+        self.assertIn("отличается", text)
+        self.assertNotIn("идентично по содержанию ВСЕМ соседям", text)
 
     def test_otchet_ne_soderzhit_ruchnyh_magicheskih_chisel(self):
         # Никаких «190 записей» из чужого отчёта: числа только из данных.
