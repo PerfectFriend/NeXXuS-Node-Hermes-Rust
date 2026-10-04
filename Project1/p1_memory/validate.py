@@ -8,7 +8,9 @@
 
 from __future__ import annotations
 
+import re
 from typing import Any, Dict, List, Tuple
+from urllib.parse import unquote
 
 from . import VALID_PROJECTS
 
@@ -109,10 +111,28 @@ def is_junk(item: Any) -> bool:
     return (not topic) or topic == UNKNOWN_TOPIC or (not summary)
 
 
+def normalize_source_url(url: Any) -> str:
+    """Канонический вид source_url для сравнения.
+
+    Одна и та же заметка может прийти как `Dataview%20Mastery.md` и как
+    `Dataview Mastery.md`, а также со схемой в разном регистре или с
+    завершающим `/`. Процентное кодирование и регистр схемы/хоста не
+    несут смысла, поэтому сравнивать их по коду бессмысленно — дубль
+    проходит как новая мысль.
+    """
+    text = unquote(str(url).strip())
+    text = re.sub(r"\s+", " ", text)
+    scheme, sep, rest = text.partition("://")
+    if sep:
+        host, slash, tail = rest.partition("/")
+        text = scheme.lower() + sep + host.lower() + slash + tail
+    return text.rstrip("/") if text.count("/") > 2 else text
+
+
 def dedupe_key(item: Dict[str, Any]) -> Tuple[str, str]:
     topic = item.get("topic") if isinstance(item.get("topic"), str) else ""
     url = item.get("source_url") if isinstance(item.get("source_url"), str) else ""
-    return topic.strip().casefold(), url.strip()
+    return topic.strip().casefold(), normalize_source_url(url)
 
 
 def clean_insights(insights: List[Any]) -> Tuple[List[Dict[str, Any]], Dict[str, int]]:

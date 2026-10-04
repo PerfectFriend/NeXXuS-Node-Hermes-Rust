@@ -899,6 +899,52 @@ class RealDataCrossFileTests(unittest.TestCase):
         self.assertEqual(report["cross_file_pairs"], 84)
 
 
+class UrlNormalizationTests(unittest.TestCase):
+    """Пункт 15: ключ дедупликации устойчив к написанию URL."""
+
+    def test_percent_encoded_and_plain_space_are_one_key(self):
+        encoded = good_insight(source_url="Dataview%20Mastery.md")
+        plain = good_insight(source_url="Dataview Mastery.md")
+        self.assertEqual(dedupe_key(encoded), dedupe_key(plain))
+
+    def test_normalize_unquotes_and_collapses_spaces(self):
+        self.assertEqual(validate.normalize_source_url("Dataview%20Mastery.md"),
+                         "Dataview Mastery.md")
+        self.assertEqual(validate.normalize_source_url("  a   b  "), "a b")
+
+    def test_scheme_and_host_are_casefolded(self):
+        self.assertEqual(validate.normalize_source_url("HTTPS://Example.ORG/Note"),
+                         "https://example.org/Note")
+
+    def test_trailing_slash_is_dropped_only_for_urls(self):
+        self.assertEqual(validate.normalize_source_url("https://example.org/note/"),
+                         "https://example.org/note")
+        self.assertEqual(validate.normalize_source_url("http://a.b"),
+                         "http://a.b")
+        self.assertEqual(validate.normalize_source_url("note.md"), "note.md")
+
+    def test_missing_or_non_string_url_does_not_crash(self):
+        self.assertIsInstance(validate.normalize_source_url(None), str)
+        self.assertIsInstance(validate.normalize_source_url(""), str)
+
+    def test_plain_filename_without_scheme_keeps_slash(self):
+        self.assertEqual(validate.normalize_source_url("Dir/Note.md"), "Dir/Note.md")
+
+    def test_live_memory_measurement_unchanged(self):
+        """Замер по живым данным: нормализация не схлопывает лишнего."""
+        pairs = crossfile_pairs(PROJECT_ROOT)
+        self.assertTrue(pairs, "живая память не найдена")
+        items = [i for _, doc in pairs for i in doc.get("insights", []) if not is_junk(i)]
+        self.assertEqual(len(items), 184)
+        raw = {str(i.get("source_url", "")).strip() for i in items}
+        self.assertEqual(len(raw), 100)
+        keys = {dedupe_key(i) for i in items}
+        self.assertEqual(len(keys), 100)
+        # Нормализация на живых данных — биекция: склеек нет, а размер тот же.
+        self.assertEqual(len({validate.normalize_source_url(u) for u in raw}), 100)
+        self.assertEqual(len(raw), len(keys))
+
+
 def crossfile_pairs(root):
     """Список (путь, документ) по файлам памяти проекта."""
     return [(path, load(path)) for path in loader.iter_memory_files(root)]
