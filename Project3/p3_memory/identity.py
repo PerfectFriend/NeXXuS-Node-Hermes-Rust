@@ -17,7 +17,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from . import SIBLING_PROJECTS
-from .canon import canon, read_all
+from .canon import canon, read_all, record_key
 from .loader import DEFAULT_DIR, load
 from .paths import project_root
 
@@ -130,6 +130,54 @@ def load_project(project: str, root: Optional[Path] = None) -> Dict[str, Any]:
     return {"insights": merged, "total_insights": len(merged), "_markers_removed": markers}
 
 
+def diverging_fields(own: Dict[str, Any], other: Dict[str, Any]) -> Dict[str, Any]:
+    """Какие содержательные поля разошлись и в скольких записях.
+
+    Вердикт «отличается» сам по себе бесполезен: не сказано, что именно
+    разошлось. Считаем распределение по полям — после снятия служебной
+    надстройки (иначе её правки затопили бы содержательные различия).
+
+    Сопоставление записей идёт по каноническому ключу записи, а не по
+    позиции в списке: сосед может переставить записи, и это не содержание.
+    """
+    def by_key(data: Dict[str, Any]) -> Dict[str, dict]:
+        out: Dict[str, dict] = {}
+        for item in data.get("insights") or []:
+            if not isinstance(item, dict):
+                continue
+            clean = {k: v for k, v in item.items() if k not in SERVICE_FIELDS}
+            key = record_key(clean)
+            # первое вхождение выигрывает: дубли внутри корпуса разбирает canon,
+            # здесь важна причина расхождения между проектами
+            out.setdefault(key, clean)
+        return out
+
+    mine = by_key(own)
+    theirs = by_key(other)
+    common = mine.keys() & theirs.keys()
+    counts: Dict[str, int] = {}
+    samples: Dict[str, List[str]] = {}
+    for key in common:
+        a, b = mine[key], theirs[key]
+        for field in set(a) | set(b):
+            if a.get(field) != b.get(field):
+                counts[field] = counts.get(field, 0) + 1
+                if len(samples.get(field, ())) < 2:
+                    samples.setdefault(field, []).append(
+                        f"Project3={json.dumps(a.get(field), ensure_ascii=False)[:70]} / "
+                        f"сосед={json.dumps(b.get(field), ensure_ascii=False)[:70]}"
+                    )
+    return {
+        "records_compared": len(common),
+        "only_own": sorted(mine.keys() - theirs.keys()),
+        "only_other": sorted(theirs.keys() - mine.keys()),
+        "fields": dict(sorted(counts.items(), key=lambda kv: -kv[1])),
+        "field_count": len(counts),
+        "samples": samples,
+        "identical_by_key": len(common) and not counts and not (mine.keys() ^ theirs.keys()),
+    }
+
+
 def compare_pair(own: Dict[str, Any], other: Dict[str, Any]) -> Dict[str, Any]:
     """Сравнить два тела инсайтов: по содержанию, побайтово и по ключам.
 
@@ -142,14 +190,17 @@ def compare_pair(own: Dict[str, Any], other: Dict[str, Any]) -> Dict[str, Any]:
     * `service_overlay` — какие служебные поля дописаны у соседа и в скольких
                           записях: расхождение побайтового хэша объяснено
                           конкретно, а не «ну, разные».
+    * `divergence`      — если содержание разошлось, то по каким полям и
+                          в скольких записях (см. `diverging_fields`).
     """
     own_keys = set(canon([own])["keys"])
     other_keys = set(canon([other])["keys"])
     shared = own_keys & other_keys
     union = own_keys | other_keys
     overlay = service_overlay(other)
-    return {
-        "identical": body_hash(own) == body_hash(other),
+    identical = body_hash(own) == body_hash(other)
+    result = {
+        "identical": identical,
         "byte_identical": body_hash(own, False) == body_hash(other, False),
         "own_hash": body_hash(own)[:16],
         "other_hash": body_hash(other)[:16],
@@ -163,6 +214,13 @@ def compare_pair(own: Dict[str, Any], other: Dict[str, Any]) -> Dict[str, Any]:
         "jaccard": round(len(shared) / len(union), 6) if union else 0.0,
         "service_overlay": overlay,
     }
+    # Диагностика расхождения считается только когда расхождение реальное:
+    # на совпадающих телах это лишняя работа и лишний шум в JSON-выводе.
+    if identical:
+        result["divergence"] = None
+    else:
+        result["divergence"] = diverging_fields(own, other)
+    return result
 
 
 def identity_report(memory_dir: Path = DEFAULT_DIR,

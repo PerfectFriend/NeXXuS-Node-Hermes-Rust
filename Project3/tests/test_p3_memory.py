@@ -441,6 +441,49 @@ class TestIdentity(Base):
         b = {"insights": [make_record(topic="Чужое")]}
         self.assertFalse(identity.compare_pair(a, b)["identical"])
 
+    def test_vershikt_bez_prichiny_ne_dopuskayetsya(self):
+        # «Отличается» без указания, что именно разошлось, — это заявление,
+        # которое невозможно проверить. Принудительно разводим тела.
+        a = {"insights": [make_record(topic="Общее", url="https://a/1")]}
+        b = {"insights": [dict(make_record(topic="Общее", url="https://a/1"),
+                               relevance_score=0.1)]}
+        div = identity.diverging_fields(a, b)
+        self.assertEqual(div["records_compared"], 1)
+        self.assertEqual(div["fields"], {"relevance_score": 1})
+        self.assertEqual(div["field_count"], 1)
+        self.assertTrue(div["samples"]["relevance_score"])
+        self.assertFalse(div["identical_by_key"])
+
+    def test_diagnostika_ne_utoplyaet_nadstroykoy(self):
+        # Надстройка соседа не должна попасть в счёт содержательных полей.
+        base = make_record(topic="Общее", url="https://a/1")
+        over = dict(base, superseded_by={"file": "f", "synced_at": "s"},
+                    origin_issue=["x"])
+        div = identity.diverging_fields({"insights": [base]}, {"insights": [over]})
+        self.assertEqual(div["fields"], {})
+        self.assertTrue(div["identical_by_key"])
+        self.assertEqual(div["only_own"], [])
+        self.assertEqual(div["only_other"], [])
+
+    def test_diagnostika_videt_klyuchi_kotoryh_net_u_soseda(self):
+        a = {"insights": [make_record(topic="A"), make_record(topic="B")]}
+        b = {"insights": [make_record(topic="A")]}
+        div = identity.diverging_fields(a, b)
+        self.assertEqual(len(div["only_own"]), 1)
+        self.assertEqual(div["only_other"], [])
+
+    def test_diagnostika_ne_zavisit_ot_poryadka_zapisey(self):
+        a = {"insights": [make_record(topic="A"), make_record(topic="B")]}
+        b = {"insights": [make_record(topic="B"), make_record(topic="A")]}
+        div = identity.diverging_fields(a, b)
+        self.assertEqual(div["fields"], {})
+        self.assertTrue(div["identical_by_key"])
+
+    def test_sovpadayushchie_tela_ne_tratyat_vremya_na_diagnostiku(self):
+        data = {"insights": [make_record()]}
+        pair = identity.compare_pair(data, data)
+        self.assertIsNone(pair["divergence"])
+
     def test_razvedennye_kopii_ne_identichny(self):
         root = self.tmp / "LC"
         own = root / "Project3" / "memory"
@@ -827,6 +870,40 @@ class TestReport(Base):
         # Никаких «190 записей» из чужого отчёта: числа только из данных.
         text = report.build_report(REAL_MEMORY)
         self.assertIn("уникальных записей", text)
+
+    def test_razvedennye_kopii_poluchayut_diagnostiku(self):
+        # Разведённые тела: расхождение обязано быть объяснено, а не просто
+        # помечено. Проверяем на искусственном дереве, где сосед отличается.
+        root = self.tmp / "LC"
+        own = root / "Project3" / "memory"
+        write_corpus(own, {"professor_insights_cycle_001.json": [make_record(topic="Своё")]})
+        for name in ("Project1", "Project2", "Project4"):
+            write_corpus(root / name / "memory",
+                         {"professor_insights_cycle_001.json": [make_record(topic="Чужое")]})
+        result = identity.identity_report(own, root=root)
+        for name, res in result["per_sibling"].items():
+            div = res["divergence"]
+            self.assertIsNotNone(div, name)
+            # Разные темы дают разные ключи, поэтому сопоставлять нечего:
+            # причина расхождения — «ключи не пересекаются», а не правка поля.
+            self.assertEqual(len(div["only_own"]), 1, name)
+            self.assertEqual(len(div["only_other"]), 1, name)
+            self.assertEqual(div["records_compared"], 0, name)
+            self.assertFalse(div["identical_by_key"], name)
+
+    def test_otchet_pokazyvaet_prichinu_rashozhdeniya(self):
+        # На штатном дереве расхождений по содержанию нет — отчёт обязан это
+        # сказать прямо, а не оставлять читателя с таблицей без вывода.
+        text = report.build_report(REAL_MEMORY)
+        self.assertIn("Чем именно разошлись тела", text)
+        ident = identity.identity_report(REAL_MEMORY)
+        diverged = [n for n, r in ident["per_sibling"].items()
+                    if r.get("divergence")]
+        if diverged:
+            for name in diverged:
+                self.assertIn(f'**{name}**', text)
+        else:
+            self.assertIn("Содержательных расхождений не найдено", text)
 
     def test_otchet_perechityvaet_dlya_iskazhennogo_korpora(self):
         memory = self.fake_memory()

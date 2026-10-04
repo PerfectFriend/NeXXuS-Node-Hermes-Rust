@@ -96,6 +96,10 @@ def cmd_identity(args) -> int:
         print(f"  {name}: {verdict}, {bytes_note}, "
               f"общих ключей {res['shared_keys']}/{res['own_keys']}, "
               f"Жаккар {res['jaccard']}")
+        div = res.get("divergence")
+        if div:
+            for field, count in list(div["fields"].items())[: args.limit]:
+                print(f"      различается поле {field}: {count} записей")
     print(f"все соседи идентичны по содержанию: "
           f"{'да' if result['all_identical'] else 'нет'}; "
           f"байт в байт: {', '.join(result['byte_identical_siblings']) or 'никто'}; "

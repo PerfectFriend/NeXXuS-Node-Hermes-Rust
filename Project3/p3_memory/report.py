@@ -113,6 +113,38 @@ def build_report(memory_dir: Path = DEFAULT_DIR) -> str:
                      f'{", ".join(ident["identical_siblings"]) or "ни с одним"}. '
                      f'Собственных ключей: {ident["distinct_keys"]}.')
     lines.append("")
+    lines.append("### 3.1. Чем именно разошлись тела")
+    lines.append("")
+    diverged = {
+        name: res["divergence"] for name, res in ident["per_sibling"].items()
+        if res.get("divergence")
+    }
+    if not diverged:
+        lines.append("Содержательных расхождений не найдено ни с одним соседом —")
+        lines.append("совпадает всё, кроме, возможно, служебной надстройки.")
+    else:
+        lines.append("Вердикт «отличается» без причины бесполезен, поэтому расхождения")
+        lines.append("посчитаны по полям. Сопоставление — по каноническому ключу записи,")
+        lines.append("служебная надстройка снята.")
+        lines.append("")
+        for name, div in sorted(diverged.items()):
+            lines.append(f'**{name}** — сопоставлено записей: {div["records_compared"]}, '
+                         f'расходящихся полей: {div["field_count"]}.')
+            lines.append("")
+            lines.extend(_table(
+                [[field, count] for field, count in div["fields"].items()],
+                ["поле", "записей с различием"],
+            ))
+            if div["only_own"] or div["only_other"]:
+                lines.append("")
+                lines.append(f'Ключей только у Project3: {len(div["only_own"])}; '
+                             f'только у соседа: {len(div["only_other"])}.')
+            for field, examples in div["samples"].items():
+                lines.append("")
+                lines.append(f'Пример по полю `{field}`:')
+                for example in examples:
+                    lines.append(f'  - {example}')
+    lines.append("")
 
     lines.append("## 4. Аудит адресации")
     lines.append("")
