@@ -343,6 +343,120 @@ def cmd_report_file(args) -> int:
     return EXIT_OK
 
 
+def render_freshness_report(files: Sequence[Dict[str, Any]]) -> str:
+    """Текст FRESHNESS_REPORT.md.
+
+    Отдельная функция, а не код внутри команды: тест сверяет числа файла с
+    прогоном `freshness --json`, и для этого нужен текст без записи на диск.
+    """
+    from .provenance import (
+        MARK_ORIGIN,
+        MARK_SUPERSEDED,
+        freshness_report,
+        origin_findings,
+    )
+
+    rep = freshness_report(files)
+    findings = origin_findings(
+        [i for d in files for i in (d.get("insights") or []) if isinstance(i, dict)]
+    )
+    пометки_sup = sum(
+        1 for d in files for i in (d.get("insights") or [])
+        if isinstance(i, dict) and MARK_SUPERSEDED in i
+    )
+    пометки_origin = sum(
+        1 for d in files for i in (d.get("insights") or [])
+        if isinstance(i, dict) and MARK_ORIGIN in i
+    )
+    уже_помечено = sum(row["already_marked_superseded"] for row in rep["lost_detail"])
+
+    lines: List[str] = []
+    lines.append("# Свежесть корпуса Project2 — отчёт")
+    lines.append("")
+    lines.append("Сгенерировано кодом: `python3 -m p2_graph freshness-report`.")
+    lines.append("Не редактировать руками — файл перезаписывается целиком.")
+    lines.append("")
+    lines.append("## Корпус")
+    lines.append("")
+    lines.append(f"- файлов памяти: {len(rep['files'])}")
+    lines.append(f"- порядок чтения совпадает с хронологией: {rep['order_is_chronological']}")
+    lines.append(f"- инверсий: {rep['inverted_count']}")
+    lines.append("")
+    lines.append("## Инверсия и потери")
+    lines.append("")
+    lines.append(
+        "Файл `cycle_1351` читается после `cycle_001`, но `synced_at` у него раньше: "
+        "в нём лежит старый срез. Дубликаты при дедупе по свежести выигрывают у "
+        "свежего файла, поэтому `lost` считает записи, которые ещё не помечены как "
+        "вытесненные."
+    )
+    lines.append("")
+    lines.append("| файл | synced_at | вытеснено записей | уже помечено |")
+    lines.append("| --- | --- | --- | --- |")
+    for row in rep["lost_detail"]:
+        lines.append(
+            f"| {Path(row['file']).name} | {row['synced_at']} | "
+            f"{row['overwritten_by_fresher']} | {row['already_marked_superseded']} |"
+        )
+    lines.append("")
+    lines.append(f"- всего неразмеченных потерь: {rep['lost']}")
+    lines.append(
+        f"- помечено как вытесненные в инверсных файлах: {уже_помечено} "
+        f"(остальным файлам, где `synced_at` самый свежий, разметка не полагается)"
+    )
+    lines.append(f"- помечено как устаревшие дубли, всего по корпусу: {пометки_sup}")
+    lines.append("")
+    lines.append("## Подменённое происхождение")
+    lines.append("")
+    lines.append(
+        "Записи, у которых `source_type=textbook` при ссылке на соцсеть либо тема — "
+        "идентификатор поста. После `--fix` в записи лежит поле `origin_issue` со "
+        "списком причин; подтверждённая причина в отчёт не возвращается."
+    )
+    lines.append("")
+    lines.append(f"- находок: {len(findings)}")
+    lines.append(f"- помечено как подменённые, всего по корпусу: {пометки_origin}")
+    if findings:
+        lines.append("")
+        lines.append("| # | тема | source_url | причины |")
+        lines.append("| --- | --- | --- | --- |")
+        for i, f in enumerate(findings, 1):
+            причины = "; ".join(f["reasons"])
+            lines.append(f"| {i} | {f['topic']} | {f['source_url']} | {причины} |")
+    lines.append("")
+    lines.append("## Что из этого следует")
+    lines.append("")
+    lines.append(
+        f"Инверсия {rep['inverted_count']}, неразмеченных потерь {rep['lost']}, "
+        f"подменённых происхождений {len(findings)} — корпус честен, "
+        + ("закрывать больше нечего." if rep["lost"] == 0 and not findings
+           else "`freshness --fix` знает, что именно пометить.")
+    )
+    lines.append("")
+    return "\n".join(lines)
+
+
+def cmd_freshness_report(args) -> int:
+    """Сгенерировать FRESHNESS_REPORT.md из живых данных."""
+    from .provenance import freshness_report, origin_findings
+
+    files = load_all(args.memory_dir)
+    if not files:
+        print("Нет файлов памяти для анализа.")
+        return EXIT_DATA
+    text = render_freshness_report(files)
+    out = Path(args.out) if args.out else (
+        Path(__file__).resolve().parent.parent / "FRESHNESS_REPORT.md"
+    )
+    out.write_text(text, encoding="utf-8")
+    rep = freshness_report(files)
+    findings = origin_findings(
+        [i for d in files for i in (d.get("insights") or []) if isinstance(i, dict)]
+    )
+    print(f"Записан {out} (потерь {rep['lost']}, находок {len(findings)})")
+    return EXIT_OK
+
+
 def cmd_query(args) -> int:
     data = _collect(args)
     kept, _stats = clean_insights(data["insights"])
@@ -499,6 +613,11 @@ def build_parser() -> argparse.ArgumentParser:
     q.add_argument("--limit", type=int, default=10)
     q.set_defaults(func=cmd_query)
 
+    fr = sub.add_parser("freshness-report",
+                        help="сгенерировать FRESHNESS_REPORT.md")
+    fr.add_argument("--out", default="",
+                    help="куда писать (по умолчанию FRESHNESS_REPORT.md рядом с пакетом)")
+    fr.set_defaults(func=cmd_freshness_report)
     fz = sub.add_parser("freshness", help="свежесть корпуса и подменённое происхождение")
     fz.add_argument("--json", action="store_true")
     fz.add_argument("--fix", action="store_true",
