@@ -322,9 +322,31 @@ def diff(
     return result
 
 
+def _entry_line(kind: str, entry: Dict[str, Any]) -> str:
+    """Строка перечня: вид перехода и **кто именно** в него попал.
+
+    Голых чисел мало: «удалено 16» не отвечает на вопрос «что именно
+    пропало». Поэтому называем тему, категорию и URL — тем же
+    `_view`, что и в JSON-выводе, чтобы сводка и машина показывали
+    одно и то же.
+    """
+    topic = entry.get("topic") or "(без темы)"
+    category = entry.get("category") or "(без категории)"
+    url = entry.get("source_url") or "(без URL)"
+    fields = entry.get("fields")
+    tail = f" — поля: {', '.join(fields)}" if fields else ""
+    return f"  [{kind}] {topic} / {category} / {url}{tail}"
+
+
 def diff_text(result: Dict[str, Any], limit: int = 20) -> str:
-    """Человеческая сводка диффа (для CLI без ``--json``);
-    перечень изменений сокращает ``limit`` строк."""
+    """Человеческая сводка диффа (для CLI без ``--json``).
+
+    Перечисляет все пять видов перехода, а не только правки: иначе
+    читатель видит «добавлено: 2, удалено: 16» и не знает, о каких
+    именно записях речь. Каждый вид ограничен ``limit`` строками, но
+    общее число печатается всегда — иначе сокращение неотличимо от
+    отсутствия записей.
+    """
     lines = [
         f"diff циклов: {result['from_cycle']} → {result['to_cycle']}",
         f"откуда: {result['from_file']} ({result['from_records']} записей)",
@@ -336,10 +358,31 @@ def diff_text(result: Dict[str, Any], limit: int = 20) -> str:
             f"без изменений: {result['unchanged']}"
         ),
     ]
-    for entry in result["changed"][:limit]:
+    # Переезды и перезаписи — отдельные виды: иначе «переехало» не
+    # отличимо от «пропало», а «перезаписано» — от правки. Раньше обе
+    # категории в сводку вообще не попадали.
+    for key, kind in (("removed", "удал"), ("moved", "переех"),
+                      ("added", "добав"), ("changed", "изм"),
+                      ("rewritten", "перезаписан")):
+        entries = result.get(key) or []
+        if not entries:
+            continue
+        lines.append(f"{kind}: {len(entries)}")
+        for entry in entries[:limit]:
+            lines.append(_entry_line(kind, entry))
+        if len(entries) > limit:
+            lines.append(f"  … ещё {len(entries) - limit}")
+    # Сходимость видна читателю, а не только тесту: если равенства
+    # разошлись, значит инструмент врёт, и об этом сказано словами.
+    balance = (
+        len(result["removed"]) + len(result["moved"]) + result["shared"],
+        len(result["added"]) + len(result["moved"]) + result["shared"],
+        result["from_records"], result["to_records"],
+    )
+    if balance[0] != balance[2] or balance[1] != balance[3]:
         lines.append(
-            f"  [изм] {entry['topic']} — поля: {', '.join(entry['fields'])}"
+            "ВНИМАНИЕ: сходимость нарушена — "
+            f"старая сторона {balance[0]} против {balance[2]}, "
+            f"новая {balance[1]} против {balance[3]} записей"
         )
-    if len(result["changed"]) > limit:
-        lines.append(f"  … ещё {len(result['changed']) - limit} изменений")
     return "\n".join(lines)

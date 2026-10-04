@@ -2171,6 +2171,83 @@ def _section_rows(text, heading):
     return rows
 
 
+class TestDiffTextNamesEveryone(Base):
+    """Пункт 37: сводка называет, кто именно перешёл, а не только сколько.
+
+    Симметрия с пунктом 34: причина пропажи названа, а появление,
+    исчезновение и перезапись были голыми числами. Ещё и переезды с
+    перезаписями в сводку не попадали вовсе — читатель не мог
+    отличить «переехало» от «пропало».
+    """
+
+    def setUp(self):
+        super().setUp()
+        self.result = diff.diff(REAL_MEMORY)
+
+    def test_kazhdyy_vid_perehoda_imeet_svoi_stroki(self):
+        text = diff.diff_text(self.result, limit=100)
+        # На штатном корпусе непусты все пять видов, кроме правок:
+        # содержательных изменений между 001 и 1351 нет вовсе.
+        for kind in ("удал:", "добав:", "перезаписан:"):
+            self.assertIn(kind, text, f"в сводке нет вида {kind}")
+        self.assertNotIn("изм:", text)
+
+    def test_stroki_nazyvayut_temu_kategoriyu_i_url(self):
+        text = diff.diff_text(self.result, limit=100)
+        for entry in self.result["removed"]:
+            self.assertIn(entry["topic"], text)
+        for entry in self.result["added"]:
+            self.assertIn(entry["topic"], text)
+        # Отсутствующие поля видно явно, а не как пустую строку:
+        # пустая строка читается как «запись с пустым адресом».
+        self.assertIn("(без URL)", text)
+        self.assertNotIn(" / \n", text)
+
+    def test_pereezd_otlischim_ot_propazhi(self):
+        # На корпусе, где у записи поменяли категорию, сводка обязана
+        # назвать её как переезд, а не как удаление: читатель видит
+        # разные подписи, а не одну и ту же цифру.
+        record = {
+            "topic": "Тема про обучение",
+            "category": "Textbook",
+            "source_url": "https://example.org/a",
+            "summary": "текст",
+        }
+        moved = dict(record, category="AI Engineering")
+        result = diff.diff_cycles(
+            {"insights": [record]}, {"insights": [moved]},
+        )
+        text = diff.diff_text(result, limit=10)
+        self.assertIn("переех:", text)
+        self.assertNotIn("удал:", text)
+        self.assertIn("Textbook", text)
+
+    def test_svedka_govorit_o_narushenii_skhodimosti(self):
+        # Если равенства разошлись, сводка обязана об этом сказать
+        # словами. Проверяем на подделанном результате: сходимость
+        # обязана быть видна читателю, а не только тесту.
+        broken = dict(self.result, from_records=999)
+        text = diff.diff_text(broken, limit=5)
+        self.assertIn("ВНИМАНИЕ", text)
+        self.assertIn("сходимость нарушена", text)
+        # На честном результате предупреждения быть не должно.
+        self.assertNotIn("ВНИМАНИЕ", diff.diff_text(self.result, limit=5))
+
+    def test_limit_sokrashchaet_stroki_no_ne_chislo(self):
+        text = diff.diff_text(self.result, limit=2)
+        self.assertIn("удал: 16", text)
+        self.assertIn("… ещё 14", text)
+        # Сокращённый перечень остаётся перечнем, а не одной строкой.
+        self.assertEqual(text.count("[удал]"), 2)
+
+    def test_json_i_svedka_soglasovany_po_sostavu(self):
+        # Сводка и JSON показывают одно и то же: расхождение между ними
+        # означало бы, что один из двух выводов врёт.
+        text = diff.diff_text(self.result, limit=1000)
+        for entry in self.result["rewritten"]:
+            self.assertIn(entry["topic"], text)
+
+
 class TestDiffSectionInReport(Base):
     """Раздел «Дифф двух последних циклов» в отчёте (пункт 30).
 
