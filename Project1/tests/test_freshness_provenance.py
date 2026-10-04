@@ -71,6 +71,17 @@ class TempProject:
         )
         return path
 
+    def write_stamped_report(self, name, text):
+        """Отчёт с блоком фактов, посчитанным по ЖИВЫМ данным этого каталога.
+
+        С пункта 21 отсутствие блока — само по себе расхождение, поэтому
+        «хороший» отчёт в тестах обязан быть проштампован.
+        """
+        facts = freshness.live_facts(self.root)
+        path = self.root / name
+        path.write_text(freshness.stamp_facts(text, facts), encoding="utf-8")
+        return path
+
     def cleanup(self):
         shutil.rmtree(self.root, ignore_errors=True)
 
@@ -104,7 +115,7 @@ class TestCheckReport(unittest.TestCase):
         self.tmp.write_memory("professor_insights_cycle_001.json",
                               document([good_insight(), good_insight(topic="Другая")]))
         self.tmp.write_test()
-        self.tmp.write_report("MEMORY_REPORT.md", (
+        self.tmp.write_stamped_report("MEMORY_REPORT.md", (
             "| файл | всего | мусор | дубли | чистых |\n"
             "|---|---|---|---|---|\n"
             "| professor_insights_cycle_001.json | 2 | 0 | 0 | 2 |\n"
@@ -275,7 +286,7 @@ class TestCliFreshnessAndProvenance(unittest.TestCase):
 
     def test_report_check_exits_zero_when_fresh(self):
         self.tmp.write_memory("professor_insights_cycle_001.json", document([good_insight()]))
-        self.tmp.write_report("MEMORY_REPORT.md", (
+        self.tmp.write_stamped_report("MEMORY_REPORT.md", (
             "| файл | всего | мусор | дубли | чистых |\n"
             "|---|---|---|---|---|\n"
             "| professor_insights_cycle_001.json | 1 | 0 | 0 | 1 |\n"
@@ -300,6 +311,120 @@ class TestCliFreshnessAndProvenance(unittest.TestCase):
 
     def test_live_report_check_passes(self):
         self.assertEqual(main(["--root", str(PROJECT_ROOT), "report", "--check"]), 0)
+
+
+class TestFactBlockPhase4(unittest.TestCase):
+    """Пункт 21–23: сверка машинно-читаемых фактов и команда `stamp`."""
+
+    def setUp(self):
+        self.tmp = TempProject()
+        self.tmp.write_memory("professor_insights_cycle_001.json",
+                               document([good_insight(), good_insight(topic="Б")]))
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def _text(self):
+        return (
+            "| файл | всего | мусор | дубли | чистых |\n"
+            "|---|---|---|---|---|\n"
+            "| professor_insights_cycle_001.json | 2 | 0 | 0 | 2 |\n"
+            "| ИТОГО | 2 | 0 | 0 | 2 |\n"
+        )
+
+    def test_parse_facts_reads_marker_lines(self):
+        facts = freshness.parse_facts(
+            "<!-- p1-fact: junk = 6 -->\n<!-- p1-fact: kept = 184 -->\nтекст\n"
+        )
+        self.assertEqual(facts, {"junk": "6", "kept": "184"})
+
+    def test_parse_facts_ignores_unmarked_numbers(self):
+        text = "84 записи повторяются, остаётся 100.\n"
+        self.assertEqual(freshness.parse_facts(text), {})
+
+    def test_duplicate_fact_keys_are_detected(self):
+        text = ("<!-- p1-fact: junk = 6 -->\n"
+                "<!-- p1-fact: junk = 7 -->\n")
+        self.assertEqual(freshness.duplicate_fact_keys(text), ["junk"])
+
+    def test_missing_block_is_a_mismatch(self):
+        self.tmp.write_report("MEMORY_REPORT.md", self._text())
+        result = freshness.check_report(self.tmp.root)
+        self.assertFalse(result["ok"])
+        self.assertIn("cross_file_duplicates", result["facts_missing"])
+
+    def test_stamped_report_passes_and_text_outside_block_untouched(self):
+        path = self.tmp.write_report("MEMORY_REPORT.md", self._text())
+        before_head = path.read_text(encoding="utf-8").rstrip("\n")
+        self.assertEqual(main(["--root", str(self.tmp.root), "stamp"]), 0)
+        after = path.read_text(encoding="utf-8")
+        head, _, _ = after.partition("<!-- p1-facts:start -->")
+        # Единственная допустимая разница — разделительный перевод строки
+        # перед блоком; сам текст отчёта не тронут.
+        self.assertEqual(head.rstrip("\n"), before_head)
+        self.assertEqual(freshness.check_report(self.tmp.root)["ok"], True)
+
+    def test_substituted_fact_is_caught(self):
+        self.tmp.write_stamped_report("MEMORY_REPORT.md", self._text())
+        path = self.tmp.root / "MEMORY_REPORT.md"
+        facts = freshness.live_facts(self.tmp.root)
+        path.write_text(
+            path.read_text(encoding="utf-8").replace(
+                f"<!-- p1-fact: junk = {facts['junk']} -->",
+                "<!-- p1-fact: junk = 7 -->",
+            ),
+            encoding="utf-8",
+        )
+        result = freshness.check_report(self.tmp.root)
+        self.assertFalse(result["ok"])
+        self.assertEqual(
+            [r["fact"] for r in result["fact_mismatches"]], ["junk"]
+        )
+
+    def test_unknown_fact_key_is_reported(self):
+        self.tmp.write_stamped_report("MEMORY_REPORT.md", self._text())
+        path = self.tmp.root / "MEMORY_REPORT.md"
+        path.write_text(
+            path.read_text(encoding="utf-8")
+            + "\n<!-- p1-fact: tets_on_disk = 5 -->\n",
+            encoding="utf-8",
+        )
+        result = freshness.check_report(self.tmp.root)
+        self.assertEqual(result["facts_unknown"], ["tets_on_disk"])
+        self.assertFalse(result["ok"])
+
+    def test_stamp_is_idempotent(self):
+        self.tmp.write_report("MEMORY_REPORT.md", self._text())
+        main(["--root", str(self.tmp.root), "stamp"])
+        once = (self.tmp.root / "MEMORY_REPORT.md").read_text(encoding="utf-8")
+        self.assertEqual(main(["--root", str(self.tmp.root), "stamp"]), 0)
+        twice = (self.tmp.root / "MEMORY_REPORT.md").read_text(encoding="utf-8")
+        self.assertEqual(once, twice)
+
+    def test_stamp_leaves_no_tmp_and_keeps_backup(self):
+        self.tmp.write_report("MEMORY_REPORT.md", self._text())
+        main(["--root", str(self.tmp.root), "stamp"])
+        report = self.tmp.root / "MEMORY_REPORT.md"
+        self.assertTrue(report.with_suffix(".md.bak").exists())
+        self.assertEqual(list(self.tmp.root.glob("*.tmp")), [])
+
+    def test_stamp_dry_run_writes_nothing(self):
+        path = self.tmp.write_report("MEMORY_REPORT.md", self._text())
+        before = path.read_text(encoding="utf-8")
+        self.assertEqual(
+            main(["--root", str(self.tmp.root), "stamp", "--dry-run"]), 0
+        )
+        self.assertEqual(path.read_text(encoding="utf-8"), before)
+
+    def test_live_report_has_every_known_fact(self):
+        """Регресс на живой отчёт: блок фактов полон и совпадает с прогоном."""
+        facts = freshness.parse_facts(
+            (PROJECT_ROOT / "MEMORY_REPORT.md").read_text(encoding="utf-8")
+        )
+        self.assertEqual(sorted(facts), sorted(freshness.FACT_BUILDERS))
+        live = freshness.live_facts(PROJECT_ROOT)
+        for key, value in facts.items():
+            self.assertEqual(value, str(live[key]), f"факт {key} разошёлся")
 
 
 if __name__ == "__main__":

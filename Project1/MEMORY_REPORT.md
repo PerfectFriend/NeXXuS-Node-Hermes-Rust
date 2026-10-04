@@ -5,7 +5,7 @@
 dedupe --scope all` (dry-run), `python3 -m p1_memory provenance`, пакет
 `p1_memory/` версии 1.0.0.
 
-Тестовый набор: 127 зелёных.
+Тестовый набор: 138 зелёных.
 
 ## Фактические числа (по файлам, после фильтрации мусора)
 
@@ -100,3 +100,23 @@ hot-код) записал 1835 инсайтов для Project1: 3 мусорн
    Пока решения нет, файлы остаются нетронутыми (dry-run по умолчанию).
 2. Разрешить правку `scripts/professor_sync.py` по поводу
    `applicable_projects=[1,2,3,4]` — сейчас поле не даёт отбора по проекту.
+
+<!-- p1-facts:start -->
+<!-- p1-fact: files = 2 -->
+<!-- p1-fact: insights_total = 190 -->
+<!-- p1-fact: junk = 6 -->
+<!-- p1-fact: duplicates_inside = 0 -->
+<!-- p1-fact: kept = 184 -->
+<!-- p1-fact: schema_problems = 0 -->
+<!-- p1-fact: cross_file_duplicates = 84 -->
+<!-- p1-fact: cross_kept = 100 -->
+<!-- p1-fact: prov_total = 190 -->
+<!-- p1-fact: prov_clean = 184 -->
+<!-- p1-fact: prov_no_tags = 0 -->
+<!-- p1-fact: prov_no_source_url = 0 -->
+<!-- p1-fact: prov_no_timestamp = 0 -->
+<!-- p1-fact: prov_relevance_values = 1 -->
+<!-- p1-fact: ap_unique_sets = 1 -->
+<!-- p1-fact: ap_uniform_all_projects = 184 -->
+<!-- p1-fact: ap_discriminates = 0 -->
+<!-- p1-facts:end -->

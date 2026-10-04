@@ -19,7 +19,7 @@ import unittest
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-from .loader import load
+from .loader import iter_memory_files, load
 from .validate import summarize
 
 DEFAULT_REPORT = "MEMORY_REPORT.md"
@@ -38,6 +38,158 @@ _COUNTED_RE = re.compile(
     re.IGNORECASE,
 )
 _TEST_WORD_RE = re.compile(r"тест", re.IGNORECASE)
+
+# --- блоки машинно-читаемых фактов (фаза 4) -------------------------------
+# Дефект, измеренный tests/probe_check_gap.py: сверка жила на одной
+# markdown-таблице и числе тестов. Всё, что отчёт утверждает ТЕКСТОМ
+# (84 кросс-файловых дубля, 100 оставшихся, 190 на входе, provenance-факты),
+# не сверялось ни с чем: подмена 84→7 и 100→77 давала ok=True. Поэтому
+# числа вне маркера текстом числом не считаются — сверяются только факты,
+# помеченные строкой `<!-- p1-fact: ключ = значение -->`.
+_FACT_RE = re.compile(
+    r"^<!--\s*p1-fact:\s*(?P<key>[a-z0-9_]+)\s*=\s*(?P<value>[^\s>]+)\s*-->$",
+    re.MULTILINE,
+)
+_FACT_BLOCK_OPEN = "<!-- p1-facts:start -->"
+_FACT_BLOCK_CLOSE = "<!-- p1-facts:end -->"
+
+
+def parse_facts(text: str) -> Dict[str, str]:
+    """Все объявленные факты отчёта: {ключ: значение как есть}.
+
+    Ключи не повторяются: второе объявление того же ключа — признак
+    порчи отчёта, и `duplicate_fact_keys` его отдельно считает.
+    """
+    facts: Dict[str, str] = {}
+    for match in _FACT_RE.finditer(text):
+        facts[match.group("key")] = match.group("value")
+    return facts
+
+
+def duplicate_fact_keys(text: str) -> List[str]:
+    """Ключи, объявленные в отчёте больше одного раза."""
+    seen: List[str] = []
+    for match in _FACT_RE.finditer(text):
+        key = match.group("key")
+        if key in seen:
+            continue
+        seen.append(key)
+    counts = {k: 0 for k in seen}
+    for match in _FACT_RE.finditer(text):
+        counts[match.group("key")] += 1
+    return sorted(k for k, n in counts.items() if n > 1)
+
+
+#: Ключи фактов, которые сверка умеет вычислить из живых данных. Ключ, которого
+#: нет в этом списке, в отчёте считается опечаткой (неизвестный факт).
+FACT_BUILDERS: Dict[str, str] = {
+    "files": "число memory-файлов",
+    "insights_total": "всего инсайтов на входе",
+    "junk": "мусорных записей",
+    "duplicates_inside": "дублей внутри одного файла",
+    "kept": "чистых записей (после фильтрации мусора)",
+    "schema_problems": "проблем схемы",
+    "cross_file_duplicates": "кросс-файловых дублей (dedupe --scope all)",
+    "cross_kept": "сколько записей остаётся после глобальной дедупликации",
+    "prov_total": "provenance: всего инсайтов",
+    "prov_clean": "provenance: чистых",
+    "prov_no_tags": "provenance: записей без тегов",
+    "prov_no_source_url": "provenance: записей без source_url",
+    "prov_no_timestamp": "provenance: записей без timestamp",
+    "prov_relevance_values": "provenance: число различных значений relevance_score",
+    "ap_unique_sets": "provenance: число различных наборов applicable_projects",
+    "ap_uniform_all_projects": "provenance: записей с applicable_projects = [1,2,3,4]",
+    "ap_discriminates": "provenance: 1, если applicable_projects различает проекты",
+}
+
+
+def live_facts(root: Path) -> Dict[str, int]:
+    """Живые числа, которые обязан совпадать блок фактов отчёта.
+
+    Считаются ровно те же величины, что печатают `report`, `dedupe --scope all`
+    и `provenance`, — сверка идёт с теми же прогонами, а не с отдельной логикой.
+    """
+    from .crossfile import plan_crossfile
+    from .provenance import audit
+
+    root = Path(root)
+    files = list(iter_memory_files(root))
+    docs = [load(f) for f in files]
+    rows = [summarize(d) for d in docs]
+    _, stats = plan_crossfile(list(zip(files, docs)))
+    prov = audit(root, project=1)
+    ap = prov["applicable_projects"]
+    return {
+        "files": len(files),
+        "insights_total": sum(r["raw"]["input"] for r in rows),
+        "junk": sum(r["raw"]["junk"] for r in rows),
+        "duplicates_inside": sum(r["raw"]["duplicates"] for r in rows),
+        "kept": sum(r["raw"]["kept"] for r in rows),
+        "schema_problems": sum(len(r["problems"]) for r in rows),
+        "cross_file_duplicates": stats["cross_file_duplicates"],
+        "cross_kept": stats["kept"],
+        "prov_total": prov["total"],
+        "prov_clean": prov["clean"],
+        "prov_no_tags": prov["no_tags"],
+        "prov_no_source_url": prov["no_source_url"],
+        "prov_no_timestamp": prov["no_timestamp"],
+        "prov_relevance_values": len(prov["relevance_score"]),
+        "ap_unique_sets": ap["unique_sets"],
+        "ap_uniform_all_projects": ap["uniform_all_projects"],
+        "ap_discriminates": 1 if ap["discriminates"] else 0,
+    }
+
+
+def fact_block(facts: Dict[str, int]) -> str:
+    """Отрисовать блок фактов в каноническом порядке."""
+    lines = [_FACT_BLOCK_OPEN]
+    lines.extend(
+        f"<!-- p1-fact: {key} = {facts[key]} -->" for key in FACT_BUILDERS if key in facts
+    )
+    lines.append(_FACT_BLOCK_CLOSE)
+    return "\n".join(lines)
+
+
+def stamp_facts(text: str, facts: Dict[str, int]) -> str:
+    """Заменить ТОЛЬКО блок фактов, остальной текст не трогая.
+
+    Если блока нет — он дописывается в конец отчёта. Возвращает новый текст;
+    запись на диск делает вызывающий (атомарно, с .bak).
+    """
+    block = fact_block(facts)
+    if _FACT_BLOCK_OPEN in text and _FACT_BLOCK_CLOSE in text:
+        head, _, rest = text.partition(_FACT_BLOCK_OPEN)
+        _, _, tail = rest.partition(_FACT_BLOCK_CLOSE)
+        return head + block + tail
+    separator = "" if text.endswith("\n") else "\n"
+    return f"{text}{separator}\n{block}\n"
+
+
+def write_text_atomic(path: Path, text: str, backup: bool = True) -> Path:
+    """Атомарно перезаписать текстовый файл: write-to-tmp + os.replace + .bak.
+
+    Отдельная функция, а не `loader.save_atomic`: тот пишет JSON-объект,
+    а отчёт качества памяти — markdown.
+    """
+    import os
+    import shutil
+    import tempfile
+
+    path = Path(path)
+    if backup and path.exists():
+        shutil.copy2(path, path.with_suffix(path.suffix + ".bak"))
+    fd, tmp_name = tempfile.mkstemp(dir=str(path.parent), prefix=path.name, suffix=".tmp")
+    tmp = Path(tmp_name)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as fh:
+            fh.write(text)
+            fh.flush()
+            os.fsync(fh.fileno())
+        os.replace(tmp, path)
+    except BaseException:
+        tmp.unlink(missing_ok=True)
+        raise
+    return path
 
 
 def _clean_cell(cell: str) -> str:
@@ -72,6 +224,27 @@ def parse_report_table(text: str) -> Tuple[Dict[str, List[int]], Optional[List[i
     return per_file, total
 
 
+def _purge_foreign_test_modules(tests_dir: Path) -> None:
+    """Выкинуть из sys.modules тестовые модули из ЧУЖОГО каталога.
+
+    unittest-поиск импортирует `test_*.py` как модули верхнего уровня и
+    кладёт их в sys.modules. Из-за этого вторая копия проекта в том же
+    процессе (сборки проб и тестов в tmp) даёт ImportError «module
+    incorrectly imported», `count_tests` глотает исключение и возвращает 0 —
+    то есть сверка числа тестов молча выдаёт ложное расхождение. Найдено
+    пробой фаз 3–4; лечится точечно, глобальный sys.modules не чистится.
+    """
+    import sys
+
+    resolved = str(tests_dir.resolve())
+    for name, module in list(sys.modules.items()):
+        if name == "tests" or not name.startswith("test"):
+            continue
+        origin = getattr(module, "__file__", None) or ""
+        if origin and not origin.startswith(resolved):
+            del sys.modules[name]
+
+
 def count_tests(root: Path) -> int:
     """Сколько тестов реально собирается в tests/ (без их выполнения).
 
@@ -81,6 +254,7 @@ def count_tests(root: Path) -> int:
     tests_dir = Path(root) / "tests"
     if not tests_dir.is_dir():
         return 0
+    _purge_foreign_test_modules(tests_dir)
     try:
         return unittest.defaultTestLoader.discover(
             str(tests_dir), pattern="test*.py", top_level_dir=str(tests_dir)
@@ -122,6 +296,7 @@ def check_report(root: Path, report_name: str = DEFAULT_REPORT) -> Dict[str, Any
     """Сверить MEMORY_REPORT.md с прогоном. Ничего не пишет."""
     root = Path(root)
     report_path = root / report_name
+    facts_live = live_facts(root)
     result: Dict[str, Any] = {
         "report": str(report_path),
         "exists": report_path.exists(),
@@ -131,6 +306,11 @@ def check_report(root: Path, report_name: str = DEFAULT_REPORT) -> Dict[str, Any
         "row_mismatches": [],
         "total_mismatches": [],
         "test_count_mismatches": [],
+        "fact_mismatches": [],
+        "facts_unknown": [],
+        "facts_duplicated": [],
+        "facts_missing": [],
+        "facts_on_disk": facts_live,
         "tests_on_disk": count_tests(root),
         "ok": False,
     }
@@ -139,24 +319,24 @@ def check_report(root: Path, report_name: str = DEFAULT_REPORT) -> Dict[str, Any
 
     text = report_path.read_text(encoding="utf-8")
     per_file, total = parse_report_table(text)
-    live = expected_rows(root)
+    rows_live = expected_rows(root)
 
-    result["files_missing_in_report"] = sorted(set(live) - set(per_file))
-    result["files_unknown_to_report"] = sorted(set(per_file) - set(live))
+    result["files_missing_in_report"] = sorted(set(rows_live) - set(per_file))
+    result["files_unknown_to_report"] = sorted(set(per_file) - set(rows_live))
 
-    for name in sorted(set(live) & set(per_file)):
+    for name in sorted(set(rows_live) & set(per_file)):
         result["files_checked"] += 1
-        if live[name] != per_file[name]:
+        if rows_live[name] != per_file[name]:
             result["row_mismatches"].append({
                 "file": name,
                 "report": per_file[name],
-                "live": live[name],
+                "live": rows_live[name],
             })
 
     if total is not None:
         live_total = [
-            sum(v[i] for v in live.values()) for i in range(4)
-        ] if live else [0, 0, 0, 0]
+            sum(v[i] for v in rows_live.values()) for i in range(4)
+        ] if rows_live else [0, 0, 0, 0]
         if live_total != total:
             result["total_mismatches"].append({"report": total, "live": live_total})
     else:
@@ -167,11 +347,31 @@ def check_report(root: Path, report_name: str = DEFAULT_REPORT) -> Dict[str, Any
         if declared != actual_tests:
             result["test_count_mismatches"].append({"report": declared, "live": actual_tests})
 
+    # --- блок машинно-читаемых фактов (фаза 4) --------------------------
+    declared_facts = parse_facts(text)
+    result["facts_unknown"] = sorted(k for k in declared_facts if k not in FACT_BUILDERS)
+    result["facts_duplicated"] = duplicate_fact_keys(text)
+    for key, value in sorted(declared_facts.items()):
+        if key not in FACT_BUILDERS:
+            continue
+        expected = facts_live.get(key)
+        if expected is None:
+            continue
+        if str(expected) != value:
+            result["fact_mismatches"].append(
+                {"fact": key, "report": value, "live": expected}
+            )
+    result["facts_missing"] = sorted(k for k in FACT_BUILDERS if k not in declared_facts)
+
     result["ok"] = not (
         result["files_missing_in_report"]
         or result["files_unknown_to_report"]
         or result["row_mismatches"]
         or result["total_mismatches"]
         or result["test_count_mismatches"]
+        or result["fact_mismatches"]
+        or result["facts_unknown"]
+        or result["facts_duplicated"]
+        or result["facts_missing"]
     )
     return result

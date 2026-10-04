@@ -24,7 +24,14 @@ from . import __version__
 from .chronicle import CHRONICLE_NAME, append_entry, has_entry, now_stamp
 from .crossfile import plan_crossfile
 from .doctor import BLOCKING_KINDS, is_blocking, scan_tree, summarize as summarize_findings
-from .freshness import DEFAULT_REPORT, check_report
+from .freshness import (
+    DEFAULT_REPORT,
+    check_report,
+    live_facts,
+    parse_facts,
+    stamp_facts,
+    write_text_atomic,
+)
 from .loader import MemoryError_, iter_memory_files, load, save_atomic
 from .provenance import audit as audit_provenance
 from .validate import clean_insights, summarize, validate_document
@@ -99,11 +106,50 @@ def _report_check(args, totals: dict) -> int:
         print(f"  ! ИТОГО: в отчёте {row['report']}, в прогоне {row['live']}")
     for row in res["test_count_mismatches"]:
         print(f"  ! число тестов: в отчёте {row['report']}, на диске {row['live']}")
+    for row in res["fact_mismatches"]:
+        print(f"  ! факт {row['fact']}: в отчёте {row['report']}, в прогоне {row['live']}")
+    for key in res["facts_unknown"]:
+        print(f"  ! факт {key}: такого факта сверка не знает (опечатка в ключе?)")
+    for key in res["facts_duplicated"]:
+        print(f"  ! факт {key}: объявлен в отчёте больше одного раза")
+    for key in res["facts_missing"]:
+        print(f"  ! факт {key}: не объявлен в отчёте, хотя сверка его ждёт")
     if res["ok"]:
         print(f"Отчёт актуален: файлов {res['files_checked']}, расхождений нет.")
         return 0
-    print("Отчёт устарел: пересобери MEMORY_REPORT.md.")
+    print("Отчёт устарел: пересобери MEMORY_REPORT.md (`python3 -m p1_memory stamp`).")
     return 1
+
+
+def cmd_stamp(args) -> int:
+    """Перезаписать блок машинно-читаемых фактов по живому прогону.
+
+    Текст отчёта вне блока не трогается. Запись атомарная, с .bak.
+    """
+    report_name = getattr(args, "report", DEFAULT_REPORT)
+    path = args.root / report_name
+    if not path.exists():
+        print(f"Отчёт не найден: {path}")
+        return 1
+
+    facts = live_facts(args.root)
+    before = path.read_text(encoding="utf-8")
+    after = stamp_facts(before, facts)
+    if after == before:
+        print(f"Факты уже совпадают с прогоном: {report_name} не изменён.")
+        return 0
+    if getattr(args, "dry_run", False):
+        print(f"[dry-run] {report_name}: {len(parse_facts(before))} → {len(facts)} фактов")
+        for line in after.splitlines():
+            if line.startswith("<!-- p1-fact:"):
+                print(f"  {line}")
+        return 0
+    write_text_atomic(path, after, backup=True)
+    print(f"Блок фактов обновлён: {report_name} (.bak сохранён)")
+    for line in after.splitlines():
+        if line.startswith("<!-- p1-fact:"):
+            print(f"  {line}")
+    return 0
 
 
 def cmd_provenance(args) -> int:
@@ -329,8 +375,14 @@ def main(argv=None) -> int:
     p_doctor.add_argument("--all", action="store_true", help="показать и предупреждения, не только порчу")
     p_doctor.set_defaults(func=cmd_doctor)
 
+    p_stamp = sub.add_parser("stamp", help="перезаписать блок фактов MEMORY_REPORT.md по прогону")
+    p_stamp.add_argument("--report", default=DEFAULT_REPORT, help="имя файла отчёта")
+    p_stamp.add_argument("--dry-run", action="store_true", dest="dry_run",
+                         help="показать, что изменится, ничего не писать")
+    p_stamp.set_defaults(func=cmd_stamp)
+
     # --json разрешён и до, и после имени команды
-    for sub_parser in (p_report, p_prov, p_validate, p_dedupe, p_chron, p_doctor):
+    for sub_parser in (p_report, p_prov, p_validate, p_dedupe, p_chron, p_doctor, p_stamp):
         sub_parser.add_argument("--json", action="store_true", default=None, dest="json",
                                 help="вывод в JSON")
 
