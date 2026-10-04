@@ -7,8 +7,9 @@
 
 from __future__ import annotations
 
+from collections import Counter
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from .attribution import addressing_from_disk
 from .canon import corpus
@@ -321,6 +322,82 @@ def build_report(memory_dir: Path = DEFAULT_DIR) -> str:
     return "\n".join(lines) + "\n"
 
 
+def line_multiset_diff(expected_lines: List[str],
+                       actual_lines: List[str]) -> Dict[str, List[str]]:
+    """Строки, отличающиеся по КРАТНОСТИ, а не по наличию.
+
+    Прежняя версия сравнивала через `set`. Множество не хранит повторов, и
+    две разные правки выглядели одинаково — обе давали пустую диагностику:
+
+    * **повтор существующей строки** — строка уже есть в файле, поэтому она
+      «есть в наличии», а лишний экземпляр не виден вообще;
+    * **перестановка двух строк** — множество совпадает полностью.
+
+    Итог был один и тот же: `ok=False` при пустых `missing_lines` и
+    `extra_lines`. CLI печатал «отчёт устарел» и не называл ни одной строки
+    — утверждение о расхождении без содержания. `ok` ловил правду, а
+    диагностика её теряла, и половина работы проверки была негодной.
+
+    Считаем `Counter`: разность счётчиков даёт именно лишние/недостающие
+    экземпляры, а не факт присутствия.
+    """
+    exp_counts = Counter(expected_lines)
+    act_counts = Counter(actual_lines)
+    missing: List[str] = []
+    extra: List[str] = []
+    for line in exp_counts:
+        deficit = exp_counts[line] - act_counts[line]
+        if deficit > 0:
+            missing.extend([line] * deficit)
+    for line in act_counts:
+        surplus = act_counts[line] - exp_counts[line]
+        if surplus > 0:
+            extra.extend([line] * surplus)
+    return {"missing_lines": missing, "extra_lines": extra}
+
+
+def first_difference(expected: str, actual: str) -> Optional[Dict[str, Any]]:
+    """Где именно тексты разошлись, если множества строк совпали.
+
+    Возвращает `None`, когда расхождения нет. Строка и колонка — по
+    символам (1-based), чтобы вывод можно было навести на источник.
+    """
+    limit = min(len(expected), len(actual))
+    index = 0
+    while index < limit and expected[index] == actual[index]:
+        index += 1
+    if index == limit and len(expected) == len(actual):
+        return None
+    line_no = expected.count("\n", 0, index) + 1
+    line_start = expected.rfind("\n", 0, index) + 1
+    return {
+        "offset": index,
+        "line": line_no,
+        "column": index - line_start + 1,
+        "expected_here": _line_at(expected, index),
+        "actual_here": _line_at(actual, index),
+        "expected_len": len(expected),
+        "actual_len": len(actual),
+        "kind": _difference_kind(expected, actual, limit),
+    }
+
+
+def _line_at(text: str, index: int) -> str:
+    """Строка, содержащая символ по индексу."""
+    start = text.rfind("\n", 0, index) + 1
+    end = text.find("\n", index)
+    return text[start:] if end == -1 else text[start:end]
+
+
+def _difference_kind(expected: str, actual: str, limit: int) -> str:
+    """Чем именно разошлись тексты при совпавшем наборе строк."""
+    if len(expected) != len(actual):
+        if expected[limit:].startswith("\n") or actual[limit:].startswith("\n"):
+            return "перевод строки"
+        return "длина текста"
+    return "порядок строк"
+
+
 def check_report(path: Path | None = None,
                  memory_dir: Path = DEFAULT_DIR) -> Dict[str, Any]:
     """Свежесть артефакта (фаза 3, пункт 25): только чтение.
@@ -328,6 +405,12 @@ def check_report(path: Path | None = None,
     `ok=True`, когда файл на диске побайтово равен тому, что сейчас
     порождает `build_report()`. Сигнальный выход не здесь, а в CLI:
     команда не пишет ничего ни при каких условиях.
+
+    Диагностика (пункт 39): `missing_lines`/`extra_lines` считаются по
+    кратности строк (``line_multiset_diff``), а если обе пусты при
+    `ok=False` — расхождение позиционное, и его называет ``difference``.
+    Раньше такой случай возвращал пустые списки, то есть утверждение
+    «отчёт устарел» без единой строки.
     """
     target = Path(path) if path else report_path()
     expected = build_report(memory_dir)
@@ -336,20 +419,21 @@ def check_report(path: Path | None = None,
         "ok": False,
         "missing_lines": [],
         "extra_lines": [],
+        "difference": None,
     }
     if not target.is_file():
         result["reason"] = "no report file"
         return result
     actual = target.read_text(encoding="utf-8")
-    actual_set = set(actual.splitlines())
-    expected_set = set(expected.splitlines())
-    result["missing_lines"] = [
-        line for line in expected.splitlines() if line not in actual_set
-    ]
-    result["extra_lines"] = [
-        line for line in actual.splitlines() if line not in expected_set
-    ]
+    result.update(line_multiset_diff(expected.splitlines(),
+                                     actual.splitlines()))
     result["ok"] = actual == expected
+    if not result["ok"] and not result["missing_lines"] \
+            and not result["extra_lines"]:
+        # Набор строк тот же — значит разошлись порядок или завершающий
+        # перевод строки. Молчать тут нельзя: «устарел» без указания места
+        # не подсказывает, что именно править.
+        result["difference"] = first_difference(expected, actual)
     return result
 
 

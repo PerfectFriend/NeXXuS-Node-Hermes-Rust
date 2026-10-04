@@ -190,6 +190,16 @@ def cmd_report(args) -> int:
                 print(f"  [нет в файле] {line}")
             for line in result["extra_lines"][: args.limit]:
                 print(f"  [лишнее в файле] {line}")
+            # Строк может не быть ни одной, а расхождение реально: порядок
+            # строк или завершающий перевод строки. Тогда «устарел» без
+            # указания места бесполезно — называем, где именно разошлось.
+            difference = result.get("difference")
+            if difference:
+                print(f"  [порядок] расхождение: {difference['kind']}, "
+                      f"строка {difference['line']}, "
+                      f"колонка {difference['column']}")
+                print(f"      ожидалось: {difference['expected_here']}")
+                print(f"      в файле:   {difference['actual_here']}")
             print("починить: p3_memory report --fix")
         return EXIT_OK if result["ok"] else EXIT_FAIL
     if not args.fix:

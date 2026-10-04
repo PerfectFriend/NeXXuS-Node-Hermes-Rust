@@ -122,7 +122,7 @@ def live_facts(root: Path, tests: Optional[int] = None) -> Dict[str, int]:
     _, stats = plan_crossfile(list(zip(files, docs)))
     prov = audit(root, project=1)
     ap = prov["applicable_projects"]
-    return {
+    facts = {
         "files": len(files),
         "insights_total": sum(r["raw"]["input"] for r in rows),
         "junk": sum(r["raw"]["junk"] for r in rows),
@@ -140,8 +140,12 @@ def live_facts(root: Path, tests: Optional[int] = None) -> Dict[str, int]:
         "ap_unique_sets": ap["unique_sets"],
         "ap_uniform_all_projects": ap["uniform_all_projects"],
         "ap_discriminates": 1 if ap["discriminates"] else 0,
-        "tests": tests,
     }
+    # Факт `tests` заявляем только когда есть чем мерить: без tests/ число
+    # неизвестно, и его отсутствие в блоке — правда, а не дыра.
+    if tests is not None:
+        facts["tests"] = tests
+    return facts
 
 
 def fact_block(facts: Dict[str, int]) -> str:
@@ -179,16 +183,131 @@ def stamp_test_sentence(text: str, tests: int) -> str:
     ) + text[match.end():]
 
 
-def stamp_report(text: str, facts: Dict[str, int]) -> str:
-    """Полный ремонт отчёта по прогону: блок фактов И число тестов.
+def stamp_table(text: str, rows: Dict[str, List[int]]) -> str:
+    """Переписать markdown-таблицу отчёта по живым числам файлов.
 
-    Контракт, который проверяет tests/probe_stamp_repair.py: после
-    `stamp` команда `report --check` обязана дать exit 0. Всё, что сверка
-    умеет проверять, stamp обязан уметь чинить.
+    Найдено пробой tests/probe_freshness_gap.py: `stamp` правил блок фактов,
+    но не таблицу — а сверка проверяет таблицу. Память испортилась (появилась
+    191-я запись), `stamp` отработал exit 0, а `report --check` остался
+    красным: рекомендация CLI «пересобери отчёт командой stamp» была
+    неисполнима. Контракт: после stamp сверка обязана давать exit 0.
+
+    Правила, чтобы не испортить чужой текст:
+      * переписываются ТОЛЬКО строки, уже распознанные `parse_report_table`;
+      * новый файл в памяти, которого в таблице нет, ДОБАВЛЯЕТСЯ строкой
+        перед строкой ИТОГО (иначе сверка ругается на files_missing_in_report);
+      * строка ИТОГО пересчитывается как сумма живых строк;
+      * формат жирных ячеек ИТОГО сохраняется.
+    """
+    per_file, total = parse_report_table(text)
+    if not per_file and total is None:
+        return text
+
+    lines = text.splitlines()
+    out: List[str] = []
+    total_line: Optional[str] = None
+    total_at: Optional[int] = None
+
+    def render(name: str, numbers: List[int], bold: bool) -> str:
+        cells = [name] + [str(n) for n in numbers]
+        if bold:
+            cells = [f"**{c}**" for c in cells]
+        return "| " + " | ".join(cells) + " |"
+
+    def total_row() -> str:
+        if rows:
+            nums = [sum(v[i] for v in rows.values()) for i in range(4)]
+        elif per_file:
+            nums = [sum(v[i] for v in per_file.values()) for i in range(4)]
+        else:
+            nums = total or [0, 0, 0, 0]
+        return render("ИТОГО", nums, bold=total is not None)
+
+    inserted = False
+    for line in lines:
+        match = _ROW_RE.match(line)
+        if not match:
+            out.append(line)
+            continue
+        cells = [_clean_cell(c) for c in match.group(1).split("|")]
+        if len(cells) < 5:
+            out.append(line)
+            continue
+        name = cells[0]
+        try:
+            [int(cells[i]) for i in range(1, 5)]
+        except ValueError:
+            out.append(line)
+            continue
+        if _TOTAL_RE.search(name):
+            # Запоминаем ПОЗИЦИЮ строки ИТОГО, а не её текст: пересчитанную
+            # строку нужно вернуть на место, а не в хвост документа.
+            total_line = line
+            total_at = len(out)
+            continue
+        if not name.endswith(".json"):
+            out.append(line)
+            continue
+        if name in rows:
+            out.append(render(name, rows[name], bold=False))
+            continue
+        # Файл из отчёта, которого больше нет в памяти: строку убираем —
+        # иначе сверка вечно ругается на files_unknown_to_report.
+        if name not in rows and name in per_file:
+            continue
+        out.append(line)
+
+    # Вставляем недостающие строки файлов перед строкой ИТОГО.
+    missing = [name for name in rows if name not in per_file]
+    if total_at is None:
+        # ИТОГО в отчёте не было — ставим её (и недостающие строки файлов)
+        # сразу после последней строки таблицы, а не в хвост документа.
+        last = max(
+            (
+                i
+                for i, l in enumerate(out)
+                if _ROW_RE.match(l)
+                and l.rstrip().endswith("|")
+                and ".json" in _clean_cell(l.strip().strip("|").split("|")[0])
+            ),
+            default=len(out) - 1,
+        )
+        total_at = last + 1
+    for offset, name in enumerate(missing):
+        out.insert((total_at or 0) + offset, render(name, rows[name], bold=False))
+    if missing:
+        total_at = (total_at or 0) + len(missing)
+        inserted = True
+
+    # Строка ИТОГО: на прежнем месте, если она была, иначе после таблицы.
+    # Если строки не было вовсе — её нужно дописать, даже когда вставлялись
+    # строки файлов: иначе таблица остаётся без итога.
+    if total_at is not None:
+        # Числа не поменялись — сохраняем исходную строку байт в байт:
+        # жирность и оформление чужого отчёта не наше дело.
+        out.insert(total_at, total_line or total_row())
+    else:
+        out.append(total_row())
+    return "\n".join(out) + ("\n" if text.endswith("\n") else "")
+
+
+def stamp_report(
+    text: str,
+    facts: Dict[str, int],
+    rows: Optional[Dict[str, List[int]]] = None,
+) -> str:
+    """Полный ремонт отчёта по прогону: блок фактов, число тестов и таблица.
+
+    Контракт, который проверяют tests/probe_stamp_repair.py и
+    tests/probe_freshness_gap.py: после `stamp` команда `report --check`
+    обязана дать exit 0. Всё, что сверка умеет проверять, stamp обязан
+    уметь чинить.
     """
     stamped = stamp_facts(text, facts)
     if "tests" in facts:
         stamped = stamp_test_sentence(stamped, facts["tests"])
+    if rows is not None:
+        stamped = stamp_table(stamped, rows)
     return stamped
 
 
@@ -287,15 +406,19 @@ def _purge_foreign_test_modules(tests_dir: Path) -> None:
             del sys.modules[name]
 
 
-def count_tests(root: Path) -> int:
+def count_tests(root: Path) -> Optional[int]:
     """Сколько тестов реально собирается в tests/ (без их выполнения).
 
     Обнаруживает устаревшие заявления вида «49 зелёных тестов» прямо в тексте
     отчёта, не требуя запускать тесты из самого отчёта.
+
+    Возвращает None, если каталога tests/ нет вовсе: это «нечем проверять»,
+    а не «ноль тестов». Ноль означал бы, что отчёт с числом тестов заведомо
+    врёт, и подменял бы перенос отчёта ложным красным расхождением.
     """
     tests_dir = Path(root) / "tests"
     if not tests_dir.is_dir():
-        return 0
+        return None
     _purge_foreign_test_modules(tests_dir)
     try:
         return unittest.defaultTestLoader.discover(
@@ -385,10 +508,14 @@ def check_report(root: Path, report_name: str = DEFAULT_REPORT) -> Dict[str, Any
     else:
         result["total_mismatches"].append({"report": None, "live": "строка ИТОГО не найдена"})
 
-    actual_tests = result["tests_on_disk"]
-    for declared in declared_tests(text):
-        if declared != actual_tests:
-            result["test_count_mismatches"].append({"report": declared, "live": actual_tests})
+    # Без каталога tests/ число тестов неизвестно: сверять нечего, и падать
+    # на этом нельзя — иначе перенос отчёта в голый каталог всегда красный.
+    if tests_live is not None:
+        for declared in declared_tests(text):
+            if declared != tests_live:
+                result["test_count_mismatches"].append(
+                    {"report": declared, "live": tests_live}
+                )
 
     # --- блок машинно-читаемых фактов (фаза 4) --------------------------
     declared_facts = parse_facts(text)
@@ -404,7 +531,12 @@ def check_report(root: Path, report_name: str = DEFAULT_REPORT) -> Dict[str, Any
             result["fact_mismatches"].append(
                 {"fact": key, "report": value, "live": expected}
             )
-    result["facts_missing"] = sorted(k for k in FACT_BUILDERS if k not in declared_facts)
+    # Факт `tests` не считаем пропавшим, если измерять нечего (нет tests/).
+    result["facts_missing"] = sorted(
+        k
+        for k in FACT_BUILDERS
+        if k not in declared_facts and (k != "tests" or tests_live is not None)
+    )
 
     result["ok"] = not (
         result["files_missing_in_report"]

@@ -5,7 +5,7 @@
 dedupe --scope all` (dry-run), `python3 -m p1_memory provenance`, пакет
 `p1_memory/` версии 1.0.0.
 
-Тестовый набор: 138 зелёных.
+Тестовый набор: 143 зелёных.
 
 ## Фактические числа (по файлам, после фильтрации мусора)
 
@@ -119,5 +119,5 @@ hot-код) записал 1835 инсайтов для Project1: 3 мусорн
 <!-- p1-fact: ap_unique_sets = 1 -->
 <!-- p1-fact: ap_uniform_all_projects = 184 -->
 <!-- p1-fact: ap_discriminates = 0 -->
-<!-- p1-fact: tests = 138 -->
+<!-- p1-fact: tests = 143 -->
 <!-- p1-facts:end -->

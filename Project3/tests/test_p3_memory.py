@@ -1180,8 +1180,96 @@ class TestReportCheck(Base):
         target.write_text("\n".join(swapped) + "\n", encoding="utf-8")
         result = report.check_report(target, memory_dir=REAL_MEMORY)
         self.assertFalse(result["ok"])
+        # Пункт 39: раньше обе строки здесь были пусты — расхождение
+        # ловилось, но не называлось. Теперь местоположение указано.
         self.assertEqual(result["missing_lines"], [])
         self.assertEqual(result["extra_lines"], [])
+        self.assertIsNotNone(result["difference"], "порядок строк не назван")
+        self.assertEqual(result["difference"]["kind"], "порядок строк")
+        self.assertIn(result["difference"]["line"], (a + 1, b + 1))
+
+    def test_povtor_stroki_luchshe_mnozhestva(self):
+        # Пункт 39, главный случай: повтор существующей строки. Через
+        # `set` строка «есть в наличии» и лишний экземпляр не виден —
+        # диагностика была пустой при реальном расхождении.
+        lines = report.build_report(REAL_MEMORY).splitlines()
+        target_line = next(ln for ln in lines if ln.startswith("| добавлено"))
+        target = self.tmp / "R.md"
+        target.write_text("\n".join(lines + [target_line]) + "\n",
+                          encoding="utf-8")
+        result = report.check_report(target, memory_dir=REAL_MEMORY)
+        self.assertFalse(result["ok"])
+        self.assertEqual(result["extra_lines"], [target_line],
+                         "лишний экземпляр строки не назван")
+        self.assertEqual(result["missing_lines"], [])
+        self.assertIsNone(result["difference"],
+                          "кратность уже названа списком, позиция лишняя")
+
+    def test_net_finalnogo_pervoda_stroki_nazvan(self):
+        # Тот же класс, что повтор: набор строк совпадает, а текст — нет.
+        text = report.build_report(REAL_MEMORY)
+        target = self.tmp / "R.md"
+        target.write_text(text.rstrip("\n"), encoding="utf-8")
+        result = report.check_report(target, memory_dir=REAL_MEMORY)
+        self.assertFalse(result["ok"])
+        self.assertEqual(result["missing_lines"], [])
+        self.assertEqual(result["extra_lines"], [])
+        self.assertIsNotNone(result["difference"])
+        self.assertEqual(result["difference"]["kind"], "перевод строки")
+
+    def test_svezhiy_otchet_bez_lisnyh_klyuchey(self):
+        # У свежего отчёта `difference` обязан быть None, иначе «различие»
+        # рисуется там, где его нет.
+        target = self.tmp / "R.md"
+        target.write_text(report.build_report(REAL_MEMORY), encoding="utf-8")
+        result = report.check_report(target, memory_dir=REAL_MEMORY)
+        self.assertTrue(result["ok"])
+        self.assertIsNone(result["difference"])
+        self.assertIsNone(result.get("reason"))
+
+    def test_line_multiset_diff_schitaet_krаtnost(self):
+        got = report.line_multiset_diff(["a", "a", "b"], ["a", "b"])
+        self.assertEqual(got["missing_lines"], ["a"])
+        self.assertEqual(got["extra_lines"], [])
+        got = report.line_multiset_diff(["a"], ["a", "a", "a"])
+        self.assertEqual(got["missing_lines"], [])
+        self.assertEqual(got["extra_lines"], ["a", "a"])
+
+    def test_cli_nazyvaet_mesto_poradka(self):
+        # CLI-часть пункта 39: при пустых списках он обязан сказать, где
+        # разошлось, а не молча напечатать «устарел».
+        lines = report.build_report(REAL_MEMORY).splitlines()
+        a, b = 4, 5
+        while lines[a] == lines[b]:
+            b += 1
+        swapped = lines[:]
+        swapped[a], swapped[b] = swapped[b], swapped[a]
+        target = self.tmp / "R.md"
+        target.write_text("\n".join(swapped) + "\n", encoding="utf-8")
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            code = cli_main(["report", "--check", "--out", str(target),
+                             "--memory-dir", str(REAL_MEMORY)])
+        out = buf.getvalue()
+        self.assertEqual(code, 1, out)
+        self.assertIn("порядок строк", out)
+        self.assertIn("строка", out)
+        self.assertIn("report --fix", out)
+
+    def test_cli_nazyvaet_povtor_stroki(self):
+        lines = report.build_report(REAL_MEMORY).splitlines()
+        target_line = next(ln for ln in lines if ln.startswith("| добавлено"))
+        target = self.tmp / "R.md"
+        target.write_text("\n".join(lines + [target_line]) + "\n",
+                          encoding="utf-8")
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            code = cli_main(["report", "--check", "--out", str(target),
+                             "--memory-dir", str(REAL_MEMORY)])
+        out = buf.getvalue()
+        self.assertEqual(code, 1, out)
+        self.assertIn("[лишнее в файле]", out)
+        self.assertIn(target_line, out)
 
     def test_otsutstvuyushchiy_fayl_eto_ne_svezhest(self):
         result = report.check_report(self.tmp / "нет.md", memory_dir=REAL_MEMORY)

@@ -27,6 +27,7 @@ from .doctor import BLOCKING_KINDS, is_blocking, scan_tree, summarize as summari
 from .freshness import (
     DEFAULT_REPORT,
     check_report,
+    expected_rows,
     live_facts,
     parse_facts,
     stamp_facts,
@@ -135,7 +136,7 @@ def cmd_stamp(args) -> int:
 
     facts = live_facts(args.root)
     before = path.read_text(encoding="utf-8")
-    after = stamp_report(before, facts)
+    after = stamp_report(before, facts, rows=expected_rows(args.root))
     if after == before:
         print(f"Факты уже совпадают с прогоном: {report_name} не изменён.")
         return 0
