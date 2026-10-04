@@ -24,19 +24,21 @@ from . import __version__
 from .chronicle import CHRONICLE_NAME, append_entry, has_entry, now_stamp
 from .crossfile import plan_crossfile
 from .doctor import BLOCKING_KINDS, is_blocking, scan_tree, summarize as summarize_findings
+from .freshness import DEFAULT_REPORT, check_report
 from .loader import MemoryError_, iter_memory_files, load, save_atomic
+from .provenance import audit as audit_provenance
 from .validate import clean_insights, summarize, validate_document
 
 DEFAULT_ROOT = Path(__file__).resolve().parent.parent
 
 
-def collect(root: Path):
-    files = iter_memory_files(root)
+def collect(root: Path, by_time: bool = False):
+    files = iter_memory_files(root, by_time=by_time)
     return files, [load(f) for f in files]
 
 
 def cmd_report(args) -> int:
-    files, docs = collect(args.root)
+    files, docs = collect(args.root, by_time=getattr(args, "by_time", False))
     if not files:
         print(f"Память не найдена: {args.root / 'memory'}")
         return 1
@@ -50,6 +52,9 @@ def cmd_report(args) -> int:
         "kept": sum(r["raw"]["kept"] for r in rows),
         "problems": sum(len(r["problems"]) for r in rows),
     }
+
+    if getattr(args, "check", False):
+        return _report_check(args, totals)
 
     if args.json:
         print(json.dumps({"root": str(args.root), "version": __version__,
@@ -68,6 +73,61 @@ def cmd_report(args) -> int:
     print(f"ИТОГО: файлов {totals['files']}, инсайтов {totals['raw']}, "
           f"мусор {totals['junk']}, дубли {totals['duplicates']}, "
           f"чистых {totals['kept']}, проблем схемы {totals['problems']}")
+    return 0
+
+
+def _report_check(args, totals: dict) -> int:
+    """Сверить MEMORY_REPORT.md с живым прогоном. Ничего не пишет."""
+    report_name = getattr(args, "report", DEFAULT_REPORT)
+    res = check_report(args.root, report_name)
+    if args.json:
+        print(json.dumps(res, ensure_ascii=False, indent=2))
+        return 0 if res["ok"] else 1
+
+    if not res["exists"]:
+        print(f"Отчёт не найден: {res['report']}")
+        return 1
+    print(f"Сверка отчёта: {res['report']}")
+    print(f"  тестов на диске: {res['tests_on_disk']}")
+    for name in res["files_missing_in_report"]:
+        print(f"  ! файл есть в памяти, но нет в отчёте: {name}")
+    for name in res["files_unknown_to_report"]:
+        print(f"  ! файл есть в отчёте, но нет в памяти: {name}")
+    for row in res["row_mismatches"]:
+        print(f"  ! {row['file']}: в отчёте {row['report']}, в прогоне {row['live']}")
+    for row in res["total_mismatches"]:
+        print(f"  ! ИТОГО: в отчёте {row['report']}, в прогоне {row['live']}")
+    for row in res["test_count_mismatches"]:
+        print(f"  ! число тестов: в отчёте {row['report']}, на диске {row['live']}")
+    if res["ok"]:
+        print(f"Отчёт актуален: файлов {res['files_checked']}, расхождений нет.")
+        return 0
+    print("Отчёт устарел: пересобери MEMORY_REPORT.md.")
+    return 1
+
+
+def cmd_provenance(args) -> int:
+    res = audit_provenance(args.root, project=args.project)
+    if args.json:
+        print(json.dumps(res, ensure_ascii=False, indent=2))
+        return 0
+    print(f"Project1 — происхождение памяти (проект {args.project})")
+    print(f"  файлов: {res['files']}, всего инсайтов: {res['total']} "
+          f"(мусор {res['junk']}, чистых {res['clean']})")
+    print("  по типам источника:")
+    for label, count in res["source_type"].items():
+        print(f"    {label}: {count}")
+    ap = res["applicable_projects"]
+    print(f"  уникальных наборов applicable_projects: {ap['unique_sets']}")
+    for label, count in ap["sets"].items():
+        print(f"    {label}: {count}")
+    print(f"  различает проекты: {'да' if ap['discriminates'] else 'НЕТ'}; "
+          f"отбирается для проекта {args.project}: {ap['selects_for_project']}; "
+          f"бесполезно для отбора: {ap['useless_for_selection']}")
+    print(f"  значений relevance_score: {len(res['relevance_score'])} "
+          f"({', '.join(f'{k}={v}' for k, v in sorted(res['relevance_score'].items()))})")
+    print(f"  без тегов: {res['no_tags']}, без source_url: {res['no_source_url']}, "
+          f"без timestamp: {res['no_timestamp']}")
     return 0
 
 
@@ -239,7 +299,15 @@ def main(argv=None) -> int:
     sub = parser.add_subparsers(dest="command", required=True)
 
     p_report = sub.add_parser("report", help="сводка по памяти")
+    p_report.add_argument("--check", action="store_true",
+                          help="сверить MEMORY_REPORT.md с прогоном (0 — совпало, 1 — расхождение)")
+    p_report.add_argument("--report", default=DEFAULT_REPORT, help="имя файла отчёта")
+    p_report.add_argument("--by-time", action="store_true",
+                          help="порядок файлов по времени синхронизации (свежие первыми)")
     p_report.set_defaults(func=cmd_report)
+    p_prov = sub.add_parser("provenance", help="аудит происхождения памяти (источники, applicable_projects)")
+    p_prov.add_argument("--project", type=int, default=1, help="номер проекта для applicable_projects")
+    p_prov.set_defaults(func=cmd_provenance)
     p_validate = sub.add_parser("validate", help="проверка схемы")
     p_validate.set_defaults(func=cmd_validate)
     p_dedupe = sub.add_parser("dedupe", help="дедупликация и фильтрация мусора")
@@ -262,13 +330,13 @@ def main(argv=None) -> int:
     p_doctor.set_defaults(func=cmd_doctor)
 
     # --json разрешён и до, и после имени команды
-    for sub_parser in (p_report, p_validate, p_dedupe, p_chron, p_doctor):
+    for sub_parser in (p_report, p_prov, p_validate, p_dedupe, p_chron, p_doctor):
         sub_parser.add_argument("--json", action="store_true", default=None, dest="json",
                                 help="вывод в JSON")
 
     args = parser.parse_args(argv)
     # --json можно дать до или после команды; приоритет у общего флага
-    args.json = bool(args.json) or bool(getattr(args, "json_global", False))
+    args.json = bool(getattr(args, "json", False)) or bool(getattr(args, "json_global", False))
     try:
         return args.func(args)
     except MemoryError_ as exc:

@@ -11,8 +11,9 @@ import json
 import os
 import shutil
 import tempfile
+from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 MARKERS = ("# HOT", "# COLD")
 
@@ -86,11 +87,49 @@ def save_atomic(path: Path, data: Dict[str, Any], backup: bool = True) -> Path:
     return path
 
 
-def iter_memory_files(project_root: Path) -> List[Path]:
-    """Все memory-файлы проекта, отсортированные по имени."""
+def _synced_sort_key(path: Path):
+    """Ключ хронологического порядка по synced_at (None — самые старые).
+
+    Имя файла `professor_insights_cycle_{cycle:03d}.json` монотонно только до
+    cycle 999, а на живых данных `cycle_1351` синхронизирован раньше
+    `cycle_001`, поэтому «первый файл» по имени — не самый свежий.
+    Метка нечитаема или отсутствует — файл уходит в конец, порядок между
+    такими файлами остаётся стабильным (по имени).
+    """
+    try:
+        data = load(path)
+        stamp = data.get("synced_at") or ""
+    except MemoryError_:
+        stamp = ""
+    ts: Optional[float] = None
+    if stamp:
+        try:
+            parsed = datetime.fromisoformat(stamp)
+        except ValueError:
+            parsed = None
+        if parsed is not None:
+            # Приводим к UTC и сравниваем как числа: смешивать aware и naive
+            # datetime в сортировке нельзя (TypeError).
+            if parsed.tzinfo is None:
+                parsed = parsed.replace(tzinfo=timezone.utc)
+            ts = parsed.timestamp()
+    # Сортируем по возрастанию: отрицаем ts, чтобы свежие шли первыми,
+    # а файлы без читаемой метки уходили в конец (флаги 0/1 + имя).
+    return (0 if ts is not None else 1, -ts if ts is not None else 0.0, path.name)
+
+
+def iter_memory_files(project_root: Path, by_time: bool = False) -> List[Path]:
+    """Все memory-файлы проекта.
+
+    По умолчанию — по имени (совместимость с прежним поведением).
+    С `by_time=True` — по фактическому времени синхронизации, свежие первыми.
+    """
     from . import MEMORY_GLOB
 
     memory_dir = Path(project_root) / "memory"
     if not memory_dir.is_dir():
         return []
-    return sorted(memory_dir.glob(MEMORY_GLOB))
+    paths = sorted(memory_dir.glob(MEMORY_GLOB))
+    if by_time:
+        paths.sort(key=_synced_sort_key)
+    return paths
