@@ -1852,7 +1852,8 @@ class TestDiff(Base):
         self.assertEqual(len(result["removed"]), len(old_keys - new_keys))
         self.assertEqual(result["shared"], len(old_keys & new_keys))
         self.assertEqual(result["shared"],
-                         result["unchanged"] + len(result["changed"]))
+                         result["unchanged"] + len(result["changed"])
+                         + len(result["rewritten"]))
         self.assertEqual(result["from_records"], len(data_from["insights"]))
         self.assertEqual(result["to_records"], len(data_to["insights"]))
 
@@ -2081,7 +2082,9 @@ class TestDiffSectionInReport(Base):
                 ["переход", "записей"],
                 ["добавлено", str(len(d["added"]))],
                 ["удалено", str(len(d["removed"]))],
-                ["изменено", str(len(d["changed"]))],
+                ["изменено (содержательно)", str(len(d["changed"]))],
+                ["перезаписано (только отметка времени)",
+                 str(len(d["rewritten"]))],
                 ["без изменений", str(d["unchanged"])],
                 ["пересечение ключей", str(d["shared"])],
             ],
@@ -2137,7 +2140,9 @@ class TestDiffSectionInReport(Base):
                 ["переход", "записей"],
                 ["добавлено", str(len(d["added"]))],
                 ["удалено", str(len(d["removed"]))],
-                ["изменено", str(len(d["changed"]))],
+                ["изменено (содержательно)", str(len(d["changed"]))],
+                ["перезаписано (только отметка времени)",
+                 str(len(d["rewritten"]))],
                 ["без изменений", str(d["unchanged"])],
                 ["пересечение ключей", str(d["shared"])],
             ],
@@ -2174,7 +2179,9 @@ class TestDiffSectionInReport(Base):
                     ["переход", "записей"],
                     ["добавлено", str(len(d_second["added"]))],
                     ["удалено", str(len(d_second["removed"]))],
-                    ["изменено", str(len(d_second["changed"]))],
+                    ["изменено (содержательно)", str(len(d_second["changed"]))],
+                    ["перезаписано (только отметка времени)",
+                     str(len(d_second["rewritten"]))],
                     ["без изменений", str(d_second["unchanged"])],
                     ["пересечение ключей", str(d_second["shared"])],
                 ],
@@ -2183,6 +2190,176 @@ class TestDiffSectionInReport(Base):
             self.assertEqual(len(d_second["removed"]), 0)
             self.assertEqual(d_first["shared"], 1)
             self.assertEqual(d_second["shared"], 1)
+
+
+def _at(rec, stamp):
+    """Копия записи с другим отметкой времени."""
+    out = dict(rec)
+    out["timestamp"] = stamp
+    return out
+
+
+class TestVolatileFieldsAreNotEdits(Base):
+    """Ложная правка отделена от правки содержания (пункт 32).
+
+    Между циклами 001 и 1351 все 85 «изменений» отличались только
+    `timestamp`: содержание не тронуто, записи просто перезаписаны.
+    Пункт требует, чтобы такая запись не попадала в `changed`.
+    """
+
+    def test_smena_timestamp_daet_rewritten_a_ne_changed(self):
+        rec = make_record(topic="А", url="https://x.com/a")
+        root = write_corpus(self.tmp, {
+            "professor_insights_cycle_001.json": [
+                _at(rec, "2026-08-16T08:10:33+00:00"),
+            ],
+            "professor_insights_cycle_002.json": [
+                _at(rec, "2026-09-16T08:10:33+00:00"),
+            ],
+        })
+        d = diff.diff(root)
+        self.assertEqual(d["changed"], [])
+        self.assertEqual(len(d["rewritten"]), 1)
+        self.assertEqual(d["rewritten"][0]["fields"], ["timestamp"])
+        self.assertEqual(d["unchanged"], 0)
+
+    def test_pravka_summary_ostaetsya_pravkoy(self):
+        rec = make_record(topic="А", url="https://x.com/a", summary="старое")
+        root = write_corpus(self.tmp, {
+            "professor_insights_cycle_001.json": [dict(rec)],
+            "professor_insights_cycle_002.json": [
+                dict(rec, summary="новое",
+                     timestamp="2026-09-16T08:10:33+00:00"),
+            ],
+        })
+        d = diff.diff(root)
+        self.assertEqual(len(d["changed"]), 1)
+        self.assertEqual(d["rewritten"], [])
+        # Правка содержания видна вместе с сопутствующей сменой времени:
+        # иначе из отчёта пропала бы причина правки.
+        self.assertEqual(d["changed"][0]["fields"], ["summary", "timestamp"])
+
+    def test_neizmenennaya_zapis_ne_perechityvaetsya_kak_pravka(self):
+        # Перезапись не выкидывается из реестра: молча исчезнуть ей
+        # нельзя, это была бы другая ложь.
+        rec = make_record(topic="А", url="https://x.com/a")
+        root = write_corpus(self.tmp, {
+            "professor_insights_cycle_001.json": [dict(rec)],
+            "professor_insights_cycle_002.json": [
+                _at(rec, "2026-09-16T08:10:33+00:00"),
+            ],
+        })
+        d = diff.diff(root)
+        self.assertEqual(len(d["added"]), 0)
+        self.assertEqual(len(d["removed"]), 0)
+        self.assertEqual(d["shared"], 1)
+
+    def test_spisok_neduzhih_polей_uzkiy(self):
+        # Сузить список нельзя: любое поле вне VOLATILE_FIELDS —
+        # правка, даже если выглядит служебным.
+        self.assertEqual(diff.VOLATILE_FIELDS, ("timestamp",))
+        for name in ("summary", "topic", "source_url", "relevance_score",
+                     "applicable_projects", "tags", "category"):
+            self.assertNotIn(name, diff.VOLATILE_FIELDS)
+
+    def test_pole_vne_spiska_lomaet_verdict(self):
+        old = {"topic": "А", "summary": "старое", "timestamp": "t1"}
+        new = {"topic": "А", "summary": "старое", "timestamp": "t2",
+               "origin_issue": 17}
+        self.assertEqual(diff.substantive_fields(old, new), ["origin_issue"])
+
+    def test_shtatnyy_korpus_dannye_o_klase_lozhi(self):
+        # Живая проверка фазы 4: между 001 и 1351 содержательных правок
+        # нет вовсе, все 85 расхождений — смена отметки времени.
+        d = diff.diff(REAL_MEMORY)
+        self.assertEqual(
+            len(d["changed"]) + len(d["rewritten"]) + d["unchanged"],
+            d["shared"],
+        )
+        # Запись попадает в `changed` тогда и только тогда, когда у неё
+        # есть поле вне VOLATILE_FIELDS. Смена `timestamp` рядом с правкой
+        # содержания законна, поэтому пересечение может быть непустым —
+        # исчерпываться неустойчивыми полями оно не должно.
+        for entry in d["changed"]:
+            self.assertTrue(
+                set(entry["fields"]) - set(diff.VOLATILE_FIELDS),
+                f"правка без содержательного поля: {entry['fields']}",
+            )
+        for entry in d["rewritten"]:
+            self.assertEqual(
+                set(entry["fields"]) - set(diff.VOLATILE_FIELDS), set(),
+                "в rewritten неустойчивые поля и только они",
+            )
+        # Числа именно такие — иначе тест проходит вхолостую.
+        self.assertEqual(len(d["rewritten"]), 85)
+        self.assertEqual(d["changed"], [])
+        self.assertEqual(d["unchanged"], 0)
+
+
+class TestReportTellsRewriteFromEdit(Base):
+    """Отчёт различает перезапись и правку (пункт 33).
+
+    Проверяется то свойство, ради которого пункт написан: на штатном
+    корпусе 85 перезаписей не попадают в строку «изменено», и читатель
+    не может принять их за правку памяти.
+    """
+
+    def _row(self, text, label):
+        for row in _section_rows(text, "## 9. Дифф двух последних циклов"):
+            if row[0] == label:
+                return row[1]
+        raise AssertionError(f"строки «{label}» в разделе 9 нет")
+
+    def test_shtatnyy_korpus_perezapis_ne_v_stroke_izmeneno(self):
+        text = report.build_report(REAL_MEMORY)
+        d = diff.diff(REAL_MEMORY)
+        self.assertEqual(self._row(text, "изменено (содержательно)"),
+                         str(len(d["changed"])))
+        self.assertEqual(
+            self._row(text, "перезаписано (только отметка времени)"),
+            str(len(d["rewritten"])),
+        )
+        self.assertEqual(self._row(text, "изменено (содержательно)"), "0")
+        self.assertEqual(
+            self._row(text, "перезаписано (только отметка времени)"), "85")
+        # Голой строки «изменено» быть не должно: именно она читалась
+        # как «память переписывают».
+        self.assertNotIn("| изменено |", text)
+
+    def test_pojasnenie_perepisaniya_prisutstvuet(self):
+        text = report.build_report(REAL_MEMORY)
+        self.assertIn("перезаписаны без правки содержания", text)
+        self.assertIn("`timestamp`", text)
+        self.assertIn("Это не правка памяти", text)
+
+    def test_pustaya_soderzhatelnaya_pravka_skazana_slovami(self):
+        # Когда правок нет, но перезаписи есть, отчёт обязан сказать об
+        # этом прямо — иначе ноль читается как «ничего не изменилось».
+        rec = make_record(topic="А", url="https://x.com/a")
+        root = write_corpus(self.tmp, {
+            "professor_insights_cycle_001.json": [dict(rec)],
+            "professor_insights_cycle_002.json": [
+                _at(rec, "2026-09-16T08:10:33+00:00"),
+            ],
+        })
+        text = report.build_report(root)
+        self.assertIn("Содержательных правок между этими циклами не было.", text)
+        self.assertEqual(self._row(text, "изменено (содержательно)"), "0")
+        self.assertEqual(
+            self._row(text, "перезаписано (только отметка времени)"), "1")
+
+    def test_pravka_bez_perezapis_ne_kommentiruetsya(self):
+        rec = make_record(topic="А", url="https://x.com/a", summary="старое")
+        root = write_corpus(self.tmp, {
+            "professor_insights_cycle_001.json": [dict(rec)],
+            "professor_insights_cycle_002.json": [dict(rec, summary="новое")],
+        })
+        text = report.build_report(root)
+        self.assertEqual(self._row(text, "изменено (содержательно)"), "1")
+        self.assertEqual(
+            self._row(text, "перезаписано (только отметка времени)"), "0")
+        self.assertNotIn("перезаписаны без правки содержания", text)
+        self.assertIn("По каким полям менялись записи:", text)
 
 
 if __name__ == "__main__":

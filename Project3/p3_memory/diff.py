@@ -21,6 +21,21 @@ from .loader import DEFAULT_DIR, MemoryInvalid, discover, load
 
 _CYCLE_RE = re.compile(r"cycle_(\d+)\.json$")
 
+#: Поля, которые меняются сами по себе и правкой содержания не являются.
+#:
+#: Живая проверка фазы 3 (2026-10-04) дала 85 «изменённых» записей между
+#: циклами 001 и 1351 — и все 85 отличались **только** полем
+#: `timestamp`. Содержание не тронуто: записи те же, просто перезаписаны
+#: на следующем проходе. Считать это правкой памяти нельзя — иначе отчёт
+#: говорит «память переписывают» там, где переписали только отметку
+#: времени. Тот же класс, что закрыл пункт 13 для соседей
+#: (`identity.SERVICE_FIELDS`): технический шум не характеризует правку.
+#:
+#: Список намеренно узкий. Любое другое поле — правка, даже если оно
+#: выглядит служебным: сузить список — можно, выдать шум за правку —
+#: нет.
+VOLATILE_FIELDS = ("timestamp",)
+
 
 def cycle_number(name: str) -> Optional[int]:
     """Номер цикла из имени файла (``professor_insights_cycle_1351.json`` → 1351)."""
@@ -93,6 +108,18 @@ def changed_fields(
     return fields
 
 
+def substantive_fields(
+    old: Dict[str, Any], new: Dict[str, Any]
+) -> List[str]:
+    """Поля с содержательной правкой — всё, кроме ``VOLATILE_FIELDS``.
+
+    Смена одного только неустойчивого поля содержательной правки не
+    является: запись та же, перезаписан лишь отметка времени.
+    """
+    return [name for name in changed_fields(old, new)
+            if name not in VOLATILE_FIELDS]
+
+
 def _view(record: Dict[str, Any]) -> Dict[str, Any]:
     return {
         "topic": record.get("topic"),
@@ -115,16 +142,25 @@ def diff_cycles(
     added: List[Dict[str, Any]] = []
     removed: List[Dict[str, Any]] = []
     changed: List[Dict[str, Any]] = []
+    rewritten: List[Dict[str, Any]] = []
     unchanged = 0
     for key in new:
         if key not in old:
             added.append(_view(new[key]))
             continue
         fields = changed_fields(old[key], new[key])
-        if fields:
+        if not fields:
+            unchanged += 1
+            continue
+        substantive = [name for name in fields if name not in VOLATILE_FIELDS]
+        if substantive:
             changed.append({"topic": new[key].get("topic"), "fields": fields})
         else:
-            unchanged += 1
+            # Отметка времени сменилась, содержание нет: это перезапись,
+            # а не правка. Реестр урезать нельзя — молчаливое исчезновение
+            # 85 записей из отчёта было бы не менее ложью, чем ложное
+            # «изменено».
+            rewritten.append({"topic": new[key].get("topic"), "fields": fields})
     for key in old:
         if key not in new:
             removed.append(_view(old[key]))
@@ -139,8 +175,9 @@ def diff_cycles(
         "added": added,
         "removed": removed,
         "changed": changed,
+        "rewritten": rewritten,
         "unchanged": unchanged,
-        "shared": unchanged + len(changed),
+        "shared": unchanged + len(changed) + len(rewritten),
     }
 
 

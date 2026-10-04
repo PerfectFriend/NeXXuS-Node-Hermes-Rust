@@ -12,6 +12,7 @@ from typing import Any, Dict, List
 
 from .attribution import addressing_from_disk
 from .canon import corpus
+from .diff import VOLATILE_FIELDS
 from .diff import diff as cycle_diff
 from .gate import OPEN_STATUSES, read_registry, registry_entries
 from .identity import identity_report
@@ -257,11 +258,25 @@ def build_report(memory_dir: Path = DEFAULT_DIR) -> str:
     lines.extend(_table([
         ["добавлено", len(d["added"])],
         ["удалено", len(d["removed"])],
-        ["изменено", len(d["changed"])],
+        ["изменено (содержательно)", len(d["changed"])],
+        ["перезаписано (только отметка времени)", len(d["rewritten"])],
         ["без изменений", d["unchanged"]],
         ["пересечение ключей", d["shared"]],
     ], ["переход", "записей"]))
     lines.append("")
+    if d["rewritten"]:
+        # Разделять эти два числа обязательно: «изменено» без оговорки
+        # читается как «память переписывают», а на штатном корпусе между
+        # 001 и 1351 содержательных правок не было вовсе — 85 записей
+        # отличались только отметкой времени (пункт 32).
+        lines.append(
+            f'Из них {len(d["rewritten"])} записей перезаписаны без правки '
+            f'содержания: изменилась только отметка времени '
+            f'({", ".join("`" + name + "`" for name in VOLATILE_FIELDS)}). '
+            f'Это не правка памяти — такие записи выведены отдельной '
+            f'строкой, чтобы их нельзя было прочесть как правку.'
+        )
+        lines.append("")
     if d["changed"]:
         field_totals: Dict[str, int] = {}
         for entry in d["changed"]:
@@ -274,6 +289,8 @@ def build_report(memory_dir: Path = DEFAULT_DIR) -> str:
              sorted(field_totals.items(), key=lambda kv: (-kv[1], kv[0]))],
             ["поле", "записей"],
         ))
+    elif d["rewritten"]:
+        lines.append("Содержательных правок между этими циклами не было.")
     else:
         lines.append("Ни одна запись не изменилась: между этими циклами корпус")
         lines.append("только терял и приобретал записи целиком.")
