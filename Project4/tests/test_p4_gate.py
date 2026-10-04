@@ -12,6 +12,7 @@ import subprocess
 import sys
 import textwrap
 from pathlib import Path
+from typing import Any, Dict
 
 import pytest
 
@@ -304,6 +305,107 @@ def test_gate_accepts_json_file_as_entrypoint(tmp_path):
     assert proc.returncode == 2, proc.stdout + proc.stderr
     assert "ПРОВАЛ завышенный" in proc.stdout, proc.stdout
     assert "ПОДТВЕРЖДЕНО честный" in proc.stdout, proc.stdout
+
+
+# --------------------------------------------------------------------------
+# пункт 14: CLI-команда `gate`
+# --------------------------------------------------------------------------
+
+
+def _cli(args, project: Path) -> subprocess.CompletedProcess:
+    return subprocess.run(
+        [sys.executable, "-m", "p4_provenance", "-r", str(paths.REPO_DIR), "gate",
+         "--project", str(project), *args],
+        capture_output=True, text=True, timeout=900, cwd=str(PROJECT),
+    )
+
+
+def test_cli_gate_prints_ready_json_accepted_by_real_gate(tmp_path):
+    """Вывод CLI без `--claim` — входной файл настоящего гейта (код 0)."""
+    root = _subproject(tmp_path)
+    proc = _cli(["--target", "tests", "--name", "честный"], root)
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    case = json.loads(proc.stdout)
+    assert set(case) == {"name", "claim", "facts"}, case
+    assert case["facts"]["test_run"]["failed"] == 0, case["facts"]
+    path = tmp_path / "cli_case.json"
+    path.write_text(json.dumps(case, ensure_ascii=False), encoding="utf-8")
+    gate_proc = subprocess.run(
+        [sys.executable, str(paths.REPO_DIR / "tools" / "cycle_claim_gate.py"), str(path)],
+        capture_output=True, text=True, timeout=120,
+    )
+    assert gate_proc.returncode == 0, gate_proc.stdout + gate_proc.stderr
+
+
+def test_cli_gate_returns_0_on_honest_claim_and_2_on_inflated(tmp_path):
+    root = _subproject(tmp_path)
+    facts = gate.build_facts(root, target="tests")
+    good = tmp_path / "good.json"
+    good.write_text(json.dumps(_honest_claim(facts), ensure_ascii=False), encoding="utf-8")
+    ok_proc = _cli(["--target", "tests", "--claim", str(good)], root)
+    assert ok_proc.returncode == 0, ok_proc.stdout + ok_proc.stderr
+    assert json.loads(ok_proc.stdout)["подтверждено"] is True
+
+    bad = tmp_path / "bad.json"
+    bad.write_text(json.dumps({**_honest_claim(facts), "tests_passed": 999},
+                              ensure_ascii=False), encoding="utf-8")
+    bad_proc = _cli(["--target", "tests", "--claim", str(bad)], root)
+    assert bad_proc.returncode == 2, bad_proc.stdout + bad_proc.stderr
+    assert json.loads(bad_proc.stdout)["расхождения"], bad_proc.stdout
+
+
+def test_cli_gate_rejects_claim_when_run_was_not_performed(tmp_path):
+    """`--no-run` и завышенное «всё зелёное» → код 2, а не подтверждение."""
+    root = _subproject(tmp_path)
+    claim = tmp_path / "claim.json"
+    claim.write_text(json.dumps({"tests_passed": 500, "tests_total": 500,
+                                 "defects_closed": 0, "cycle_closed": True},
+                                ensure_ascii=False), encoding="utf-8")
+    proc = _cli(["--no-run", "--claim", str(claim)], root)
+    assert proc.returncode == 2, proc.stdout + proc.stderr
+    problems = json.loads(proc.stdout)["расхождения"]
+    assert any("НЕ ВЫПОЛНЕН" in p or "прогон" in p for p in problems), problems
+
+
+def _cli_with_stdin(project: Path, claim: Dict[str, Any]) -> subprocess.CompletedProcess:
+    return subprocess.run(
+        [sys.executable, "-m", "p4_provenance", "-r", str(paths.REPO_DIR), "gate",
+         "--project", str(project), "--target", "tests", "--claim", "-",
+         "--save", "cases/cli_case.json"],
+        input=json.dumps(claim, ensure_ascii=False),
+        capture_output=True, text=True, timeout=900, cwd=str(PROJECT),
+    )
+
+
+def test_cli_gate_stdin_claim_and_save_stay_inside_project(tmp_path):
+    proc = _cli_with_stdin(tmp_path / "нет-такого",
+                           {"tests_passed": 10, "cycle_closed": True})
+    # каталога проекта нет → факты не собраны → код 2, а не «подтверждено»
+    assert proc.returncode == 2, proc.stdout + proc.stderr
+
+    root = _subproject(tmp_path)
+    facts = gate.build_facts(root, target="tests")
+    proc = subprocess.run(
+        [sys.executable, "-m", "p4_provenance", "-r", str(paths.REPO_DIR), "gate",
+         "--project", str(root), "--target", "tests", "--claim", "-",
+         "--save", "cases/cli_case.json"],
+        input=json.dumps(_honest_claim(facts), ensure_ascii=False),
+        capture_output=True, text=True, timeout=900, cwd=str(PROJECT),
+    )
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    assert "кейс записан" in proc.stderr, proc.stderr
+    saved = PROJECT / "cases" / "cli_case.json"
+    assert saved.exists(), "кейс должен лежать внутри Project4"
+    assert json.loads(saved.read_text(encoding="utf-8"))["facts"]["test_run"]["failed"] == 0
+
+
+def test_cli_gate_reports_unreadable_claim(tmp_path):
+    root = _subproject(tmp_path)
+    bad = tmp_path / "не-json.json"
+    bad.write_text("{это не json", encoding="utf-8")
+    proc = _cli(["--target", "tests", "--claim", str(bad)], root)
+    assert proc.returncode == 1, proc.stdout + proc.stderr
+    assert "не прочитано" in proc.stderr, proc.stderr
 
 
 # --------------------------------------------------------------------------

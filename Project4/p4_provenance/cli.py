@@ -19,7 +19,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence
 
 from . import SIBLING_PROJECTS
-from . import attribution, canon, canary, fingerprint, loader, metrics, repro
+from . import attribution, canon, canary, fingerprint, gate, loader, metrics, paths, repro
 
 REPO = Path(__file__).resolve().parent.parent.parent
 
@@ -168,6 +168,66 @@ def cmd_report(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_gate(args: argparse.Namespace) -> int:
+    """Пункт 14: собрать `facts`, напечатать готовый JSON и (с `--claim`) себя проверить.
+
+    Три режима:
+
+    * без `--claim` — печатает `{"claim": …, "facts": …}` для
+      `tools/cycle_claim_gate.py <файл>`; заявление строится ИЗ ФАКТОВ, то есть
+      по умолчанию подтверждается. Это полезно как эталон: агент сравнивает со
+      своим и видит расхождение.
+    * `--claim FILE` — сверяет заявление из внешнего JSON с фактами; код 0 —
+      подтверждено, 2 — расхождение, 1 — файл заявления не прочитан.
+    * `--claim -` — читает заявление из stdin.
+
+    Код 2 выбран тот же, что у гейта (`cycle_claim_gate.py`), чтобы вызывающая
+    сторона проверяла один и тот же код возврата на обоих уровнях.
+    """
+    project = Path(args.project) if args.project else paths.PROJECT_DIR
+    facts = gate.build_facts(project, target=args.target, run=not args.no_run)
+
+    claim: Optional[Dict[str, Any]] = None
+    if args.claim is not None:
+        try:
+            raw = sys.stdin.read() if args.claim == "-" else Path(args.claim).read_text(
+                encoding="utf-8"
+            )
+            claim = json.loads(raw)
+        except (OSError, json.JSONDecodeError) as exc:
+            print(f"заявление не прочитано: {exc}", file=sys.stderr)
+            return 1
+        if not isinstance(claim, dict):
+            print("заявление должно быть объектом JSON с полями claim/facts или "
+                  "самим claim", file=sys.stderr)
+            return 1
+        # допускаем оба вида: голый claim и кейс {"claim": …, "facts": …}
+        if "claim" in claim and isinstance(claim.get("claim"), dict):
+            claim = claim["claim"]
+
+    case = gate.claim_case(args.name, claim or gate.claim_from_facts(facts), facts)
+
+    if args.save:
+        target = gate.write_case(args.save, case)
+        print(f"кейс записан: {target}", file=sys.stderr)
+
+    if args.claim is None:
+        _out(case)
+        return 0
+
+    problems = gate.gate_check(facts, claim, args.repo or REPO)
+    _out(
+        {
+            "name": args.name,
+            "facts_digest": gate.facts_digest(facts),
+            "заявление": claim,
+            "расхождения": problems,
+            "подтверждено": not problems,
+        }
+    )
+    return 0 if not problems else 2
+
+
 COMMANDS = {
     "validate": cmd_validate,
     "load": cmd_load,
@@ -181,6 +241,7 @@ COMMANDS = {
     "canon": cmd_canon,
     "canary": cmd_canary,
     "report": cmd_report,
+    "gate": cmd_gate,
 }
 
 
@@ -228,6 +289,18 @@ def build_parser() -> argparse.ArgumentParser:
 
     report_parser = sub.add_parser("report", help="сгенерировать PROVENANCE_REPORT.md")
     report_parser.add_argument("--out", help="файл отчёта")
+
+    gate_parser = sub.add_parser(
+        "gate", help="собрать facts для tools/cycle_claim_gate.py и сверить заявление"
+    )
+    gate_parser.add_argument("--project", help="каталог проекта (по умолчанию Project4)")
+    gate_parser.add_argument("--target", help="что прогонять pytest-ом (например tests)")
+    gate_parser.add_argument("--no-run", action="store_true",
+                             help="не прогонять тесты: заявление о зелёных тестах "
+                                  "нечем подтвердить, гейт должен это отвергнуть")
+    gate_parser.add_argument("--claim", help="файл заявления (JSON) или - для stdin")
+    gate_parser.add_argument("--name", default="project4", help="имя кейса")
+    gate_parser.add_argument("--save", help="записать кейс в файл внутри Project4")
 
     for name, func in COMMANDS.items():
         sub.choices[name].set_defaults(func=func)

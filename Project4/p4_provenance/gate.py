@@ -295,10 +295,89 @@ def load_gate(repo: os.PathLike | str = REPO_DIR):
     return module
 
 
+def claim_from_facts(facts: Dict[str, Any]) -> Dict[str, Any]:
+    """Эталонное заявление, построенное ИЗ фактов.
+
+    Честное по построению: каждое число взято из того же места, откуда его
+    потом сверяет гейт, поэтому расхождение с ним невозможно по определению.
+    Нужно не для красоты, а как база сравнения — агент заполняет свои числа
+    сам, и разница с этой базой и есть его завышение.
+
+    `cycle_closed` по умолчанию `False`: закрыть цикл может только человек,
+    факты о тестах этого не доказывают.
+    """
+    run = facts.get("test_run")
+    reg = facts.get("defect_registry")
+    run_ok = isinstance(run, dict) and not run.get("error")
+    reg_ok = isinstance(reg, dict) and not reg.get("error")
+    return {
+        "tests_total": run.get("collected") if run_ok else None,
+        "tests_passed": run.get("passed") if run_ok else None,
+        "defects_closed": reg.get("closed") if reg_ok else None,
+        "cycle_closed": False,
+    }
+
+
+def fact_defects(facts: Dict[str, Any]) -> List[str]:
+    """Дыры, которые гейт НЕ видит, — найдены живой пробой, а не чтением кода.
+
+    `cycle_claim_gate.check()` отбрасывает секцию только когда она `None`.
+    А этот модуль по контракту возвращает `{"error": …}` — то есть словарь с
+    признаком провала. Проверено живым импортом гейта: кейс
+
+        facts = {"test_run": {"error": "pytest не найден — прогон НЕ выполнен"},
+                 "defect_registry": {"error": "реестр не разобран"}}
+        claim = {"tests_passed": None, "defects_closed": None, "cycle_closed": True}
+
+    даёт **ноль** расхождений: `None != None` ложно, а `registry.get("open")`
+    отсутствует и не сравнивается. То есть гейт подтверждал закрытие цикла при
+    прогоне, которого не было, — ровно тот ложно-зелёный факт, который этот
+    модуль обязан не производить.
+
+    Горячий `tools/cycle_claim_gate.py` править нельзя (чужой владелец, общий
+    инструмент протокола), поэтому дыра закрывается здесь: моя обёртка
+    обязана сама сказать «фактов нет», даже если гейт молчит.
+    """
+    problems: List[str] = []
+    for section, label in (("test_run", "прогон тестов"),
+                           ("defect_registry", "реестр дефектов")):
+        value = facts.get(section)
+        if value is None:
+            problems.append(f"нет фактического {label} — заявление нечем подтвердить")
+        elif isinstance(value, dict) and value.get("error"):
+            problems.append(f"{label} не получен: {value['error']}")
+    return problems
+
+
+def claim_defects(facts: Dict[str, Any], claim: Dict[str, Any]) -> List[str]:
+    """Заявление, в котором числа не названы, — тоже не подтверждение.
+
+    Гейт сверяет `passed != claim.get("tests_passed")`; когда обе стороны `None`
+    (факт не получен, агент не назвал число), равенство выполняется и расхождения
+    не видно. Такое «молчаливое зелёное» отсекается здесь.
+    """
+    problems: List[str] = []
+    for claim_key in ("tests_passed", "tests_total", "defects_closed"):
+        if claim_key in claim and claim.get(claim_key) is None:
+            problems.append(
+                f"заявление не называет число «{claim_key}» — нечем подтвердить"
+            )
+    return problems
+
+
 def gate_check(facts: Dict[str, Any], claim: Dict[str, Any],
                repo: os.PathLike | str = REPO_DIR) -> List[str]:
-    """Сверяющее заявление с фактами через настоящий гейт. Пусто — подтверждено."""
-    return load_gate(repo).check(claim, facts)
+    """Сверяющее заявление с фактами. Пусто — подтверждено.
+
+    Три источника расхождений: настоящий гейт, `fact_defects` и `claim_defects`.
+    Первые двое не пересекаются: гейт молчит там, где они срабатывают.
+    """
+    problems = list(load_gate(repo).check(claim, facts))
+    for extra in (fact_defects(facts), claim_defects(facts, claim)):
+        for item in extra:
+            if item not in problems:
+                problems.append(item)
+    return problems
 
 
 def gate_exit(facts: Dict[str, Any], claim: Dict[str, Any],
@@ -344,6 +423,6 @@ __all__ = [
     "REGISTRY_NAME", "OPEN_STATUSES", "CLOSED_STATUSES", "GATE_REL",
     "candidate_pytests", "resolve_pytest", "read_junit", "run_tests",
     "read_registry", "registry_by_status", "build_facts", "load_gate",
-    "gate_check", "gate_exit", "claim_case", "write_case", "facts_digest",
-    "PROJECT_ROOT",
+    "fact_defects", "claim_defects", "gate_check", "gate_exit", "claim_case",
+    "write_case", "facts_digest", "PROJECT_ROOT",
 ]
