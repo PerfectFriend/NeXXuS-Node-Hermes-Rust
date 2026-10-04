@@ -209,6 +209,29 @@ def run_tests(project: os.PathLike | str, target: Optional[str] = None,
 # --------------------------------------------------------------------------
 
 
+def unknown_status_items(items: List[Any]) -> List[str]:
+    """Записи, чей статус не входит в OPEN/CLOSED — тихая потеря дефекта.
+
+    P4-D6: `read_registry` считал `total` по числу элементов, а `open`/`closed` —
+    только по известным статусам, поэтому дефект без `status` давал
+    `total=1 при open=closed=0`: счётчики молча разъезжаются с суммой статусов,
+    и агент может заявить «дефектов не осталось», не потеряв ни одного числа.
+    Такой реестр — ошибка данных, а не «ноль дефектов».
+    """
+    bad: List[str] = []
+    for pos, item in enumerate(items):
+        if not isinstance(item, dict):
+            bad.append(f"запись #{pos + 1} не объект ({type(item).__name__})")
+            continue
+        status = str(item.get("status") or "").strip().lower()
+        label = str(item.get("id") or f"запись #{pos + 1}")
+        if not status:
+            bad.append(f"{label}: нет status")
+        elif status not in OPEN_STATUSES and status not in CLOSED_STATUSES:
+            bad.append(f"{label}: неизвестный status «{status}»")
+    return bad
+
+
 def read_registry(project: os.PathLike | str = PROJECT_DIR,
                   name: str = REGISTRY_NAME) -> Optional[Dict[str, Any]]:
     """Прочитать реестр дефектов проекта. `None` — файла нет (гейт это увидит)."""
@@ -232,6 +255,11 @@ def read_registry(project: os.PathLike | str = PROJECT_DIR,
         return out
     else:
         return {"error": f"реестр {name}: неожиданная структура"}
+    unknown = unknown_status_items(items)
+    if unknown:
+        return {"error": f"реестр {name}: неизвестные статусы дефектов — "
+                          f"счётчики open/closed не сойдутся с total: "
+                          + "; ".join(unknown)}
     return {
         "open": sum(1 for d in items if isinstance(d, dict)
                     and str(d.get("status", "")).lower() in OPEN_STATUSES),
@@ -421,6 +449,7 @@ def facts_digest(facts: Dict[str, Any]) -> str:
 
 __all__ = [
     "REGISTRY_NAME", "OPEN_STATUSES", "CLOSED_STATUSES", "GATE_REL",
+    "unknown_status_items",
     "candidate_pytests", "resolve_pytest", "read_junit", "run_tests",
     "read_registry", "registry_by_status", "build_facts", "load_gate",
     "fact_defects", "claim_defects", "gate_check", "gate_exit", "claim_case",
