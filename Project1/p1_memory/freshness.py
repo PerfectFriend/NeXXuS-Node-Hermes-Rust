@@ -100,10 +100,11 @@ FACT_BUILDERS: Dict[str, str] = {
     "ap_unique_sets": "provenance: число различных наборов applicable_projects",
     "ap_uniform_all_projects": "provenance: записей с applicable_projects = [1,2,3,4]",
     "ap_discriminates": "provenance: 1, если applicable_projects различает проекты",
+    "tests": "число тестов, собираемых в tests/ (то же, что сверяет count_tests)",
 }
 
 
-def live_facts(root: Path) -> Dict[str, int]:
+def live_facts(root: Path, tests: Optional[int] = None) -> Dict[str, int]:
     """Живые числа, которые обязан совпадать блок фактов отчёта.
 
     Считаются ровно те же величины, что печатают `report`, `dedupe --scope all`
@@ -113,6 +114,8 @@ def live_facts(root: Path) -> Dict[str, int]:
     from .provenance import audit
 
     root = Path(root)
+    if tests is None:
+        tests = count_tests(root)
     files = list(iter_memory_files(root))
     docs = [load(f) for f in files]
     rows = [summarize(d) for d in docs]
@@ -137,6 +140,7 @@ def live_facts(root: Path) -> Dict[str, int]:
         "ap_unique_sets": ap["unique_sets"],
         "ap_uniform_all_projects": ap["uniform_all_projects"],
         "ap_discriminates": 1 if ap["discriminates"] else 0,
+        "tests": tests,
     }
 
 
@@ -148,6 +152,44 @@ def fact_block(facts: Dict[str, int]) -> str:
     )
     lines.append(_FACT_BLOCK_CLOSE)
     return "\n".join(lines)
+
+
+#: Каноническая фраза отчёта о числе тестов. Число тестов — единственное
+#: утверждение отчёта, которое жило ТОЛЬКО текстом: блок фактов его не знал,
+#: поэтому `stamp` не мог его починить, а сам `stamp` CLI рекомендовал как
+#: ремонт. Найдено пробой tests/probe_stamp_repair.py: после `stamp`
+#: сверка оставалась ok=False. Теперь фраза тоже генерируется по прогону.
+_TESTS_SENTENCE_RE = re.compile(
+    r"^(?P<head>[^\n]*?)(?P<count>\d+)(?P<tail>\s+зелёных\.?\s*)$",
+    re.MULTILINE | re.IGNORECASE,
+)
+
+
+def stamp_test_sentence(text: str, tests: int) -> str:
+    """Обновить число тестов в канонической фразе отчёта.
+
+    Строка, которая объявляет число тестов, опознаётся по хвосту
+    «<число> зелёных»; остальной текст не трогается.
+    """
+    match = _TESTS_SENTENCE_RE.search(text)
+    if not match:
+        return text
+    return text[: match.start()] + (
+        f"{match.group('head')}{tests}{match.group('tail')}"
+    ) + text[match.end():]
+
+
+def stamp_report(text: str, facts: Dict[str, int]) -> str:
+    """Полный ремонт отчёта по прогону: блок фактов И число тестов.
+
+    Контракт, который проверяет tests/probe_stamp_repair.py: после
+    `stamp` команда `report --check` обязана дать exit 0. Всё, что сверка
+    умеет проверять, stamp обязан уметь чинить.
+    """
+    stamped = stamp_facts(text, facts)
+    if "tests" in facts:
+        stamped = stamp_test_sentence(stamped, facts["tests"])
+    return stamped
 
 
 def stamp_facts(text: str, facts: Dict[str, int]) -> str:
@@ -296,7 +338,8 @@ def check_report(root: Path, report_name: str = DEFAULT_REPORT) -> Dict[str, Any
     """Сверить MEMORY_REPORT.md с прогоном. Ничего не пишет."""
     root = Path(root)
     report_path = root / report_name
-    facts_live = live_facts(root)
+    tests_live = count_tests(root)
+    facts_live = live_facts(root, tests=tests_live)
     result: Dict[str, Any] = {
         "report": str(report_path),
         "exists": report_path.exists(),
@@ -311,7 +354,7 @@ def check_report(root: Path, report_name: str = DEFAULT_REPORT) -> Dict[str, Any
         "facts_duplicated": [],
         "facts_missing": [],
         "facts_on_disk": facts_live,
-        "tests_on_disk": count_tests(root),
+        "tests_on_disk": tests_live,
         "ok": False,
     }
     if not report_path.exists():

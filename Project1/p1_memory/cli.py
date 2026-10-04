@@ -30,6 +30,7 @@ from .freshness import (
     live_facts,
     parse_facts,
     stamp_facts,
+    stamp_report,
     write_text_atomic,
 )
 from .loader import MemoryError_, iter_memory_files, load, save_atomic
@@ -134,7 +135,7 @@ def cmd_stamp(args) -> int:
 
     facts = live_facts(args.root)
     before = path.read_text(encoding="utf-8")
-    after = stamp_facts(before, facts)
+    after = stamp_report(before, facts)
     if after == before:
         print(f"Факты уже совпадают с прогоном: {report_name} не изменён.")
         return 0

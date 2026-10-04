@@ -119,4 +119,5 @@ hot-код) записал 1835 инсайтов для Project1: 3 мусорн
 <!-- p1-fact: ap_unique_sets = 1 -->
 <!-- p1-fact: ap_uniform_all_projects = 184 -->
 <!-- p1-fact: ap_discriminates = 0 -->
+<!-- p1-fact: tests = 138 -->
 <!-- p1-facts:end -->
