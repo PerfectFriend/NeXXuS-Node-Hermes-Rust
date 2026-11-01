@@ -107,7 +107,7 @@ function AppRootContent(): React.ReactElement {
   } = useMessenger();
 
   const handleOpenDrawerTab = (
-    tab: 'sections' | 'fleet' | 'appstore' | 'dex' | 'security' | 'manual' | 'splash' | 'health'
+    tab: 'sections' | 'fleet' | 'appstore' | 'dex' | 'security' | 'manual' | 'splash' | 'health' | 'node'
   ) => {
     if (tab === 'security') {
       setIsKeyModalOpen(true);

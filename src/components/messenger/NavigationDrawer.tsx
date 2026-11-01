@@ -2,7 +2,7 @@ import React from 'react';
 import { 
   ArrowLeft, Star, Cpu, Server, ShoppingBag, 
   Activity, Globe, QrCode, Settings, BookOpen, 
-  LogOut, Lock 
+  LogOut, Lock, Terminal 
 } from 'lucide-react';
 import { Bip39Identity } from '../../types/nexxus';
 
@@ -12,7 +12,7 @@ export interface NavigationDrawerProps {
   identity: Bip39Identity;
   onSelectFavorites: () => void;
   onOpenDrawerTab: (
-    tab: 'sections' | 'fleet' | 'appstore' | 'dex' | 'security' | 'manual' | 'splash' | 'health'
+    tab: 'sections' | 'fleet' | 'appstore' | 'dex' | 'security' | 'manual' | 'splash' | 'health' | 'node'
   ) => void;
   onOpenNetworkModal: () => void;
   onOpenContactModal: () => void;
@@ -124,6 +124,23 @@ export const NavigationDrawer: React.FC<NavigationDrawerProps> = ({
             >
               <Server className="w-4 h-4 text-cyan-400" />
               <span>Флот Устройств & Криптофон</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                onClose();
+                onOpenDrawerTab('node');
+              }}
+              className="w-full p-2.5 rounded-xl hover:bg-slate-800 text-slate-200 hover:text-white transition flex items-center justify-between text-left cursor-pointer"
+            >
+              <div className="flex items-center gap-3">
+                <Terminal className="w-4 h-4 text-emerald-400" />
+                <span>Демон Ноды (Beelink / Linux)</span>
+              </div>
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-950/80 border border-emerald-500/40 text-emerald-300 font-mono">
+                CLI v2.0
+              </span>
             </button>
 
             <button

@@ -423,6 +423,8 @@ export const DexMarketView: React.FC<DexMarketViewProps> = ({
               currentPrice={currentPrice}
               calculatedTotal={calculatedTotal}
               orders={orders}
+              executionReceipt={executionReceipt}
+              onDismissReceipt={() => setExecutionReceipt(null)}
               onExecuteSwap={handleExecuteSwap}
             />
           </div>

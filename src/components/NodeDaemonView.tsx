@@ -291,6 +291,25 @@ export const NodeDaemonView: React.FC<NodeDaemonViewProps> = ({
                 </span>
               )}
             </p>
+
+            {/* Hardware Profile Switcher */}
+            <div className="flex items-center gap-2 mt-3 pt-2 border-t border-slate-800/80">
+              <span className="text-[11px] text-slate-400 font-mono">Профиль ноды:</span>
+              <button
+                type="button"
+                onClick={() => onUpdateCurrentNode({ ...currentNode, deviceType: 'android', name: 'Galaxy S9 (Нода 24/7)' })}
+                className="px-2.5 py-1 rounded-lg bg-emerald-950 border border-emerald-500/40 text-emerald-300 font-mono text-[11px] font-bold cursor-pointer"
+              >
+                📱 Смартфон (Android 24/7)
+              </button>
+              <button
+                type="button"
+                onClick={() => onUpdateCurrentNode({ ...currentNode, deviceType: 'desktop_linux', name: 'Beelink SER9 (Ubuntu 24.04)' })}
+                className="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-700 text-slate-300 hover:text-white font-mono text-[11px] transition cursor-pointer"
+              >
+                🐧 Beelink SER9 / Linux CLI
+              </button>
+            </div>
           </div>
 
           {/* Real-time Hardware Telemetry Badges */}

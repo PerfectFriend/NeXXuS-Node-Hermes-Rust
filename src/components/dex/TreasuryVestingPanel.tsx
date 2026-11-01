@@ -53,49 +53,76 @@ export const TreasuryVestingPanel: React.FC<TreasuryVestingPanelProps> = ({
             Нет активных траншей вестинга. Выделите хранилище под чужие чанки для получения суточных наград!
           </div>
         ) : (
-          batches.map(batch => (
-            <div
-              key={batch.id}
-              className="p-3 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between gap-3 text-xs"
-            >
-              <div className="space-y-0.5">
-                <div className="flex items-center gap-2">
-                  <span className="font-bold text-white font-mono">+{(batch.amount ?? 0).toFixed(1)} $NEXX</span>
-                  <span className={`text-[10px] font-mono px-2 py-0.2 rounded font-bold uppercase ${
-                    batch.status === 'unlocked' 
-                      ? 'bg-emerald-950 text-emerald-400 border border-emerald-500/40' 
-                      : 'bg-amber-950 text-amber-400 border border-amber-500/30'
-                  }`}>
-                    {batch.status === 'unlocked' ? 'Разблокировано' : `Лок: ${batch.daysRemaining} дн.`}
-                  </span>
-                </div>
-                <div className="text-[11px] text-slate-400">
-                  Источник: <strong className="text-slate-300">{batch.sourceNodeName}</strong> ({batch.foreignChunksGb} GB чанков)
-                </div>
-              </div>
+          batches.map(batch => {
+            const progressPct = batch.status === 'unlocked' 
+              ? 100 
+              : Math.max(4, Math.min(96, Math.round(((56 - (batch.daysRemaining || 56)) / 56) * 100)));
 
-              <div className="text-right font-mono text-[11px] flex items-center gap-2">
-                {batch.status === 'unlocked' ? (
-                  onClaimBatch ? (
-                    <button
-                      onClick={() => onClaimBatch(batch.id)}
-                      className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1 shadow transition cursor-pointer"
-                    >
-                      <CheckCircle2 className="w-3.5 h-3.5" /> Вывести
-                    </button>
-                  ) : (
-                    <span className="text-emerald-400 font-bold flex items-center gap-1 justify-end">
-                      <CheckCircle2 className="w-3.5 h-3.5" /> Доступно к выводу
-                    </span>
-                  )
-                ) : (
-                  <span className="text-slate-400 flex items-center gap-1 justify-end">
-                    <Clock className="w-3 h-3 text-amber-400" /> созреет через {batch.daysRemaining} дней
-                  </span>
-                )}
+            return (
+              <div
+                key={batch.id}
+                className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 space-y-2 text-xs font-mono transition-all hover:border-slate-700"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <div className="space-y-0.5 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-white text-sm">+{(batch.amount ?? 0).toFixed(1)} $NEXX</span>
+                      <span className={`text-[10px] px-2 py-0.5 rounded font-bold uppercase ${
+                        batch.status === 'unlocked' 
+                          ? 'bg-emerald-950 text-emerald-400 border border-emerald-500/40' 
+                          : 'bg-amber-950 text-amber-400 border border-amber-500/30'
+                      }`}>
+                        {batch.status === 'unlocked' ? 'Разблокировано (100%)' : `Лок: ${batch.daysRemaining} дн. (${progressPct}%)`}
+                      </span>
+                    </div>
+                    <div className="text-[11px] text-slate-400 truncate">
+                      Источник: <strong className="text-slate-300">{batch.sourceNodeName}</strong> · {batch.foreignChunksGb} GB чанков
+                    </div>
+                  </div>
+
+                  <div className="text-right font-mono text-[11px] flex items-center gap-2 shrink-0">
+                    {batch.status === 'unlocked' ? (
+                      onClaimBatch ? (
+                        <button
+                          onClick={() => onClaimBatch(batch.id)}
+                          className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 shadow transition cursor-pointer"
+                        >
+                          <CheckCircle2 className="w-3.5 h-3.5" /> Вывести на баланс
+                        </button>
+                      ) : (
+                        <span className="text-emerald-400 font-bold flex items-center gap-1 justify-end">
+                          <CheckCircle2 className="w-3.5 h-3.5" /> Доступно к выводу
+                        </span>
+                      )
+                    ) : (
+                      <span className="text-slate-400 flex items-center gap-1 justify-end text-[11px]">
+                        <Clock className="w-3.5 h-3.5 text-amber-400" />
+                        <span>созреет через <strong className="text-amber-300">{batch.daysRemaining} дн.</strong></span>
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Maturation Progress Bar */}
+                <div className="space-y-1">
+                  <div className="w-full h-1.5 bg-slate-900 rounded-full overflow-hidden border border-slate-800">
+                    <div 
+                      className={`h-full transition-all duration-500 ${
+                        batch.status === 'unlocked'
+                          ? 'bg-gradient-to-r from-emerald-500 to-cyan-400'
+                          : 'bg-gradient-to-r from-amber-600 via-amber-500 to-emerald-500'
+                      }`}
+                      style={{ width: `${progressPct}%` }}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between text-[10px] text-slate-500">
+                    <span>День {56 - (batch.daysRemaining || 56)} из 56</span>
+                    <span>{progressPct}% созревания</span>
+                  </div>
+                </div>
               </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
     </div>

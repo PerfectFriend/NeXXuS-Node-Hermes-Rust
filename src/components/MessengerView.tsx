@@ -38,7 +38,7 @@ export interface MessengerViewProps {
   personalSectionsCount: number;
   personalVaultQuotaGb: number;
   onOpenDrawerTab: (
-    tab: 'sections' | 'fleet' | 'appstore' | 'dex' | 'security' | 'manual' | 'splash' | 'health'
+    tab: 'sections' | 'fleet' | 'appstore' | 'dex' | 'security' | 'manual' | 'splash' | 'health' | 'node'
   ) => void;
   onQuickLock: () => void;
   onSwitchAccount?: () => void;

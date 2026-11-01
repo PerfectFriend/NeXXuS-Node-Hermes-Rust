@@ -96,45 +96,75 @@ export const SectionAllocationGrid: React.FC<SectionAllocationGridProps> = ({
 
       {/* Selected Section Inspection Detail Modal/Card */}
       {selectedSectionDetail !== null && (
-        <div className="p-3 sm:p-4 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between gap-3 animate-in fade-in">
-          <div className="space-y-1 text-xs min-w-0">
-            <div className="font-bold text-white flex items-center gap-2 truncate">
-              <span>Секция #{selectedSectionDetail + 1} (16 ГБ)</span>
+        <div className="p-4 rounded-xl bg-slate-950 border border-slate-700 space-y-3 animate-in fade-in slide-in-from-bottom-2 shadow-xl">
+          <div className="flex items-center justify-between gap-3 border-b border-slate-800 pb-2.5">
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-white text-sm">Секция #{selectedSectionDetail + 1} (16.0 GB)</span>
               <span
-                className={`text-[9px] px-1.5 py-0.2 rounded font-bold ${
+                className={`text-[10px] px-2 py-0.5 rounded font-bold uppercase ${
                   selectedSectionDetail < personalSections
-                    ? 'bg-indigo-950 text-indigo-300 border border-indigo-500/30'
+                    ? 'bg-indigo-950 text-indigo-300 border border-indigo-500/40'
                     : selectedSectionDetail - personalSections <
                       Math.round(miningSections * actualForeignOccupancyRatio)
-                    ? 'bg-emerald-950 text-emerald-300 border border-emerald-500/30'
+                    ? 'bg-emerald-950 text-emerald-300 border border-emerald-500/40'
                     : 'bg-slate-900 text-slate-400 border border-slate-700'
                 }`}
               >
                 {selectedSectionDetail < personalSections
-                  ? 'Личный Сейф (ChaCha20)'
+                  ? 'Личный Неуничтожимый Сейф'
                   : selectedSectionDetail - personalSections <
                     Math.round(miningSections * actualForeignOccupancyRatio)
-                  ? 'Майнинг (Занято RF=6×)'
-                  : 'Майнинг (Пусто • 0 NEXX)'}
+                  ? 'Майнинг Сети (Занято RF=6×)'
+                  : 'Майнинг Сети (Резерв • В ожидании чанков)'}
               </span>
             </div>
-            <div className="text-[11px] text-slate-400 truncate">
-              Размещение:{' '}
-              <strong>
-                {selectedSectionDetail > 3 && selectedSectionDetail <= 27
-                  ? 'Beelink SER9 (Ubuntu 24.04)'
-                  : 'Galaxy S9 (Android 24/7)'}
-              </strong>
-            </div>
+
+            <button
+              type="button"
+              onClick={() => setSelectedSectionDetail(null)}
+              className="text-xs text-slate-400 hover:text-white p-1 rounded-lg bg-slate-800/80 hover:bg-slate-700 shrink-0 cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
           </div>
 
-          <button
-            type="button"
-            onClick={() => setSelectedSectionDetail(null)}
-            className="text-xs text-slate-400 hover:text-white p-1.5 rounded-lg bg-slate-800 shrink-0 cursor-pointer"
-          >
-            <X className="w-4 h-4" />
-          </button>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
+            <div className="bg-slate-900/90 p-2.5 rounded-lg border border-slate-800">
+              <span className="text-slate-400 block text-[10px]">Шифрование & RS:</span>
+              <span className="text-indigo-400 font-bold">ChaCha20 + RS(4+2)</span>
+            </div>
+
+            <div className="bg-slate-900/90 p-2.5 rounded-lg border border-slate-800">
+              <span className="text-slate-400 block text-[10px]">Ёмкость чанков:</span>
+              <span className="text-white font-bold">1,048,576 × 16 KB</span>
+            </div>
+
+            <div className="bg-slate-900/90 p-2.5 rounded-lg border border-slate-800">
+              <span className="text-slate-400 block text-[10px]">Доход секции:</span>
+              <span className={
+                selectedSectionDetail < personalSections
+                  ? 'text-slate-400'
+                  : selectedSectionDetail - personalSections < Math.round(miningSections * actualForeignOccupancyRatio)
+                  ? 'text-emerald-400 font-bold'
+                  : 'text-amber-400'
+              }>
+                {selectedSectionDetail < personalSections
+                  ? '0 NEXX (Личный сейф)'
+                  : selectedSectionDetail - personalSections < Math.round(miningSections * actualForeignOccupancyRatio)
+                  ? '+20.00 NEXX / день'
+                  : '0 NEXX (Пустое место)'}
+              </span>
+            </div>
+
+            <div className="bg-slate-900/90 p-2.5 rounded-lg border border-slate-800">
+              <span className="text-slate-400 block text-[10px]">Хост-устройство:</span>
+              <span className="text-cyan-300 font-bold truncate block">
+                {selectedSectionDetail > 3 && selectedSectionDetail <= 27
+                  ? 'Beelink SER9 (Linux NVMe)'
+                  : 'Galaxy S9 (Android UFS)'}
+              </span>
+            </div>
+          </div>
         </div>
       )}
     </div>

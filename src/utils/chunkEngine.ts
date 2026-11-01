@@ -4,6 +4,8 @@ import { saveChunkBinary, getAllChunksForFile } from './indexedDbStore';
 import { encryptChunkChaCha20, decryptChunkChaCha20 } from './erasureCoding';
 import { buildMerkleTree } from './merkleProof';
 import { p2pMeshBus } from './p2pMeshBus';
+import { daemonBridge } from './daemonBridge';
+import { P2POpcode, encodeStoreChunk } from './p2pWire';
 import { hexToBytes, bytesToHex } from '@noble/hashes/utils.js';
 
 export const CHUNK_SIZE_BYTES = 16 * 1024; // 16 KB exact
@@ -18,7 +20,8 @@ export async function sliceFileInto16KbChunks(
   fileId: string,
   availableNodes: NodeRecord[],
   storageTier: StorageTier = 'hot_rf6',
-  vaultKeyHex: string = DEFAULT_VAULT_KEY_HEX
+  vaultKeyHex: string = DEFAULT_VAULT_KEY_HEX,
+  onProgress?: (processed: number, total: number) => void
 ): Promise<ChunkRecord[]> {
   const chunks: ChunkRecord[] = [];
   const totalChunks = Math.max(1, Math.ceil(file.size / CHUNK_SIZE_BYTES));
@@ -53,9 +56,17 @@ export async function sliceFileInto16KbChunks(
     try {
       await saveChunkBinary(chunkId, fileId, i, hash, encryptedBytes);
       p2pMeshBus.storeChunkOverMesh(fileId, i, hash, encryptedBytes).catch(() => {});
+      
+      // If connected to local/remote nexxusd daemon, push chunk via binary wire protocol
+      if (daemonBridge.isOnline()) {
+        const storePayload = encodeStoreChunk(fileId, i, hash, encryptedBytes);
+        daemonBridge.sendWireMessage(P2POpcode.STORE_CHUNK, storePayload);
+      }
     } catch {
       // Safe fallback if storage quota or private browsing mode
     }
+
+    onProgress?.(i + 1, totalChunks);
 
     // Pick distinct nodes for redundancy factor
     const replicaNodes: string[] = [];

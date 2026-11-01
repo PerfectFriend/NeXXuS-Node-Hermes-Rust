@@ -5,6 +5,9 @@ import { p2pMeshBus } from '../utils/p2pMeshBus';
 import { healAndResyncChunks } from '../utils/chunkEngine';
 import { secureRandomFloat } from '../utils/cryptoRandom';
 
+import { daemonBridge, DaemonLiveStatus } from '../utils/daemonBridge';
+import { webrtcPeerEngine } from '../utils/webrtcPeerEngine';
+
 /**
  * Value contract exposed by SwarmContext.
  */
@@ -25,6 +28,10 @@ export interface SwarmContextValue {
   isPingingNow: boolean;
   /** Unix timestamp of the most recent swarm ping round */
   lastPingRoundTimestamp: number | null;
+  /** True if connected to live local nexxusd daemon */
+  isDaemonOnline: boolean;
+  /** Live daemon telemetry status */
+  daemonStatus: DaemonLiveStatus | null;
   /** Swarm manipulation actions */
   setNodes: React.Dispatch<React.SetStateAction<NodeRecord[]>>;
   updateCurrentNode: (updated: NodeRecord) => void;
@@ -76,6 +83,97 @@ export const SwarmProvider: React.FC<SwarmProviderProps> = ({
   const [graceNodeId, setGraceNodeId] = useState<string | null>(null);
   const [graceRemainingSeconds, setGraceRemainingSeconds] = useState<number | null>(null);
   const [selfHealingNotification, setSelfHealingNotification] = useState<string | null>(null);
+
+  // Live Daemon Bridge state
+  const [daemonStatus, setDaemonStatus] = useState<DaemonLiveStatus | null>(() => daemonBridge.getLastStatus());
+  const [isDaemonOnline, setIsDaemonOnline] = useState<boolean>(() => daemonBridge.isOnline());
+
+  // Subscribe to live daemon bridge events
+  useEffect(() => {
+    const unsubscribe = daemonBridge.subscribe((status, online) => {
+      setDaemonStatus(status);
+      setIsDaemonOnline(online);
+
+      if (online && status) {
+        setNodes(prev => prev.map(n => {
+          if (n.isCurrentDevice) {
+            return {
+              ...n,
+              id: status.nodeId,
+              onionAddress: status.onionAddress,
+              totalStorageAllocatedGb: status.allocatedGb,
+              reservedSections16Gb: status.reservedSections16Gb,
+              storedChunksCount: status.storedChunksCount,
+              pingLatencyMs: Math.max(1, Math.round(status.lastPorLatencyMs || 1.2)),
+              pingStatus: 'healthy',
+            };
+          }
+          return n;
+        }));
+
+        // Ingest discovered peers from daemon's Kademlia routing table
+        const livePeers = daemonBridge.getLastPeers();
+        if (livePeers && livePeers.length > 0) {
+          setNodes(prev => {
+            const currentList = [...prev];
+            for (const peer of livePeers) {
+              const existingIdx = currentList.findIndex(p => p.id === peer.nodeId || p.onionAddress === peer.onionAddress);
+              if (existingIdx === -1) {
+                currentList.push({
+                  id: peer.nodeId,
+                  name: `Node ${peer.nodeId.slice(0, 10)}`,
+                  deviceType: 'desktop_linux',
+                  model: 'NeXXUs Linux Host',
+                  isOnline: true,
+                  isCurrentDevice: false,
+                  onionAddress: peer.onionAddress,
+                  v2rayActive: true,
+                  torActive: true,
+                  smpServerRunning: true,
+                  xFTPRelayRunning: true,
+                  batteryLevel: 100,
+                  isCharging: true,
+                  temperatureC: 32.5,
+                  wifiSsid: 'P2P_Mesh',
+                  wifiSignalDbm: -45,
+                  internalTotalGb: 500,
+                  internalFreeGb: peer.totalStorageAllocatedGb || 128,
+                  autoModeEnabled: true,
+                  reservedSections16Gb: Math.floor((peer.totalStorageAllocatedGb || 128) / 16),
+                  totalStorageAllocatedGb: peer.totalStorageAllocatedGb || 128,
+                  baseSection16Gb: 16,
+                  baseSecretVaultGrantedGb: 2.0,
+                  expandedStorageAllocatedGb: (peer.totalStorageAllocatedGb || 128) - 16,
+                  actualForeignChunksStoredGb: Math.round(((peer.totalStorageAllocatedGb || 128) - 16) * 0.7),
+                  emptyUnusedAllocatedGb: Math.round(((peer.totalStorageAllocatedGb || 128) - 16) * 0.3),
+                  dailyEstimatedNexxEarnings: Math.round(((peer.totalStorageAllocatedGb || 128) - 16) * 0.7 * 1.25),
+                  personalVaultQuotaGb: 2.0 + ((peer.totalStorageAllocatedGb || 128) - 16) / 8,
+                  personalVaultUsedGb: 0,
+                  reputationScore: Math.round((peer.reputationScore || 0.95) * 1000),
+                  reputationTier: 'Guardian Node (601-850)',
+                  consecutiveDaysWithoutPenalty: 45,
+                  penaltiesCount: 0,
+                  offlineSince: null,
+                  graceExpiresAt: null,
+                  storedChunksCount: 64,
+                  replicatedChunksServed: 120,
+                  bandwidthSharedMb: 24.5,
+                  pingLatencyMs: 18,
+                  lastPingTimestamp: Date.now(),
+                  pingStatus: 'healthy',
+                  consecutiveFailedPings: 0,
+                  externalDevices: [],
+                });
+              }
+            }
+            return currentList;
+          });
+        }
+      }
+    });
+
+    return unsubscribe;
+  }, []);
 
   // Real-time Background Ping States
   const [isAutoPingActive, setIsAutoPingActive] = useState<boolean>(true);
@@ -357,6 +455,8 @@ export const SwarmProvider: React.FC<SwarmProviderProps> = ({
     isAutoPingActive,
     isPingingNow,
     lastPingRoundTimestamp,
+    isDaemonOnline,
+    daemonStatus,
     setNodes,
     updateCurrentNode,
     addNewNode,

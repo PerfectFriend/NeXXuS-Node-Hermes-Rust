@@ -57,26 +57,28 @@ export const PersonalVaultFileManager: React.FC<PersonalVaultFileManagerProps> =
     const file = uploadedFiles[0];
     const isCold = selectedUploadTier === 'cold_archive_rf4';
     const rfCount = isCold ? 4 : 6;
+    const expectedChunks = Math.max(1, Math.ceil(file.size / CHUNK_SIZE_BYTES));
 
     setIsUploading(true);
-    setUploadProgress(15);
-    setUploadStatusText(`Инициализация ChaCha20-Poly1305 шифрования на клиенте...`);
-
-    await new Promise(r => setTimeout(r, 500));
-    setUploadProgress(40);
-    const expectedChunks = Math.max(1, Math.ceil(file.size / CHUNK_SIZE_BYTES));
-    setUploadStatusText(`Нарезка на ${expectedChunks} чанков по 16 Кб (${isCold ? 'Архивный RF=4×' : 'Горячий сейф RF=6×'})...`);
-
-    await new Promise(r => setTimeout(r, 600));
-    setUploadProgress(75);
-    setUploadStatusText(`Сквозное ${rfCount}×-реплицирование чанков по onion-нодам сети...`);
+    setUploadProgress(5);
+    setUploadStatusText(`Квантование и ChaCha20-Poly1305 шифрование (${expectedChunks} чанков по 16 КБ)...`);
 
     const fileId = `file_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-    const chunks = await sliceFileInto16KbChunks(file, fileId, nodes, selectedUploadTier);
+    const chunks = await sliceFileInto16KbChunks(
+      file, 
+      fileId, 
+      nodes, 
+      selectedUploadTier,
+      undefined,
+      (processed, total) => {
+        const percent = Math.min(98, Math.round((processed / total) * 95));
+        setUploadProgress(percent);
+        setUploadStatusText(`Зашифровано и рассеяно: ${processed}/${total} чанков (Кворум ${rfCount}×)...`);
+      }
+    );
 
-    await new Promise(r => setTimeout(r, 500));
     setUploadProgress(100);
-    setUploadStatusText(`Кворум ${rfCount} копий каждого чанка подтверждён!`);
+    setUploadStatusText(`Кворум ${rfCount} копий каждого 16KB чанка подтверждён и сохранён!`);
 
     const newVaultFile: VaultFile = {
       id: fileId,
@@ -96,7 +98,7 @@ export const PersonalVaultFileManager: React.FC<PersonalVaultFileManagerProps> =
       setIsUploading(false);
       setUploadProgress(0);
       setUploadStatusText('');
-    }, 900);
+    }, 600);
 
     event.target.value = '';
   };
@@ -105,26 +107,19 @@ export const PersonalVaultFileManager: React.FC<PersonalVaultFileManagerProps> =
   const handleStartDownload = async (file: VaultFile) => {
     setRetrievingFile(file);
     setIsDecryptionComplete(false);
-    setRetrievalProgress(20);
-    setRetrievalStatusText(`Поиск кворума чанков в Kademlia DHT поверх Tor v3...`);
+    setRetrievalProgress(25);
+    setRetrievalStatusText(`Поиск ${file.chunksCount} зашифрованных чанков в IndexedDB и рое P2P...`);
 
-    await new Promise(r => setTimeout(r, 500));
-    setRetrievalProgress(55);
+    setRetrievalProgress(60);
     setRetrievalStatusText(`Верификация SHA-256 хэшей и Merkle-корня (${file.chunksCount} чанков)...`);
-
-    await new Promise(r => setTimeout(r, 600));
-    setRetrievalProgress(85);
-    setRetrievalStatusText(`Расшифровка ChaCha20-Poly1305 клиентским ключом m/44'/9999'/0'/1'/0...`);
-
-    await new Promise(r => setTimeout(r, 500));
-    setRetrievalProgress(100);
-    setRetrievalStatusText(`Файл успешно расшифрован и собран из распределенного кворума!`);
-    setIsDecryptionComplete(true);
 
     try {
       const decryptedBytes = await reassembleAndDecryptFile(file.id, file.chunksCount);
-      let blob: Blob;
+      setRetrievalProgress(100);
+      setRetrievalStatusText(`Файл успешно расшифрован ChaCha20-Poly1305 и собран!`);
+      setIsDecryptionComplete(true);
 
+      let blob: Blob;
       if (decryptedBytes && decryptedBytes.length > 0) {
         blob = new Blob([decryptedBytes], { type: file.mimeType || 'application/octet-stream' });
       } else {
@@ -140,8 +135,8 @@ export const PersonalVaultFileManager: React.FC<PersonalVaultFileManagerProps> =
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-    } catch {
-      // safe fallback
+    } catch (err: any) {
+      setRetrievalStatusText(`Ошибка дешифрования: ${err?.message || 'неизвестная ошибка'}`);
     }
   };
 
