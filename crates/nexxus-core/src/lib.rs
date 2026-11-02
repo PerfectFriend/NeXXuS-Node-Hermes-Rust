@@ -2,5 +2,6 @@
 //! Pure logic — no I/O, compiles to wasm32 unchanged. See docs/adr/*.md for decisions.
 
 pub mod error;
+pub mod keys;
 pub mod types;
 pub mod wire;

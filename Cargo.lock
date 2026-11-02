@@ -278,8 +278,10 @@ dependencies = [
  "hex",
  "hmac",
  "pbkdf2",
+ "rand",
  "sha2",
  "thiserror",
+ "zeroize",
 ]
 
 [[package]]
