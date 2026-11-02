@@ -11,3 +11,5 @@ KURILKA.md
 *.deb
 __pycache__/
 .hermes/
+target/
+**/*.rs.bk

@@ -1,0 +1,35 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/nexxus-core",
+    "crates/nexxus-econ",
+    "crates/nexxus-node",
+    "crates/nexxus-wasm",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+authors = ["NeXXUs Protocol"]
+repository = "https://github.com/PerfectFriend/NeXXus-Node"
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+
+[workspace.dependencies]
+# internal
+nexxus-core = { path = "crates/nexxus-core" }
+nexxus-econ = { path = "crates/nexxus-econ" }
+# crypto / encoding
+sha2 = "0.10"
+chacha20poly1305 = "0.10"
+ed25519-dalek = { version = "2", features = ["rand_core"] }
+bip39 = { version = "2", features = ["std", "rand"] }
+pbkdf2 = { version = "0.12", default-features = false, features = ["hmac"] }
+hmac = "0.12"
+data-encoding = "2"
+hex = "0.4"
+thiserror = "1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
