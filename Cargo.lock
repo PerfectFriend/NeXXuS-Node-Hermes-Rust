@@ -273,6 +273,7 @@ version = "0.1.0"
 dependencies = [
  "bip39",
  "chacha20poly1305",
+ "curve25519-dalek",
  "data-encoding",
  "ed25519-dalek",
  "hex",

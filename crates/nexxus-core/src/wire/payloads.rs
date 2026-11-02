@@ -4,6 +4,13 @@
 use crate::error::NexxusError;
 use crate::types::ChunkHash;
 use crate::wire::reader::{Reader, Writer};
+use chacha20poly1305::{aead::Aead, ChaCha20Poly1305, KeyInit, Nonce};
+use curve25519_dalek::MontgomeryPoint;
+use rand::{rngs::OsRng, Rng};
+use sha2::{Digest, Sha256};
+
+/// X25519 basepoint (u = 9) over Montgomery curve.
+const X25519_BASEPOINT: MontgomeryPoint = MontgomeryPoint([9u8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
 
 pub trait Payload: Sized {
     fn encode(&self) -> Vec<u8>;
@@ -350,6 +357,66 @@ impl Payload for SmpEnvelope {
     }
 }
 
+/// X25519 + ChaCha20-Poly1305 envelope (ADR-0007).
+/// ciphertext = ephemeral_x25519_pubkey[32] || ChaCha20Poly1305(nonce, ephemeral_pubkey || payload).
+/// Recipient opens with their static X25519 secret; sender authenticity comes from the
+/// wire-v3 frame Ed25519 signature covering this envelope.
+impl SmpEnvelope {
+    pub fn seal(
+        sender_node_id: [u8; 32],
+        recipient_node_id: [u8; 32],
+        recipient_pub: &MontgomeryPoint,
+        payload: &[u8],
+    ) -> ([u8; 32], Self) {
+        let mut ephemeral_secret = [0u8; 32];
+        OsRng.fill(&mut ephemeral_secret);
+        let ephemeral_pub = X25519_BASEPOINT.mul_clamped(ephemeral_secret);
+        let shared = recipient_pub.mul_clamped(ephemeral_secret);
+        let mut h = Sha256::new();
+        h.update(shared.0);
+        let key: [u8; 32] = h.finalize().into();
+        let aead = ChaCha20Poly1305::new_from_slice(&key[..]).expect("chacha20 key length");
+        let nonce_box = Nonce::from_slice(&[0u8; 12]);
+        let inner = payload.to_vec();
+        let ct = aead
+            .encrypt(nonce_box, &inner[..])
+            .expect("chacha20 encrypt");
+        // ciphertext = ephemeral pubkey (cleartext, 32 bytes) || ChaCha20Poly1305 ciphertext
+        let mut ciphertext = ephemeral_pub.0.to_vec();
+        ciphertext.extend_from_slice(&ct);
+        (
+            ephemeral_pub.0,
+            Self {
+                sender_node_id,
+                recipient_node_id,
+                nonce: [0u8; 12],
+                ciphertext,
+            },
+        )
+    }
+
+    pub fn open(&self, recipient_secret: &[u8; 32]) -> Result<Vec<u8>, NexxusError> {
+        if self.ciphertext.len() < 32 {
+            return Err(NexxusError::Io("smp envelope too short".into()));
+        }
+        let ephemeral_pub = MontgomeryPoint(
+            self.ciphertext[..32]
+                .try_into()
+                .map_err(|_| NexxusError::Io("bad ephemeral pubkey".into()))?,
+        );
+        let shared = ephemeral_pub.mul_clamped(*recipient_secret);
+        let mut h = Sha256::new();
+        h.update(shared.0);
+        let key: [u8; 32] = h.finalize().into();
+        let aead = ChaCha20Poly1305::new_from_slice(&key[..]).map_err(|_| NexxusError::Io("bad key".into()))?;
+        let nonce_box = Nonce::from_slice(&self.nonce[..]);
+        let payload = aead
+            .decrypt(nonce_box, &self.ciphertext[32..])
+            .map_err(|_| NexxusError::AeadAuthFailed)?;
+        Ok(payload)
+    }
+}
+
 /// ErrorResponse: code u16 || message_len u8 || message bytes
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ErrorResponse {
@@ -476,5 +543,45 @@ mod tests {
         assert!(StoreChunk::decode(&[0u8; 10]).is_err());
         assert!(PorResponse::decode(&[0u8; 31]).is_err());
         assert!(EpochFinalize::decode(&[0u8; 20]).is_err());
+    }
+
+    #[test]
+    fn smp_seal_open_roundtrip() {
+        let payload = b"SMP test payload: P2P relay request";
+        let mut bob_secret = [0u8; 32];
+        OsRng.fill(&mut bob_secret);
+        let bob_pub = X25519_BASEPOINT.mul_clamped(bob_secret);
+
+        let (ephemeral_pub, env) = SmpEnvelope::seal([1u8; 32], [2u8; 32], &bob_pub, payload);
+        assert_eq!(env.sender_node_id, [1u8; 32]);
+        assert_eq!(env.recipient_node_id, [2u8; 32]);
+        assert_eq!(env.nonce, [0u8; 12]);
+
+        // ephemeral pubkey is embedded in ciphertext
+        assert_eq!(&env.ciphertext[..32], &ephemeral_pub);
+
+        let opened = env.open(&bob_secret).unwrap();
+        assert_eq!(&opened, payload);
+
+        // wrong secret key fails
+        let mut wrong = [0u8; 32];
+        OsRng.fill(&mut wrong);
+        assert!(env.open(&wrong).is_err());
+
+        // tampered ciphertext fails
+        let mut tampered = env.clone();
+        tampered.ciphertext[40] ^= 0xff;
+        assert!(tampered.open(&bob_secret).is_err());
+    }
+
+    #[test]
+    fn smp_encode_decode_roundtrip() {
+        let payload = vec![0x42u8; 100];
+        let mut alice_secret = [0u8; 32];
+        OsRng.fill(&mut alice_secret);
+        let alice_pub = X25519_BASEPOINT.mul_clamped(alice_secret);
+        let (_, env) = SmpEnvelope::seal([7u8; 32], [8u8; 32], &alice_pub, &payload);
+        let dec = SmpEnvelope::decode(&env.encode()).unwrap();
+        assert_eq!(dec, env);
     }
 }
