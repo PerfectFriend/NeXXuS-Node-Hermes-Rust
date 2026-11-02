@@ -10,11 +10,16 @@ repository.workspace = true
 name = "nexxusd"
 path = "src/main.rs"
 
+[features]
+default = []
+tor = ["dep:arti-client"]
+
 [dependencies]
 nexxus-core = { workspace = true }
 nexxus-econ = { workspace = true }
 thiserror = { workspace = true }
 redb = { workspace = true }
+arti-client = { version = "0.47", optional = true }
 
 [dev-dependencies]
 tempfile = "3"

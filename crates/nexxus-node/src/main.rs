@@ -5,6 +5,7 @@ use std::env;
 use std::process;
 
 mod storage;
+mod tor;
 use storage::ChunkStore;
 
 fn main() {
