@@ -3,19 +3,19 @@
 use core::fmt;
 
 /// 256-bit node identifier in the Kademlia space.
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub struct NodeId(pub [u8; 32]);
 
 /// SHA-256 digest of a chunk's payload.
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub struct ChunkHash(pub [u8; 32]);
 
 /// Raw Tor v3 onion address bytes: pubkey(32) || checksum(2) || version(1)=0x03.
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub struct OnionAddress(pub [u8; 35]);
 
 /// Fixed-point token amount in micro-NEXX. 1 NEXX = 1_000_000_000. No floats.
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default, Debug)]
 pub struct Money(pub i64);
 
 impl Money {
