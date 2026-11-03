@@ -1,3 +1,7 @@
+//! Точка входа Tauri для NeXXus Node Monitor.
+//! Создаёт окно приложения, управляет системным треем и проксирует
+//! JSON-RPC запросы к локальному API nexxusd (ws://127.0.0.1:4010).
+
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use tauri::{Manager, command};
@@ -8,52 +12,67 @@ mod api_client;
 
 use api_client::NexxusApiClient;
 
+/// Shared application state managed by Tauri.
+/// Хранит клиента API, доступный из всех команд.
 struct AppState {
     api_client: Arc<Mutex<NexxusApiClient>>,
 }
 
+/// Команда: получить статус узла (node_id, uptime, peers, bound_addr).
 #[command]
 async fn node_status(state: tauri::State<'_, AppState>) -> Result<serde_json::Value, String> {
     let client = state.api_client.lock().await;
-    client.request("node_status", serde_json::json!({})).await
+    client.request("node_status", serde_json::json!({}))
+        .await
         .map_err(|e| e.to_string())
 }
 
+/// Команда: получить список подключённых пиров.
 #[command]
 async fn node_peers(state: tauri::State<'_, AppState>) -> Result<serde_json::Value, String> {
     let client = state.api_client.lock().await;
-    client.request("node_peers", serde_json::json!({})).await
+    client.request("node_peers", serde_json::json!({}))
+        .await
         .map_err(|e| e.to_string())
 }
 
+/// Команда: получить статистику хранилища чанков.
 #[command]
 async fn node_chunks(state: tauri::State<'_, AppState>) -> Result<serde_json::Value, String> {
     let client = state.api_client.lock().await;
-    client.request("node_chunks", serde_json::json!({})).await
+    client.request("node_chunks", serde_json::json!({}))
+        .await
         .map_err(|e| e.to_string())
 }
 
+/// Команда: получить историю SMP сообщений.
 #[command]
 async fn node_smp(state: tauri::State<'_, AppState>) -> Result<serde_json::Value, String> {
     let client = state.api_client.lock().await;
-    client.request("node_smp", serde_json::json!({})).await
+    client.request("node_smp", serde_json::json!({}))
+        .await
         .map_err(|e| e.to_string())
 }
 
+/// Команда: получить статус финализации эпохи.
 #[command]
 async fn node_epoch(state: tauri::State<'_, AppState>) -> Result<serde_json::Value, String> {
     let client = state.api_client.lock().await;
-    client.request("node_epoch", serde_json::json!({})).await
+    client.request("node_epoch", serde_json::json!({}))
+        .await
         .map_err(|e| e.to_string())
 }
 
+/// Команда: получить статус Tor.
 #[command]
 async fn node_tor(state: tauri::State<'_, AppState>) -> Result<serde_json::Value, String> {
     let client = state.api_client.lock().await;
-    client.request("node_tor", serde_json::json!({})).await
+    client.request("node_tor", serde_json::json!({}))
+        .await
         .map_err(|e| e.to_string())
 }
 
+/// Команда: отправить SMP envelope на указанный адрес.
 #[command]
 async fn send_smp_envelope(
     state: tauri::State<'_, AppState>,
@@ -69,25 +88,32 @@ async fn send_smp_envelope(
     if let Some(a) = addr {
         params["addr"] = serde_json::Value::String(a);
     }
-    client.request("send_smp_envelope", params).await
+    client.request("send_smp_envelope", params)
+        .await
         .map_err(|e| e.to_string())
 }
 
+/// Команда: поставить узел на паузу.
 #[command]
 async fn node_pause(state: tauri::State<'_, AppState>) -> Result<serde_json::Value, String> {
     let client = state.api_client.lock().await;
-    client.request("node_pause", serde_json::json!({})).await
+    client.request("node_pause", serde_json::json!({}))
+        .await
         .map_err(|e| e.to_string())
 }
 
+/// Команда: возобновить работу узла.
 #[command]
 async fn node_resume(state: tauri::State<'_, AppState>) -> Result<serde_json::Value, String> {
     let client = state.api_client.lock().await;
-    client.request("node_resume", serde_json::json!({})).await
+    client.request("node_resume", serde_json::json!({}))
+        .await
         .map_err(|e| e.to_string())
 }
 
 fn main() {
+    // Создаём клиент API, подключающийся к локальному WebSocket сервера nexxusd.
+    // Если nexxusd не запущен, первый вызов команды вернёт ошибку "Connection refused".
     let api_client = Arc::new(Mutex::new(NexxusApiClient::new("ws://127.0.0.1:4010")));
 
     tauri::Builder::default()
@@ -96,11 +122,12 @@ fn main() {
             let window = app.get_webview_window("main").unwrap();
             let window_clone = window.clone();
 
-            // Показываем окно явно
+            // Показываем окно явно после создания WebView.
             let _ = window.show();
             let _ = window.set_focus();
 
-            // Hide window on close, keep running in background
+            // При закрытии окна скрываем его вместо полного завершения,
+            // чтобы daemon продолжал работать в фоне (системный трей).
             window.on_window_event(move |event| {
                 if let tauri::WindowEvent::CloseRequested { .. } = event {
                     let _ = window_clone.hide();

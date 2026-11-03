@@ -2,14 +2,20 @@
 //! Integrates with ChunkStore (redb) for StoreChunk/FetchChunk.
 //! Phase 8: full protocol — NodeAnnounce, SmpEnvelope, EpochFinalize,
 //! PorChallenge/Response, StoreChunkAck, FetchChunkResp.
-#![allow(dead_code)]
-#![allow(unused_imports)]
+//
+//! Архитектура:
+//!   - P2pNetwork хранит идентичность узла (Ed25519 + X25519), таблицу маршрутизации
+//!     (Kademlia k-buckets) и ссылку на ChunkStore.
+//!   - Принимает входящие TCP соединения на listen_addr, каждое обрабатывается в
+//!     отдельной tokio-задаче.
+//!   - Все исходящие frames подписываются Ed25519 ключом узла (wire v3).
+//!   - local_api (опционально) связывает сеть с десктоп-монитором через WebSocket.
 
 use std::net::{IpAddr, SocketAddr};
 use std::sync::Arc;
 
 use curve25519_dalek::MontgomeryPoint;
-use ed25519_dalek::{Signer, Verifier, VerifyingKey};
+use ed25519_dalek::{VerifyingKey};
 use nexxus_core::{
     error::NexxusError,
     epoch::verify_epoch_finalize,
@@ -18,28 +24,44 @@ use nexxus_core::{
     wire::header::v3_signing_bytes,
     wire::opcode::Opcode,
     wire::payloads::{
-        ErrorResponse, FetchChunk, FetchChunkResp, KadFindNode, KadNodesFound, KadPeer, NodeAnnounce,
-        Payload, PorChallenge, PorResponse, SmpEnvelope, StoreChunk, StoreChunkAck,
+        ErrorResponse, FetchChunk, FetchChunkResp, KadFindNode, KadNodesFound, KadPeer,
+        NodeAnnounce, Payload, PorChallenge, PorResponse, SmpEnvelope, StoreChunk,
+        StoreChunkAck,
     },
-    wire::payloads::X25519_BASEPOINT,
 };
 use crate::net::frame::{MAX_FRAME_LEN, send_frame};
 use crate::storage::ChunkStore;
-use rand::rngs::OsRng;
 use rand::Rng;
-use sha2::{Digest, Sha256};
+use sha2::Digest;
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::Mutex;
 use tokio::task;
 
 /// Connected peer tracked for the lifetime of a stream.
+///
+/// Хранит node_id (если известен после NodeAnnounce handshake) и адрес.
+#[allow(dead_code)]
 struct ConnectedPeer {
+    #[allow(dead_code)]
     node_id: Option<NodeId>,
+    #[allow(dead_code)]
     addr: SocketAddr,
 }
 
 /// P2P network node. Holds identity (Ed25519 + X25519), routing table +
 /// chunk store, accepts inbound connections and dials outbound peers.
+///
+/// Поля:
+///   - our_id — NodeId этого узла (публичный идентификатор в сети).
+///   - identity — Ed25519 ключ для подписи кадров и верификации чужих.
+///   - x25519_secret / x25519_pub — ключи для шифрования SMP конвертов.
+///   - listen_addr — адрес, на котором слушаем входящие соединения.
+///   - bound_addr — фактический адрес после bind (заполняется в run()).
+///   - routing — Kademlia таблица маршрутизации (k-buckets).
+///   - store — persistent хранилище чанков (redb).
+///   - auditors — реестр публичных ключей аудиторов для EpochFinalize (M-of-N).
+///   - threshold — порог количества подписей для принятия EpochFinalize.
+///   - local_api — ссылка на локальное WebSocket API (для регистрации пиров).
 #[allow(dead_code)]
 pub struct P2pNetwork {
     our_id: NodeId,
@@ -58,6 +80,7 @@ pub struct P2pNetwork {
     pub local_api: Arc<Mutex<Option<Arc<crate::local_api::LocalApi>>>>,
 }
 
+#[allow(dead_code)]
 impl P2pNetwork {
     /// Create a new node with a fresh Ed25519 identity and X25519 key pair.
     pub fn new(our_id: NodeId, listen_addr: SocketAddr, store: Arc<ChunkStore>) -> Self {
@@ -160,8 +183,11 @@ impl P2pNetwork {
     }
 
     /// Session nonce for v3 frame signing.
-    /// No handshake protocol exists yet (Phase 9+), so a fixed nonce is used.
-    /// Frames are still Ed25519-signed with the node's identity key.
+    ///
+    /// ВНИМАНИЕ: сейчас фиксированный нулевой нонс, так как полноценного
+    /// рукопожатия (handshake) между узлами ещё нет (Phase 9+).
+    /// Каждый v3 кадр подписывается Ed25519 с этим нонсом. После внедрения
+    /// рукопожатия нонс должен становиться случайным за сессию.
     const SESSION_NONCE: [u8; 32] = [0u8; 32];
 
     /// Sign v3 signing bytes with our Ed25519 identity key.
@@ -342,7 +368,11 @@ impl P2pNetwork {
     }
 
     /// Send an EpochFinalize (committee multi-sig) to a peer.
-    pub async fn send_epoch_finalize(&self, addr: SocketAddr, finalize: &nexxus_core::wire::payloads::EpochFinalize) -> Result<(), NexxusError> {
+    pub async fn send_epoch_finalize(
+        &self,
+        addr: SocketAddr,
+        finalize: &nexxus_core::wire::payloads::EpochFinalize,
+    ) -> Result<(), NexxusError> {
         let mut stream = TcpStream::connect(addr)
             .await
             .map_err(|e| NexxusError::Io(e.to_string()))?;
@@ -467,8 +497,9 @@ impl P2pNetwork {
             }
             Opcode::PorChallenge => {
                 let challenge = PorChallenge::decode(payload)?;
-                // Per spec §4.3: challenge.seed is an epoch seed (HMAC input), NOT a chunk hash.
-                // Pick a stored chunk deterministically and prove retrievability.
+                // Per spec §4.3: challenge.seed — это epoch seed (вход для HMAC),
+                // НЕ chunk hash. Нужно детерминированно выбрать чанк из хранилища
+                // на основе seed, чтобы проверка была воспроизводимой.
                 let hashes = self.store.list_chunk_hashes()?;
                 if hashes.is_empty() {
                     let err = ErrorResponse {
@@ -478,8 +509,11 @@ impl P2pNetwork {
                     self.send_signed_frame(stream, Opcode::ErrorResponse, request_id, &err)
                         .await?;
                 } else {
-                    // Deterministic selection: first chunk (Phase 9+: pseudo-random from seed)
-                    let hash = hashes[0];
+                    // Детерминированный выбор: индекс = первые 4 байта seed modulo количество чанков.
+                    // Это обеспечивает воспроизводимый выбор того же чанка при том же seed.
+                    let seed_index = u32::from_be_bytes(challenge.seed[0..4].try_into().unwrap_or([0; 4]))
+                        as usize % hashes.len();
+                    let hash = hashes[seed_index];
                     if let Some(data) = self.store.get_chunk(&hash)? {
                         // response = SHA-256(chunk_data || seed)
                         let mut h = sha2::Sha256::new();

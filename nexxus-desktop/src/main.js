@@ -1,13 +1,27 @@
 // Интерфейс узла NeXXus — десктоп-монитор с системным треем.
 // Вызывает Tauri команды, которые проксируют JSON-RPC запросы к локальному API nexxusd (127.0.0.1:4010).
+//
+// Архитектура:
+//   - Все данные из nexxusd получаются через Tauri `invoke()` команды.
+//   - Команды на стороне Rust (src-tauri/main.rs) делают JSON-RPC запросы
+//     к WebSocket серверу nexxusd на ws://127.0.0.1:4010.
+//   - Если nexxusd не запущен, каждая команда вернёт ошибку "Connection refused",
+//     которая отображается в логе приложения.
 
 import { invoke } from '@tauri-apps/api/core';
 
+// Базовый адрес WebSocket API (используется только для справки;
+// реальные запросы идут через Tauri invoke).
 const API_BASE = 'ws://127.0.0.1:4010';
+
+// Интервал автообновления в миллисекундах (5 секунд).
 let refreshInterval = null;
+// Флаг включения/выключения автообновления.
 let autoRefresh = true;
 
-// Индикаторы состояния
+// ===== Ссылки на DOM элементы =====
+
+// Индикаторы состояния в шапке
 const statusDot = document.getElementById('status-dot');
 const statusText = document.getElementById('status-text');
 const uptimeText = document.getElementById('uptime-text');
@@ -17,7 +31,7 @@ const smpCountText = document.getElementById('smp-count');
 const epochText = document.getElementById('epoch-text');
 const torText = document.getElementById('tor-text');
 
-// Таблицы
+// Таблицы данных
 const peersBody = document.getElementById('peers-body');
 const chunksBody = document.getElementById('chunks-body');
 const smpBody = document.getElementById('smp-body');
@@ -27,6 +41,10 @@ const logBody = document.getElementById('log-body');
 const smpForm = document.getElementById('smp-form');
 const smpResult = document.getElementById('smp-result');
 
+// ===== Вспомогательные функции =====
+
+/// Добавляет запись в лог активности (в начало таблицы).
+/// Ограничивает количество записей 50, удаляя старые.
 function log(msg) {
   const now = new Date().toLocaleTimeString();
   const row = document.createElement('tr');
@@ -35,6 +53,7 @@ function log(msg) {
   if (logBody.children.length > 50) logBody.removeChild(logBody.lastChild);
 }
 
+/// Устанавливает визуальный статус подключения (онлайн/оффлайн).
 function setStatus(connected) {
   if (connected) {
     statusDot.className = 'status-dot online';
@@ -45,6 +64,23 @@ function setStatus(connected) {
   }
 }
 
+/// Проверяет, что строка является корректным hex (только символы 0-9, a-f, A-F).
+function isValidHex(str) {
+  return /^[0-9a-fA-F]*$/.test(str);
+}
+
+/// Преобразует hex-строку в массив байт.
+function hexToBytes(hex) {
+  const bytes = [];
+  for (let i = 0; i < hex.length; i += 2) {
+    bytes.push(parseInt(hex.substr(i, 2), 16));
+  }
+  return bytes;
+}
+
+// ===== Функции получения данных =====
+
+/// Запрашивает статус узла через Tauri команду `node_status`.
 async function fetchNodeStatus() {
   try {
     const res = await invoke('node_status');
@@ -55,11 +91,16 @@ async function fetchNodeStatus() {
     return data;
   } catch (e) {
     setStatus(false);
-    log(`Ошибка статуса: ${e.message || e}`);
+    const msg = e.message || e;
+    log(`Ошибка статуса: ${msg}`);
+    if (msg.includes('Connection refused')) {
+      log('nexxusd не запущен! Запустите nexxusd перед использованием монитора.');
+    }
     return null;
   }
 }
 
+/// Запрашивает список пиров через `node_peers`.
 async function fetchPeers() {
   try {
     const res = await invoke('node_peers');
@@ -83,6 +124,7 @@ async function fetchPeers() {
   }
 }
 
+/// Запрашивает статистику чанков через `node_chunks`.
 async function fetchChunks() {
   try {
     const res = await invoke('node_chunks');
@@ -99,6 +141,7 @@ async function fetchChunks() {
   }
 }
 
+/// Запрашивает историю SMP через `node_smp`.
 async function fetchSmp() {
   try {
     const res = await invoke('node_smp');
@@ -123,6 +166,7 @@ async function fetchSmp() {
   }
 }
 
+/// Запрашивает статус эпохи через `node_epoch`.
 async function fetchEpoch() {
   try {
     const res = await invoke('node_epoch');
@@ -133,6 +177,7 @@ async function fetchEpoch() {
   }
 }
 
+/// Запрашивает статус Tor через `node_tor`.
 async function fetchTor() {
   try {
     const res = await invoke('node_tor');
@@ -145,6 +190,7 @@ async function fetchTor() {
   }
 }
 
+/// Обновляет все панели параллельно.
 async function refreshAll() {
   await Promise.all([
     fetchNodeStatus(),
@@ -156,25 +202,45 @@ async function refreshAll() {
   ]);
 }
 
+/// Отправляет SMP envelope через форму.
 async function sendSmpEnvelope(e) {
   e.preventDefault();
-  const recipient = document.getElementById('smp-recipient').value;
-  const payloadHex = document.getElementById('smp-payload').value;
-  const addr = document.getElementById('smp-addr').value || '127.0.0.1:4001';
+  const recipient = document.getElementById('smp-recipient').value.trim();
+  const payloadHex = document.getElementById('smp-payload').value.trim();
+  const addr = document.getElementById('smp-addr').value.trim() || '127.0.0.1:4001';
 
+  // Валидация: поля не пустые
   if (!recipient || !payloadHex) {
     smpResult.textContent = 'Заполните все поля';
     smpResult.className = 'error';
     return;
   }
 
-  try {
-    // Convert hex string to byte array
-    const bytes = [];
-    for (let i = 0; i < payloadHex.length; i += 2) {
-      bytes.push(parseInt(payloadHex.substr(i, 2), 16));
-    }
+  // Валидация: recipient и payload должны быть корректным hex
+  if (!isValidHex(recipient)) {
+    smpResult.textContent = 'Node ID должен быть в формате hex (0-9, a-f)';
+    smpResult.className = 'error';
+    return;
+  }
+  if (!isValidHex(payloadHex)) {
+    smpResult.textContent = 'Payload должен быть в формате hex (0-9, a-f)';
+    smpResult.className = 'error';
+    return;
+  }
+  // Валидация: чётная длина hex строки (байты)
+  if (recipient.length % 2 !== 0) {
+    smpResult.textContent = 'Node ID должен содержать чётное количество hex-символов';
+    smpResult.className = 'error';
+    return;
+  }
+  if (payloadHex.length % 2 !== 0) {
+    smpResult.textContent = 'Payload должен содержать чётное количество hex-символов';
+    smpResult.className = 'error';
+    return;
+  }
 
+  try {
+    const bytes = hexToBytes(payloadHex);
     const res = await invoke('send_smp_envelope', {
       recipient_node_id: recipient,
       payload: bytes,
@@ -191,6 +257,7 @@ async function sendSmpEnvelope(e) {
   }
 }
 
+/// Поставить узел на паузу.
 async function pauseNode() {
   try {
     await invoke('node_pause');
@@ -201,6 +268,7 @@ async function pauseNode() {
   }
 }
 
+/// Возобновить работу узла.
 async function resumeNode() {
   try {
     await invoke('node_resume');
@@ -211,13 +279,13 @@ async function resumeNode() {
   }
 }
 
-// Инициализация
+// ===== Инициализация =====
+
 document.addEventListener('DOMContentLoaded', () => {
   smpForm.addEventListener('submit', sendSmpEnvelope);
 
   document.getElementById('btn-pause').addEventListener('click', pauseNode);
   document.getElementById('btn-resume').addEventListener('click', resumeNode);
-
   document.getElementById('btn-refresh').addEventListener('click', refreshAll);
 
   document.getElementById('toggle-autorefresh').addEventListener('click', (e) => {
@@ -228,6 +296,7 @@ document.addEventListener('DOMContentLoaded', () => {
     else stopAutoRefresh();
   });
 
+  // Первичное обновление при загрузке
   refreshAll();
   startAutoRefresh();
 });

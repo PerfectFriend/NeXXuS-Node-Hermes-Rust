@@ -6,7 +6,7 @@
     "beforeDevCommand": "npm run dev",
     "beforeBuildCommand": "npm run build",
     "devUrl": "http://localhost:1420",
-    "frontendDist": "../src-tauri/gen"
+    "frontendDist": "src-tauri/gen"
   },
   "app": {
     "windows": [
@@ -29,7 +29,7 @@
     "resources": [],
     "externalBin": [],
     "copyright": "© 2026 NeXXUs Protocol",
-    "category": "Network",
+    "category": "Utility",
     "shortDescription": "NeXXus Node Monitor — десктоп-приложение для управления и мониторинга узла NeXXus",
     "longDescription": "Десктоп-приложение для мониторинга узла NeXXus с системным треем, панелями статуса, пиров, хранилища чанков, SMP-сообщений, Epoch finalize и Tor."
   }

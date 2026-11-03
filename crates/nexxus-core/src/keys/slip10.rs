@@ -1,5 +1,5 @@
 //! SLIP-0010: hierarchical deterministic derivation on ed25519.
-//! All indexes hardened (m/44'/9999'/0'/0'/0') — ed25519 has no safe non-hardened child derivation.
+//! Path: m / 44' / 999' / 0' / 0 / 0 (coin type 999, last two indexes unhardened per spec §2.1).
 
 use crate::error::NexxusError;
 use hmac::{Hmac, Mac};

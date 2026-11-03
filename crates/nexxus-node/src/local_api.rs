@@ -2,6 +2,12 @@
 //! Listens on 127.0.0.1:4010 (configurable via NEXXUS_API_ADDR) and speaks
 //! JSON-RPC 2.0 over WebSocket so `nexxus-desktop` can query node status,
 //! peers, chunks, SMP history, Epoch finalize, and Tor state.
+//
+//! Протокол:
+//!   - Клиент подключается по ws://127.0.0.1:4010
+//!   - Отправляет JSON-RPC 2.0 запрос в виде текстового WebSocket сообщения
+//!   - Сервер отвечает JSON-RPC 2.0 ответом и закрывает соединение
+//!   - Каждый запрос = новое соединение (простая модель для MVP)
 
 use crate::net::network::P2pNetwork;
 use crate::storage::ChunkStore;
@@ -143,13 +149,22 @@ fn ok_response(id: Option<Value>, result: Value) -> JsonRpcResponse {
 }
 
 /// Local API server state, shared with P2pNetwork.
+///
+/// Все Mutex-поля защищают разделяемое состояние между задачами WebSocket.
 pub struct LocalApi {
+    /// Ссылка на P2P сеть (для node_id, bound_addr, отправки SMP).
     network: Arc<P2pNetwork>,
+    /// Ссылка на хранилище чанков (для статистики).
     store: Arc<ChunkStore>,
+    /// Время запуска daemon (для расчёта uptime).
     start_time: SystemTime,
+    /// Подключённые пиры: адрес -> информация о пире.
     connected_peers: Arc<Mutex<HashMap<SocketAddr, ConnectedPeerInfo>>>,
+    /// История SMP сообщений (последние 500 записей).
     smp_history: Arc<Mutex<Vec<SmpMessageInfo>>>,
+    /// Статус финализации эпохи (кворум, merkle_root и т.д.).
     epoch_info: Arc<Mutex<EpochInfo>>,
+    /// Статус Tor (включен, onion адрес, подключён).
     tor_status: Arc<Mutex<TorStatus>>,
 }
 
@@ -436,6 +451,10 @@ impl LocalApi {
                     if ws_sender.send(Message::Text(text)).await.is_err() {
                         break;
                     }
+                    // Корректно закрываем WebSocket соединение после ответа,
+                    // чтобы клиент не оставлял висячие соединения.
+                    let _ = ws_sender.close().await;
+                    break;
                 }
                 Message::Close(_) => break,
                 _ => {}
