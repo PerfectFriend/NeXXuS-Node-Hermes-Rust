@@ -96,6 +96,10 @@ fn main() {
             let window = app.get_webview_window("main").unwrap();
             let window_clone = window.clone();
 
+            // Показываем окно явно
+            let _ = window.show();
+            let _ = window.set_focus();
+
             // Hide window on close, keep running in background
             window.on_window_event(move |event| {
                 if let tauri::WindowEvent::CloseRequested { .. } = event {

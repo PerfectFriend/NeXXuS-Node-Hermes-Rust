@@ -19,6 +19,17 @@ else
     echo ">>> nexxusd уже запущен"
 fi
 
+# Находим Wayland дисплей
+if [ -z "${WAYLAND_DISPLAY:-}" ]; then
+    for wl in /run/user/$(id -u)/wayland-*; do
+        if [ -S "$wl" ]; then
+            export WAYLAND_DISPLAY=$(basename "$wl")
+            break
+        fi
+    done
+fi
+echo ">>> Wayland дисплей: ${WAYLAND_DISPLAY:-не найден}"
+
 # Проверяем порты
 echo ">>> Проверка портов..."
 ss -tlnp | grep -E '4001|4010' || echo "Порты не найдены!"

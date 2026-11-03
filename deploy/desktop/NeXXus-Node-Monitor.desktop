@@ -3,7 +3,7 @@ Type=Application
 Name=NeXXus Node Monitor
 GenericName=NeXXus Node Daemon Monitor
 Comment=Десктоп-монитор узла NeXXus с системным треем и панелями статуса
-Exec=sh -c 'pgrep -f "nexxusd.*store.redb" > /dev/null || /home/thomas/build/cache/cargo-target/release/nexxusd /home/thomas/.nexxus/store.redb & sleep 1; ~/.local/bin/nexxus-desktop'
+Exec=sh -c 'export WAYLAND_DISPLAY=wayland-0; pgrep -f "nexxusd.*store.redb" > /dev/null || /home/thomas/build/cache/cargo-target/release/nexxusd /home/thomas/.nexxus/store.redb & sleep 1; ~/.local/bin/nexxus-desktop'
 Icon=/home/thomas/Projects/NeXXus-Node/nexxus-desktop/src-tauri/icons/icon.png
 Terminal=false
 Categories=Network;Monitor;System;

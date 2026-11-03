@@ -1,6 +1,8 @@
 // Интерфейс узла NeXXus — десктоп-монитор с системным треем.
 // Вызывает Tauri команды, которые проксируют JSON-RPC запросы к локальному API nexxusd (127.0.0.1:4010).
 
+import { invoke } from '@tauri-apps/api/core';
+
 const API_BASE = 'ws://127.0.0.1:4010';
 let refreshInterval = null;
 let autoRefresh = true;
@@ -45,7 +47,7 @@ function setStatus(connected) {
 
 async function fetchNodeStatus() {
   try {
-    const res = await window.__TAURI__.invoke('node_status');
+    const res = await invoke('node_status');
     const data = JSON.parse(res);
     setStatus(true);
     uptimeText.textContent = `${Math.floor(data.uptime_ms / 1000)} с`;
@@ -60,7 +62,7 @@ async function fetchNodeStatus() {
 
 async function fetchPeers() {
   try {
-    const res = await window.__TAURI__.invoke('node_peers');
+    const res = await invoke('node_peers');
     const data = JSON.parse(res);
     const peers = data.peers || [];
     peerCountText.textContent = peers.length;
@@ -83,7 +85,7 @@ async function fetchPeers() {
 
 async function fetchChunks() {
   try {
-    const res = await window.__TAURI__.invoke('node_chunks');
+    const res = await invoke('node_chunks');
     const data = JSON.parse(res);
     chunkCountText.textContent = data.total_chunks || 0;
     chunksBody.innerHTML = '';
@@ -99,7 +101,7 @@ async function fetchChunks() {
 
 async function fetchSmp() {
   try {
-    const res = await window.__TAURI__.invoke('node_smp');
+    const res = await invoke('node_smp');
     const data = JSON.parse(res);
     const messages = data.messages || [];
     smpCountText.textContent = messages.length;
@@ -123,7 +125,7 @@ async function fetchSmp() {
 
 async function fetchEpoch() {
   try {
-    const res = await window.__TAURI__.invoke('node_epoch');
+    const res = await invoke('node_epoch');
     const data = JSON.parse(res);
     epochText.textContent = `Эпоха ${data.epoch_number}, кворум: ${data.quorum_met ? 'да' : 'нет'}`;
   } catch (e) {
@@ -133,7 +135,7 @@ async function fetchEpoch() {
 
 async function fetchTor() {
   try {
-    const res = await window.__TAURI__.invoke('node_tor');
+    const res = await invoke('node_tor');
     const data = JSON.parse(res);
     torText.textContent = data.enabled
       ? (data.connected ? `Tor активен (${data.onion_address || 'onion'})` : 'Tor включён, не подключён')
@@ -173,7 +175,7 @@ async function sendSmpEnvelope(e) {
       bytes.push(parseInt(payloadHex.substr(i, 2), 16));
     }
 
-    const res = await window.__TAURI__.invoke('send_smp_envelope', {
+    const res = await invoke('send_smp_envelope', {
       recipient_node_id: recipient,
       payload: bytes,
       addr: addr,
@@ -191,7 +193,7 @@ async function sendSmpEnvelope(e) {
 
 async function pauseNode() {
   try {
-    await window.__TAURI__.invoke('node_pause');
+    await invoke('node_pause');
     log('Узел поставлен на паузу');
     await refreshAll();
   } catch (e) {
@@ -201,7 +203,7 @@ async function pauseNode() {
 
 async function resumeNode() {
   try {
-    await window.__TAURI__.invoke('node_resume');
+    await invoke('node_resume');
     log('Узел возобновлён');
     await refreshAll();
   } catch (e) {

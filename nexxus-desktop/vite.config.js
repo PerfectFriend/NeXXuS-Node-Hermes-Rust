@@ -1,7 +1,7 @@
 import { defineConfig } from 'vite';
 
 export default defineConfig({
-  root: '.',
+  root: 'src',
   publicDir: false,
   build: {
     outDir: '../src-tauri/gen',
