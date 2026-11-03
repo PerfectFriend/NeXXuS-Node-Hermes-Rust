@@ -42,13 +42,14 @@ fn master_from_seed(seed: &[u8; 64]) -> Result<([u8; 64], [u8; 32]), NexxusError
     Ok((key, cc))
 }
 
-/// SLIP-0010 derivation path for NeXXUs: m / 44' / 9999' / 0' / 0' / 0'
+/// SLIP-0010 derivation path for NeXXUs: m / 44' / 999' / 0' / 0 / 0
+/// Matches NEXXUS_SPECIFICATION_V2.md §2.1 (coin type 999, last two indexes unhardened).
 pub const DERIVATION_PATH: &[u32] = &[
     44 | HARDENED,
-    9999 | HARDENED,
+    999 | HARDENED,
     HARDENED,
-    HARDENED,
-    HARDENED,
+    0,
+    0,
 ];
 
 pub struct DerivedKey {
@@ -90,7 +91,12 @@ mod tests {
 
     #[test]
     fn path_is_all_hardened() {
-        assert!(DERIVATION_PATH.iter().all(|&i| i & HARDENED != 0));
-        assert_eq!(DERIVATION_PATH, &[44 | HARDENED, 9999 | HARDENED, HARDENED, HARDENED, HARDENED]);
+        // First three indexes are hardened; last two (0, 0) are not per spec §2.1.
+        assert!(DERIVATION_PATH[0] & HARDENED != 0);
+        assert!(DERIVATION_PATH[1] & HARDENED != 0);
+        assert!(DERIVATION_PATH[2] & HARDENED != 0);
+        assert!(DERIVATION_PATH[3] & HARDENED == 0);
+        assert!(DERIVATION_PATH[4] & HARDENED == 0);
+        assert_eq!(DERIVATION_PATH, &[44 | HARDENED, 999 | HARDENED, HARDENED, 0, 0]);
     }
 }

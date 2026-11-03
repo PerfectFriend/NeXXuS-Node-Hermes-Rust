@@ -13,16 +13,17 @@ use tokio::net::TcpStream;
 
 const LEN_LEN: usize = 4;
 
-/// Send a payload as a v3 frame (zero signature — signing handled at the
-/// application/handshake layer; frame integrity is protected by the checksum).
+/// Send a payload as a v3 frame. `signature` is the Ed25519 signature over
+/// `v3_signing_bytes(opcode, request_id, payload, session_nonce)`; computed
+/// by the caller (see `P2pNetwork::send_signed_frame`).
 pub async fn send_frame<T: Payload>(
     stream: &mut TcpStream,
     opcode: Opcode,
     request_id: u32,
     payload: &T,
+    signature: &[u8; 64],
 ) -> Result<(), NexxusError> {
-    let sig = [0u8; 64];
-    let frame = encode_v3(opcode, request_id, &payload.encode(), &sig);
+    let frame = encode_v3(opcode, request_id, &payload.encode(), signature);
     let mut len_buf = [0u8; LEN_LEN];
     len_buf.copy_from_slice(&(frame.len() as u32).to_be_bytes());
     stream
@@ -77,11 +78,11 @@ mod tests {
             let decoded = Ping::decode(&payload).unwrap();
             let _ = decoded;
             let pong = Pong;
-            send_frame(&mut stream, Opcode::Pong, rid, &pong).await.unwrap();
+            send_frame(&mut stream, Opcode::Pong, rid, &pong, &[0u8; 64]).await.unwrap();
         });
 
         let mut stream = tokio::net::TcpStream::connect(addr).await.unwrap();
-        send_frame(&mut stream, Opcode::Ping, 0xdeadbeef, &Ping).await.unwrap();
+        send_frame(&mut stream, Opcode::Ping, 0xdeadbeef, &Ping, &[0u8; 64]).await.unwrap();
         let (op, rid, payload) = recv_frame(&mut stream).await.unwrap();
         assert_eq!(op, Opcode::Pong);
         assert_eq!(rid, 0xdeadbeef);

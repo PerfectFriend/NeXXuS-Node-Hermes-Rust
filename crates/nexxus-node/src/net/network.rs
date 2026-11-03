@@ -12,8 +12,10 @@ use curve25519_dalek::MontgomeryPoint;
 use ed25519_dalek::{Signer, Verifier, VerifyingKey};
 use nexxus_core::{
     error::NexxusError,
+    epoch::verify_epoch_finalize,
     keys::identity::Identity,
     types::{ChunkHash, NodeId},
+    wire::header::v3_signing_bytes,
     wire::opcode::Opcode,
     wire::payloads::{
         ErrorResponse, FetchChunk, FetchChunkResp, KadFindNode, KadNodesFound, KadPeer, NodeAnnounce,
@@ -21,7 +23,7 @@ use nexxus_core::{
     },
     wire::payloads::X25519_BASEPOINT,
 };
-use crate::net::frame::MAX_FRAME_LEN;
+use crate::net::frame::{MAX_FRAME_LEN, send_frame};
 use crate::storage::ChunkStore;
 use rand::rngs::OsRng;
 use rand::Rng;
@@ -48,11 +50,26 @@ pub struct P2pNetwork {
     bound_addr: Arc<Mutex<Option<SocketAddr>>>,
     routing: Arc<Mutex<crate::net::routing::RoutingTable>>,
     store: Arc<ChunkStore>,
+    /// Registered committee auditors (Ed25519 verifying keys). Empty = no EpochFinalize gating.
+    auditors: Vec<VerifyingKey>,
+    /// M-of-N threshold for EpochFinalize acceptance.
+    threshold: usize,
 }
 
 impl P2pNetwork {
     /// Create a new node with a fresh Ed25519 identity and X25519 key pair.
     pub fn new(our_id: NodeId, listen_addr: SocketAddr, store: Arc<ChunkStore>) -> Self {
+        Self::with_auditors(our_id, listen_addr, store, Vec::new(), 0)
+    }
+
+    /// Create a new node with a committee auditor registry for EpochFinalize gating.
+    pub fn with_auditors(
+        our_id: NodeId,
+        listen_addr: SocketAddr,
+        store: Arc<ChunkStore>,
+        auditors: Vec<VerifyingKey>,
+        threshold: usize,
+    ) -> Self {
         let mut os_rng = rand::rngs::OsRng;
         let identity = Identity::generate();
         let mut x25519_secret = [0u8; 32];
@@ -67,6 +84,8 @@ impl P2pNetwork {
             bound_addr: Arc::new(Mutex::new(None)),
             routing: Arc::new(Mutex::new(crate::net::routing::RoutingTable::new(our_id))),
             store,
+            auditors,
+            threshold,
         }
     }
 
@@ -78,6 +97,19 @@ impl P2pNetwork {
         listen_addr: SocketAddr,
         store: Arc<ChunkStore>,
     ) -> Self {
+        Self::with_keys_and_auditors(our_id, identity, x25519_secret, listen_addr, store, Vec::new(), 0)
+    }
+
+    /// Create from existing keys with auditor registry.
+    pub fn with_keys_and_auditors(
+        our_id: NodeId,
+        identity: Identity,
+        x25519_secret: [u8; 32],
+        listen_addr: SocketAddr,
+        store: Arc<ChunkStore>,
+        auditors: Vec<VerifyingKey>,
+        threshold: usize,
+    ) -> Self {
         let x25519_pub = nexxus_core::wire::payloads::X25519_BASEPOINT.mul_clamped(x25519_secret);
         Self {
             our_id,
@@ -88,6 +120,8 @@ impl P2pNetwork {
             bound_addr: Arc::new(Mutex::new(None)),
             routing: Arc::new(Mutex::new(crate::net::routing::RoutingTable::new(our_id))),
             store,
+            auditors,
+            threshold,
         }
     }
 
@@ -104,6 +138,30 @@ impl P2pNetwork {
     /// Actual address the listener is bound to (None until `run()` binds).
     pub async fn bound_addr(&self) -> Option<SocketAddr> {
         *self.bound_addr.lock().await
+    }
+
+    /// Session nonce for v3 frame signing.
+    /// No handshake protocol exists yet (Phase 9+), so a fixed nonce is used.
+    /// Frames are still Ed25519-signed with the node's identity key.
+    const SESSION_NONCE: [u8; 32] = [0u8; 32];
+
+    /// Sign v3 signing bytes with our Ed25519 identity key.
+    fn sign_v3(&self, opcode: Opcode, request_id: u32, payload: &[u8]) -> [u8; 64] {
+        let msg = v3_signing_bytes(opcode, request_id, payload, &Self::SESSION_NONCE);
+        self.identity.sign(&msg)
+    }
+
+    /// Send a v3 frame signed with our Ed25519 identity key.
+    async fn send_signed_frame<T: Payload>(
+        &self,
+        stream: &mut TcpStream,
+        opcode: Opcode,
+        request_id: u32,
+        payload: &T,
+    ) -> Result<(), NexxusError> {
+        let encoded = payload.encode();
+        let signature = self.sign_v3(opcode, request_id, &encoded);
+        send_frame(stream, opcode, request_id, payload, &signature).await
     }
 
     /// Bind listen address and accept connections forever. Each connection
@@ -147,7 +205,7 @@ impl P2pNetwork {
             target_node_id: target.0,
             count,
         };
-        crate::net::frame::send_frame(&mut stream, Opcode::KadFindNode, 0x0001, &query)
+        self.send_signed_frame(&mut stream, Opcode::KadFindNode, 0x0001, &query)
             .await?;
         let (op, _rid, payload) = crate::net::frame::recv_frame(&mut stream).await?;
         if op != Opcode::KadNodesFound {
@@ -178,7 +236,7 @@ impl P2pNetwork {
             target_node_id: self.our_id.0,
             count: 1,
         };
-        crate::net::frame::send_frame(&mut stream, Opcode::KadFindNode, 0x0002, &query).await?;
+        self.send_signed_frame(&mut stream, Opcode::KadFindNode, 0x0002, &query).await?;
         let _ = crate::net::frame::recv_frame(&mut stream).await?;
         Ok(())
     }
@@ -196,7 +254,7 @@ impl P2pNetwork {
             },
             port: self.listen_addr.port(),
         };
-        crate::net::frame::send_frame(
+        self.send_signed_frame(
             &mut stream,
             Opcode::NodeAnnounce,
             0x0003,
@@ -224,7 +282,7 @@ impl P2pNetwork {
             .await
             .map_err(|e| NexxusError::Io(e.to_string()))?;
         let fetch = FetchChunk { hash: hash.0 };
-        crate::net::frame::send_frame(&mut stream, Opcode::FetchChunk, 0x0004, &fetch)
+        self.send_signed_frame(&mut stream, Opcode::FetchChunk, 0x0004, &fetch)
             .await?;
         let (op, _rid, payload) = crate::net::frame::recv_frame(&mut stream).await?;
         if op == Opcode::ErrorResponse {
@@ -251,7 +309,7 @@ impl P2pNetwork {
         let mut stream = TcpStream::connect(addr)
             .await
             .map_err(|e| NexxusError::Io(e.to_string()))?;
-        crate::net::frame::send_frame(&mut stream, Opcode::SmpEnvelope, 0x0005, env)
+        self.send_signed_frame(&mut stream, Opcode::SmpEnvelope, 0x0005, env)
             .await?;
         let (op, _rid, _payload) = crate::net::frame::recv_frame(&mut stream).await?;
         if op == Opcode::ErrorResponse {
@@ -269,7 +327,7 @@ impl P2pNetwork {
         let mut stream = TcpStream::connect(addr)
             .await
             .map_err(|e| NexxusError::Io(e.to_string()))?;
-        crate::net::frame::send_frame(&mut stream, Opcode::EpochFinalize, 0x0006, finalize)
+        self.send_signed_frame(&mut stream, Opcode::EpochFinalize, 0x0006, finalize)
             .await?;
         let (op, _rid, _payload) = crate::net::frame::recv_frame(&mut stream).await?;
         if op == Opcode::ErrorResponse {
@@ -316,7 +374,7 @@ impl P2pNetwork {
             Opcode::Ping => {
                 let _ping = nexxus_core::wire::payloads::Ping::decode(payload)?;
                 let pong = nexxus_core::wire::payloads::Pong;
-                crate::net::frame::send_frame(stream, Opcode::Pong, request_id, &pong).await?;
+                self.send_signed_frame(stream, Opcode::Pong, request_id, &pong).await?;
             }
             Opcode::Pong => {
                 // unsolicited pong: nothing to do
@@ -344,14 +402,14 @@ impl P2pNetwork {
                     },
                     port: self.listen_addr.port(),
                 };
-                crate::net::frame::send_frame(stream, Opcode::NodeAnnounce, request_id, &our_announce)
+                self.send_signed_frame(stream, Opcode::NodeAnnounce, request_id, &our_announce)
                     .await?;
             }
             Opcode::StoreChunk => {
                 let chunk = StoreChunk::decode(payload)?;
                 self.store.put_chunk(&chunk.chunk_hash, &chunk.data)?;
                 let ack = StoreChunkAck { hash: chunk.chunk_hash.0 };
-                crate::net::frame::send_frame(stream, Opcode::StoreChunkAck, request_id, &ack).await?;
+                self.send_signed_frame(stream, Opcode::StoreChunkAck, request_id, &ack).await?;
             }
             Opcode::StoreChunkAck => {
                 // inbound ack handled by request originator in Phase 8
@@ -364,13 +422,13 @@ impl P2pNetwork {
                         chunk_hash: hash,
                         data,
                     };
-                    crate::net::frame::send_frame(stream, Opcode::FetchChunkResp, request_id, &resp).await?;
+                    self.send_signed_frame(stream, Opcode::FetchChunkResp, request_id, &resp).await?;
                 } else {
                     let err = ErrorResponse {
                         code: 0x0002,
                         message: "chunk not found".into(),
                     };
-                    crate::net::frame::send_frame(stream, Opcode::ErrorResponse, request_id, &err).await?;
+                    self.send_signed_frame(stream, Opcode::ErrorResponse, request_id, &err).await?;
                 }
             }
             Opcode::FetchChunkResp => {
@@ -378,25 +436,39 @@ impl P2pNetwork {
             }
             Opcode::PorChallenge => {
                 let challenge = PorChallenge::decode(payload)?;
-                // Find the chunk by hash — challenge.seed is used as chunk hash in Phase 8
-                let hash = ChunkHash(challenge.seed);
-                if let Some(data) = self.store.get_chunk(&hash)? {
-                    // response = SHA-256(chunk_data || seed)
-                    let mut h = sha2::Sha256::new();
-                    h.update(&data);
-                    h.update(challenge.seed);
-                    let response: [u8; 32] = h.finalize().into();
-                    let resp = PorResponse {
-                        chunk_hash: hash,
-                        response,
-                    };
-                    crate::net::frame::send_frame(stream, Opcode::PorResponse, request_id, &resp).await?;
-                } else {
+                // Per spec §4.3: challenge.seed is an epoch seed (HMAC input), NOT a chunk hash.
+                // Pick a stored chunk deterministically and prove retrievability.
+                let hashes = self.store.list_chunk_hashes()?;
+                if hashes.is_empty() {
                     let err = ErrorResponse {
                         code: 0x0003,
-                        message: "chunk not found for PoR".into(),
+                        message: "no chunks stored for PoR".into(),
                     };
-                    crate::net::frame::send_frame(stream, Opcode::ErrorResponse, request_id, &err).await?;
+                    self.send_signed_frame(stream, Opcode::ErrorResponse, request_id, &err)
+                        .await?;
+                } else {
+                    // Deterministic selection: first chunk (Phase 9+: pseudo-random from seed)
+                    let hash = hashes[0];
+                    if let Some(data) = self.store.get_chunk(&hash)? {
+                        // response = SHA-256(chunk_data || seed)
+                        let mut h = sha2::Sha256::new();
+                        h.update(&data);
+                        h.update(challenge.seed);
+                        let response: [u8; 32] = h.finalize().into();
+                        let resp = PorResponse {
+                            chunk_hash: hash,
+                            response,
+                        };
+                        self.send_signed_frame(stream, Opcode::PorResponse, request_id, &resp)
+                            .await?;
+                    } else {
+                        let err = ErrorResponse {
+                            code: 0x0003,
+                            message: "chunk not found for PoR".into(),
+                        };
+                        self.send_signed_frame(stream, Opcode::ErrorResponse, request_id, &err)
+                            .await?;
+                    }
                 }
             }
             Opcode::PorResponse => {
@@ -413,7 +485,7 @@ impl P2pNetwork {
                     .map(|p| socket_addr_to_kad_peer(&p))
                     .collect();
                 let nodes = KadNodesFound { peers: kad_peers };
-                crate::net::frame::send_frame(stream, Opcode::KadNodesFound, request_id, &nodes).await?;
+                self.send_signed_frame(stream, Opcode::KadNodesFound, request_id, &nodes).await?;
             }
             Opcode::KadNodesFound => {
                 // inbound nodes found handled by request originator in Phase 8
@@ -425,47 +497,34 @@ impl P2pNetwork {
                         // deliver plaintext to upper layer (Phase 8: store/deliver)
                         let _ = plaintext;
                         let pong = nexxus_core::wire::payloads::Pong;
-                        crate::net::frame::send_frame(stream, Opcode::Pong, request_id, &pong).await?;
+                        self.send_signed_frame(stream, Opcode::Pong, request_id, &pong).await?;
                     }
                     Err(_) => {
                         let err = ErrorResponse {
                             code: 0x0004,
                             message: "smp envelope decrypt failed".into(),
                         };
-                        crate::net::frame::send_frame(stream, Opcode::ErrorResponse, request_id, &err).await?;
+                        self.send_signed_frame(stream, Opcode::ErrorResponse, request_id, &err).await?;
                     }
                 }
             }
             Opcode::EpochFinalize => {
                 let finalize = nexxus_core::wire::payloads::EpochFinalize::decode(payload)?;
-                // Verify each committee signature against its pubkey
-                let mut valid = true;
-                for sig in &finalize.signatures {
-                    let vk = match VerifyingKey::from_bytes(&sig.pubkey) {
-                        Ok(vk) => vk,
-                        Err(_) => {
-                            valid = false;
-                            break;
-                        }
-                    };
-                    let mut msg = Vec::new();
-                    msg.extend_from_slice(&finalize.epoch_number.to_be_bytes());
-                    msg.extend_from_slice(&finalize.merkle_root);
-                    msg.extend_from_slice(&finalize.total_bytes.to_be_bytes());
-                    if !Identity::verify(&vk, &msg, &sig.signature) {
-                        valid = false;
-                        break;
+                // Verify committee multi-sig against registered auditors (M-of-N).
+                let result = verify_epoch_finalize(&finalize, &self.auditors, self.threshold);
+                match result {
+                    Ok(vr) if vr.quorum_met => {
+                        let pong = nexxus_core::wire::payloads::Pong;
+                        self.send_signed_frame(stream, Opcode::Pong, request_id, &pong).await?;
                     }
-                }
-                if valid {
-                    let pong = nexxus_core::wire::payloads::Pong;
-                    crate::net::frame::send_frame(stream, Opcode::Pong, request_id, &pong).await?;
-                } else {
-                    let err = ErrorResponse {
-                        code: 0x0005,
-                        message: "epoch finalize multi-sig verification failed".into(),
-                    };
-                    crate::net::frame::send_frame(stream, Opcode::ErrorResponse, request_id, &err).await?;
+                    _ => {
+                        let err = ErrorResponse {
+                            code: 0x0005,
+                            message: "epoch finalize multi-sig verification failed".into(),
+                        };
+                        self.send_signed_frame(stream, Opcode::ErrorResponse, request_id, &err)
+                            .await?;
+                    }
                 }
             }
             Opcode::ErrorResponse => {
@@ -540,13 +599,13 @@ mod tests {
             chunk_index: 0,
             data: data.clone(),
         };
-        crate::net::frame::send_frame(&mut stream, Opcode::StoreChunk, 0x0001, &chunk).await.unwrap();
+        net.send_signed_frame(&mut stream, Opcode::StoreChunk, 0x0001, &chunk).await.unwrap();
         let (op, rid, _payload) = crate::net::frame::recv_frame(&mut stream).await.unwrap();
         assert_eq!(op, Opcode::StoreChunkAck);
         assert_eq!(rid, 0x0001);
 
         let fetch = FetchChunk { hash: hash.0 };
-        crate::net::frame::send_frame(&mut stream, Opcode::FetchChunk, 0x0002, &fetch).await.unwrap();
+        net.send_signed_frame(&mut stream, Opcode::FetchChunk, 0x0002, &fetch).await.unwrap();
         let (op2, rid2, payload2) = crate::net::frame::recv_frame(&mut stream).await.unwrap();
         assert_eq!(op2, Opcode::FetchChunkResp);
         assert_eq!(rid2, 0x0002);
@@ -667,7 +726,7 @@ mod tests {
             count: 1,
             deadline_ms: 5000,
         };
-        crate::net::frame::send_frame(
+        net.send_signed_frame(
             &mut stream,
             Opcode::PorChallenge,
             0x0007,
@@ -733,7 +792,7 @@ mod tests {
         };
 
         let mut stream = TcpStream::connect(listener_addr).await.unwrap();
-        crate::net::frame::send_frame(&mut stream, Opcode::EpochFinalize, 0x0008, &finalize)
+        net.send_signed_frame(&mut stream, Opcode::EpochFinalize, 0x0008, &finalize)
             .await
             .unwrap();
         let (op, _rid, _payload) = crate::net::frame::recv_frame(&mut stream).await.unwrap();

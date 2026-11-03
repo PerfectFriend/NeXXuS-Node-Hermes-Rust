@@ -2,7 +2,7 @@
 //! Key = ChunkHash (32 bytes), value = raw chunk bytes. No external DB daemon.
 
 use nexxus_core::{error::NexxusError, types::ChunkHash};
-use redb::{Database, TableDefinition};
+use redb::{Database, ReadableTable, TableDefinition};
 
 const CHUNKS: TableDefinition<[u8; 32], &[u8]> = TableDefinition::new("chunks");
 
@@ -50,6 +50,24 @@ impl ChunkStore {
             .get(hash.0)
             .map_err(|e| NexxusError::Io(format!("redb get: {e}")))?;
         Ok(res.map(|v| v.value().to_vec()))
+    }
+
+    /// List all stored chunk hashes (for PoR challenge selection).
+    #[allow(dead_code)]
+    pub fn list_chunk_hashes(&self) -> Result<Vec<ChunkHash>, NexxusError> {
+        let rtx = self
+            .db
+            .begin_read()
+            .map_err(|e| NexxusError::Io(format!("redb read tx: {e}")))?;
+        let table = rtx
+            .open_table(CHUNKS)
+            .map_err(|e| NexxusError::Io(format!("redb table: {e}")))?;
+        let mut hashes = Vec::new();
+        for res in table.iter().map_err(|e| NexxusError::Io(format!("redb iter: {e}")))? {
+            let (key, _val) = res.map_err(|e| NexxusError::Io(format!("redb iter item: {e}")))?;
+            hashes.push(ChunkHash(key.value()));
+        }
+        Ok(hashes)
     }
 }
 

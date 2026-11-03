@@ -376,7 +376,11 @@ impl SmpEnvelope {
         h.update(shared.0);
         let key: [u8; 32] = h.finalize().into();
         let aead = ChaCha20Poly1305::new_from_slice(&key[..]).expect("chacha20 key length");
-        let nonce_box = Nonce::from_slice(&[0u8; 12]);
+        // Random per-envelope nonce (key is ephemeral per seal, so nonce reuse is not an issue,
+        // but random nonce improves AEAD hygiene).
+        let mut nonce_bytes = [0u8; 12];
+        OsRng.fill(&mut nonce_bytes);
+        let nonce_box = Nonce::from_slice(&nonce_bytes);
         let inner = payload.to_vec();
         let ct = aead
             .encrypt(nonce_box, &inner[..])
@@ -389,7 +393,7 @@ impl SmpEnvelope {
             Self {
                 sender_node_id,
                 recipient_node_id,
-                nonce: [0u8; 12],
+                nonce: nonce_bytes,
                 ciphertext,
             },
         )
@@ -592,7 +596,8 @@ mod tests {
         let (ephemeral_pub, env) = SmpEnvelope::seal([1u8; 32], [2u8; 32], &bob_pub, payload);
         assert_eq!(env.sender_node_id, [1u8; 32]);
         assert_eq!(env.recipient_node_id, [2u8; 32]);
-        assert_eq!(env.nonce, [0u8; 12]);
+        // nonce is random per seal (not all zeros)
+        assert_ne!(env.nonce, [0u8; 12]);
 
         // ephemeral pubkey is embedded in ciphertext
         assert_eq!(&env.ciphertext[..32], &ephemeral_pub);
