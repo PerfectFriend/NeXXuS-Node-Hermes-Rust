@@ -22,6 +22,9 @@ redb = { workspace = true }
 tokio = { version = "1", features = ["full"] }
 rand = { workspace = true }
 hex = { workspace = true }
+sha2 = { workspace = true }
+ed25519-dalek = { workspace = true }
+curve25519-dalek = { workspace = true }
 arti-client = { version = "0.47", optional = true }
 
 [dev-dependencies]

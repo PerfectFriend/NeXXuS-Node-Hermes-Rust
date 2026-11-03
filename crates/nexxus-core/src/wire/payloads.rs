@@ -10,7 +10,7 @@ use rand::{rngs::OsRng, Rng};
 use sha2::{Digest, Sha256};
 
 /// X25519 basepoint (u = 9) over Montgomery curve.
-const X25519_BASEPOINT: MontgomeryPoint = MontgomeryPoint([9u8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+pub const X25519_BASEPOINT: MontgomeryPoint = MontgomeryPoint([9u8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
 
 pub trait Payload: Sized {
     fn encode(&self) -> Vec<u8>;
@@ -417,6 +417,32 @@ impl SmpEnvelope {
     }
 }
 
+/// NodeAnnounce: node_id[32] || ip u32 || port u16 — peer announces itself
+/// so the listener can register it in the routing table.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct NodeAnnounce {
+    pub node_id: [u8; 32],
+    pub ip: u32,
+    pub port: u16,
+}
+
+impl Payload for NodeAnnounce {
+    fn encode(&self) -> Vec<u8> {
+        let mut w = Writer::new();
+        w.fixed(&self.node_id).u32_be(self.ip).u16_be(self.port);
+        w.buf
+    }
+
+    fn decode(payload: &[u8]) -> Result<Self, NexxusError> {
+        let mut r = Reader::new(payload);
+        Ok(NodeAnnounce {
+            node_id: r.fixed::<32>()?,
+            ip: r.u32_be()?,
+            port: r.u16_be()?,
+        })
+    }
+}
+
 /// ErrorResponse: code u16 || message_len u8 || message bytes
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ErrorResponse {
@@ -543,6 +569,17 @@ mod tests {
         assert!(StoreChunk::decode(&[0u8; 10]).is_err());
         assert!(PorResponse::decode(&[0u8; 31]).is_err());
         assert!(EpochFinalize::decode(&[0u8; 20]).is_err());
+    }
+
+    #[test]
+    fn node_announce_roundtrip() {
+        let orig = NodeAnnounce {
+            node_id: [0x42u8; 32],
+            ip: 0x0a000001,
+            port: 4001,
+        };
+        let dec = NodeAnnounce::decode(&orig.encode()).unwrap();
+        assert_eq!(dec, orig);
     }
 
     #[test]

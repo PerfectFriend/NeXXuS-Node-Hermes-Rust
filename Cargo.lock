@@ -2249,11 +2249,14 @@ name = "nexxus-node"
 version = "0.1.0"
 dependencies = [
  "arti-client",
+ "curve25519-dalek",
+ "ed25519-dalek",
  "hex",
  "nexxus-core",
  "nexxus-econ",
  "rand 0.8.8",
  "redb",
+ "sha2",
  "tempfile",
  "thiserror 1.0.69",
  "tokio",

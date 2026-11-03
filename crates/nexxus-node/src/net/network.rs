@@ -1,26 +1,34 @@
 //! P2pNetwork: bind/listen, dial, routing table, opcode dispatcher.
 //! Integrates with ChunkStore (redb) for StoreChunk/FetchChunk.
+//! Phase 8: full protocol — NodeAnnounce, SmpEnvelope, EpochFinalize,
+//! PorChallenge/Response, StoreChunkAck, FetchChunkResp.
 #![allow(dead_code)]
 #![allow(unused_imports)]
 
 use std::net::{IpAddr, SocketAddr};
 use std::sync::Arc;
 
+use curve25519_dalek::MontgomeryPoint;
+use ed25519_dalek::{Signer, Verifier, VerifyingKey};
 use nexxus_core::{
     error::NexxusError,
-    types::NodeId,
+    keys::identity::Identity,
+    types::{ChunkHash, NodeId},
     wire::opcode::Opcode,
     wire::payloads::{
-        ErrorResponse, FetchChunk, FetchChunkResp, KadFindNode, KadNodesFound, KadPeer, Payload,
-        StoreChunk, StoreChunkAck,
+        ErrorResponse, FetchChunk, FetchChunkResp, KadFindNode, KadNodesFound, KadPeer, NodeAnnounce,
+        Payload, PorChallenge, PorResponse, SmpEnvelope, StoreChunk, StoreChunkAck,
     },
+    wire::payloads::X25519_BASEPOINT,
 };
+use crate::net::frame::MAX_FRAME_LEN;
 use crate::storage::ChunkStore;
+use rand::rngs::OsRng;
+use rand::Rng;
+use sha2::{Digest, Sha256};
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::Mutex;
 use tokio::task;
-
-use crate::net::frame::MAX_FRAME_LEN;
 
 /// Connected peer tracked for the lifetime of a stream.
 struct ConnectedPeer {
@@ -28,11 +36,14 @@ struct ConnectedPeer {
     addr: SocketAddr,
 }
 
-/// P2P network node. Holds routing table + chunk store, accepts inbound
-/// connections and dials outbound peers.
+/// P2P network node. Holds identity (Ed25519 + X25519), routing table +
+/// chunk store, accepts inbound connections and dials outbound peers.
 #[allow(dead_code)]
 pub struct P2pNetwork {
     our_id: NodeId,
+    identity: Identity,
+    x25519_secret: [u8; 32],
+    x25519_pub: MontgomeryPoint,
     listen_addr: SocketAddr,
     bound_addr: Arc<Mutex<Option<SocketAddr>>>,
     routing: Arc<Mutex<crate::net::routing::RoutingTable>>,
@@ -40,14 +51,54 @@ pub struct P2pNetwork {
 }
 
 impl P2pNetwork {
+    /// Create a new node with a fresh Ed25519 identity and X25519 key pair.
     pub fn new(our_id: NodeId, listen_addr: SocketAddr, store: Arc<ChunkStore>) -> Self {
+        let mut os_rng = rand::rngs::OsRng;
+        let identity = Identity::generate();
+        let mut x25519_secret = [0u8; 32];
+        os_rng.fill(&mut x25519_secret);
+        let x25519_pub = nexxus_core::wire::payloads::X25519_BASEPOINT.mul_clamped(x25519_secret);
         Self {
             our_id,
+            identity,
+            x25519_secret,
+            x25519_pub,
             listen_addr,
             bound_addr: Arc::new(Mutex::new(None)),
             routing: Arc::new(Mutex::new(crate::net::routing::RoutingTable::new(our_id))),
             store,
         }
+    }
+
+    /// Create from an existing identity + X25519 keys (for reconnect/restart).
+    pub fn with_keys(
+        our_id: NodeId,
+        identity: Identity,
+        x25519_secret: [u8; 32],
+        listen_addr: SocketAddr,
+        store: Arc<ChunkStore>,
+    ) -> Self {
+        let x25519_pub = nexxus_core::wire::payloads::X25519_BASEPOINT.mul_clamped(x25519_secret);
+        Self {
+            our_id,
+            identity,
+            x25519_secret,
+            x25519_pub,
+            listen_addr,
+            bound_addr: Arc::new(Mutex::new(None)),
+            routing: Arc::new(Mutex::new(crate::net::routing::RoutingTable::new(our_id))),
+            store,
+        }
+    }
+
+    /// Ed25519 verifying key (our node public key).
+    pub fn verifying_key(&self) -> VerifyingKey {
+        self.identity.verifying_key
+    }
+
+    /// Static X25519 public key (for SMP envelope sealing by peers).
+    pub fn x25519_pub(&self) -> MontgomeryPoint {
+        self.x25519_pub
     }
 
     /// Actual address the listener is bound to (None until `run()` binds).
@@ -132,6 +183,105 @@ impl P2pNetwork {
         Ok(())
     }
 
+    /// Send our NodeAnnounce to a peer and learn their node_id in return.
+    pub async fn send_node_announce(&self, addr: SocketAddr) -> Result<NodeId, NexxusError> {
+        let mut stream = TcpStream::connect(addr)
+            .await
+            .map_err(|e| NexxusError::Io(e.to_string()))?;
+        let announce = NodeAnnounce {
+            node_id: self.our_id.0,
+            ip: match self.listen_addr.ip() {
+                IpAddr::V4(v4) => u32::from_be_bytes(v4.octets()),
+                IpAddr::V6(_) => 0,
+            },
+            port: self.listen_addr.port(),
+        };
+        crate::net::frame::send_frame(
+            &mut stream,
+            Opcode::NodeAnnounce,
+            0x0003,
+            &announce,
+        )
+        .await?;
+        let (op, _rid, payload) = crate::net::frame::recv_frame(&mut stream).await?;
+        if op != Opcode::NodeAnnounce {
+            return Err(NexxusError::Io(format!(
+                "expected NodeAnnounce, got opcode 0x{:02x}",
+                op.to_u8()
+            )));
+        }
+        let their = NodeAnnounce::decode(&payload)?;
+        Ok(NodeId(their.node_id))
+    }
+
+    /// Fetch a chunk from a peer over the wire. Returns the raw chunk bytes.
+    pub async fn fetch_chunk_from_peer(
+        &self,
+        addr: SocketAddr,
+        hash: ChunkHash,
+    ) -> Result<Vec<u8>, NexxusError> {
+        let mut stream = TcpStream::connect(addr)
+            .await
+            .map_err(|e| NexxusError::Io(e.to_string()))?;
+        let fetch = FetchChunk { hash: hash.0 };
+        crate::net::frame::send_frame(&mut stream, Opcode::FetchChunk, 0x0004, &fetch)
+            .await?;
+        let (op, _rid, payload) = crate::net::frame::recv_frame(&mut stream).await?;
+        if op == Opcode::ErrorResponse {
+            let err = ErrorResponse::decode(&payload)?;
+            return Err(NexxusError::Io(format!(
+                "peer error: code={} msg={}",
+                err.code, err.message
+            )));
+        }
+        if op != Opcode::FetchChunkResp {
+            return Err(NexxusError::Io(format!(
+                "expected FetchChunkResp, got opcode 0x{:02x}",
+                op.to_u8()
+            )));
+        }
+        let resp = FetchChunkResp::decode(&payload)?;
+        // persist locally so future fetches are served from redb
+        self.store.put_chunk(&resp.chunk_hash, &resp.data)?;
+        Ok(resp.data)
+    }
+
+    /// Send an encrypted SMP envelope to a peer.
+    pub async fn send_smp_envelope(&self, addr: SocketAddr, env: &SmpEnvelope) -> Result<(), NexxusError> {
+        let mut stream = TcpStream::connect(addr)
+            .await
+            .map_err(|e| NexxusError::Io(e.to_string()))?;
+        crate::net::frame::send_frame(&mut stream, Opcode::SmpEnvelope, 0x0005, env)
+            .await?;
+        let (op, _rid, _payload) = crate::net::frame::recv_frame(&mut stream).await?;
+        if op == Opcode::ErrorResponse {
+            let err = ErrorResponse::decode(&_payload)?;
+            return Err(NexxusError::Io(format!(
+                "peer error: code={} msg={}",
+                err.code, err.message
+            )));
+        }
+        Ok(())
+    }
+
+    /// Send an EpochFinalize (committee multi-sig) to a peer.
+    pub async fn send_epoch_finalize(&self, addr: SocketAddr, finalize: &nexxus_core::wire::payloads::EpochFinalize) -> Result<(), NexxusError> {
+        let mut stream = TcpStream::connect(addr)
+            .await
+            .map_err(|e| NexxusError::Io(e.to_string()))?;
+        crate::net::frame::send_frame(&mut stream, Opcode::EpochFinalize, 0x0006, finalize)
+            .await?;
+        let (op, _rid, _payload) = crate::net::frame::recv_frame(&mut stream).await?;
+        if op == Opcode::ErrorResponse {
+            let err = ErrorResponse::decode(&_payload)?;
+            return Err(NexxusError::Io(format!(
+                "peer error: code={} msg={}",
+                err.code, err.message
+            )));
+        }
+        Ok(())
+    }
+
     async fn handle_connection(
         &self,
         mut stream: TcpStream,
@@ -172,12 +322,30 @@ impl P2pNetwork {
                 // unsolicited pong: nothing to do
             }
             Opcode::NodeAnnounce => {
-                // Phase 8: node-id + address registration
-                let _err = ErrorResponse {
-                    code: 0x0001,
-                    message: "NodeAnnounce not implemented in Phase 7".into(),
+                let announce = NodeAnnounce::decode(payload)?;
+                let their_id = NodeId(announce.node_id);
+                let their_addr = SocketAddr::new(
+                    IpAddr::V4(std::net::Ipv4Addr::from(u32::from_be(announce.ip))),
+                    announce.port,
+                );
+                // insert announcing peer into routing table
+                let peer = crate::net::routing::Peer {
+                    node_id: their_id,
+                    addr: their_addr,
                 };
-                crate::net::frame::send_frame(stream, Opcode::ErrorResponse, request_id, &_err).await?;
+                self.routing.lock().await.insert(peer);
+
+                // respond with our own NodeAnnounce
+                let our_announce = NodeAnnounce {
+                    node_id: self.our_id.0,
+                    ip: match self.listen_addr.ip() {
+                        IpAddr::V4(v4) => u32::from_be_bytes(v4.octets()),
+                        IpAddr::V6(_) => 0,
+                    },
+                    port: self.listen_addr.port(),
+                };
+                crate::net::frame::send_frame(stream, Opcode::NodeAnnounce, request_id, &our_announce)
+                    .await?;
             }
             Opcode::StoreChunk => {
                 let chunk = StoreChunk::decode(payload)?;
@@ -190,7 +358,7 @@ impl P2pNetwork {
             }
             Opcode::FetchChunk => {
                 let fetch = FetchChunk::decode(payload)?;
-                let hash = nexxus_core::types::ChunkHash(fetch.hash);
+                let hash = ChunkHash(fetch.hash);
                 if let Some(data) = self.store.get_chunk(&hash)? {
                     let resp = FetchChunkResp {
                         chunk_hash: hash,
@@ -208,8 +376,32 @@ impl P2pNetwork {
             Opcode::FetchChunkResp => {
                 // inbound response handled by request originator in Phase 8
             }
-            Opcode::PorChallenge | Opcode::PorResponse => {
-                // PoR handled by verifier in Phase 8
+            Opcode::PorChallenge => {
+                let challenge = PorChallenge::decode(payload)?;
+                // Find the chunk by hash — challenge.seed is used as chunk hash in Phase 8
+                let hash = ChunkHash(challenge.seed);
+                if let Some(data) = self.store.get_chunk(&hash)? {
+                    // response = SHA-256(chunk_data || seed)
+                    let mut h = sha2::Sha256::new();
+                    h.update(&data);
+                    h.update(challenge.seed);
+                    let response: [u8; 32] = h.finalize().into();
+                    let resp = PorResponse {
+                        chunk_hash: hash,
+                        response,
+                    };
+                    crate::net::frame::send_frame(stream, Opcode::PorResponse, request_id, &resp).await?;
+                } else {
+                    let err = ErrorResponse {
+                        code: 0x0003,
+                        message: "chunk not found for PoR".into(),
+                    };
+                    crate::net::frame::send_frame(stream, Opcode::ErrorResponse, request_id, &err).await?;
+                }
+            }
+            Opcode::PorResponse => {
+                // inbound response handled by request originator in Phase 8
+                let _resp = PorResponse::decode(payload)?;
             }
             Opcode::KadFindNode => {
                 let find = KadFindNode::decode(payload)?;
@@ -225,16 +417,56 @@ impl P2pNetwork {
             }
             Opcode::KadNodesFound => {
                 // inbound nodes found handled by request originator in Phase 8
-                // also insert announcing peer into routing table (we don't know
-                // its node id yet without handshake, skip in Phase 7)
             }
-            Opcode::EpochFinalize | Opcode::SmpEnvelope => {
-                // relay/verify handled by upper layers in Phase 8
-                let err = ErrorResponse {
-                    code: 0x0003,
-                    message: "opcode not handled by Phase 7 dispatcher".into(),
-                };
-                crate::net::frame::send_frame(stream, Opcode::ErrorResponse, request_id, &err).await?;
+            Opcode::SmpEnvelope => {
+                let env = SmpEnvelope::decode(payload)?;
+                match env.open(&self.x25519_secret) {
+                    Ok(plaintext) => {
+                        // deliver plaintext to upper layer (Phase 8: store/deliver)
+                        let _ = plaintext;
+                        let pong = nexxus_core::wire::payloads::Pong;
+                        crate::net::frame::send_frame(stream, Opcode::Pong, request_id, &pong).await?;
+                    }
+                    Err(_) => {
+                        let err = ErrorResponse {
+                            code: 0x0004,
+                            message: "smp envelope decrypt failed".into(),
+                        };
+                        crate::net::frame::send_frame(stream, Opcode::ErrorResponse, request_id, &err).await?;
+                    }
+                }
+            }
+            Opcode::EpochFinalize => {
+                let finalize = nexxus_core::wire::payloads::EpochFinalize::decode(payload)?;
+                // Verify each committee signature against its pubkey
+                let mut valid = true;
+                for sig in &finalize.signatures {
+                    let vk = match VerifyingKey::from_bytes(&sig.pubkey) {
+                        Ok(vk) => vk,
+                        Err(_) => {
+                            valid = false;
+                            break;
+                        }
+                    };
+                    let mut msg = Vec::new();
+                    msg.extend_from_slice(&finalize.epoch_number.to_be_bytes());
+                    msg.extend_from_slice(&finalize.merkle_root);
+                    msg.extend_from_slice(&finalize.total_bytes.to_be_bytes());
+                    if !Identity::verify(&vk, &msg, &sig.signature) {
+                        valid = false;
+                        break;
+                    }
+                }
+                if valid {
+                    let pong = nexxus_core::wire::payloads::Pong;
+                    crate::net::frame::send_frame(stream, Opcode::Pong, request_id, &pong).await?;
+                } else {
+                    let err = ErrorResponse {
+                        code: 0x0005,
+                        message: "epoch finalize multi-sig verification failed".into(),
+                    };
+                    crate::net::frame::send_frame(stream, Opcode::ErrorResponse, request_id, &err).await?;
+                }
             }
             Opcode::ErrorResponse => {
                 // upstream logs the error; nothing to do here
@@ -319,6 +551,68 @@ mod tests {
         assert_eq!(rid2, 0x0002);
         let resp = FetchChunkResp::decode(&payload2).unwrap();
         assert_eq!(resp.data, data);
+
+        server.abort();
+    }
+
+    #[tokio::test]
+    async fn node_announce_roundtrip_over_wire() {
+        let dir = tempdir().unwrap();
+        let store = Arc::new(ChunkStore::open(dir.path().join("store.redb")).unwrap());
+        let our_id = NodeId([0x43u8; 32]);
+        let net = Arc::new(P2pNetwork::new(our_id, "127.0.0.1:0".parse().unwrap(), store));
+
+        let net_clone = Arc::clone(&net);
+        let server = tokio::spawn(async move { net_clone.run().await });
+
+        let mut bound = None;
+        for _ in 0..100 {
+            bound = net.bound_addr().await;
+            if bound.is_some() {
+                break;
+            }
+            tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+        }
+        let listener_addr = bound.expect("listener failed to bind");
+
+        // client announces, server responds with its own NodeAnnounce
+        let their_id = net.send_node_announce(listener_addr).await.unwrap();
+        assert_eq!(their_id, our_id);
+
+        server.abort();
+    }
+
+    #[tokio::test]
+    async fn smp_envelope_over_wire() {
+        let dir = tempdir().unwrap();
+        let store = Arc::new(ChunkStore::open(dir.path().join("store.redb")).unwrap());
+        let our_id = NodeId([0x44u8; 32]);
+        let net = Arc::new(P2pNetwork::new(our_id, "127.0.0.1:0".parse().unwrap(), store));
+
+        let net_clone = Arc::clone(&net);
+        let server = tokio::spawn(async move { net_clone.run().await });
+
+        let mut bound = None;
+        for _ in 0..100 {
+            bound = net.bound_addr().await;
+            if bound.is_some() {
+                break;
+            }
+            tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+        }
+        let listener_addr = bound.expect("listener failed to bind");
+
+        // client seals an SMP envelope to our X25519 pubkey and sends it
+        let payload = b"SMP over wire test";
+        let (ephemeral_pub, env) = SmpEnvelope::seal(
+            [0x55u8; 32],
+            our_id.0, // recipient = our node_id (used as recipient_node_id)
+            &net.x25519_pub(),
+            payload,
+        );
+        assert_eq!(&env.ciphertext[..32], &ephemeral_pub);
+
+        net.send_smp_envelope(listener_addr, &env).await.unwrap();
 
         server.abort();
     }
