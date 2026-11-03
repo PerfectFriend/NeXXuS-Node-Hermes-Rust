@@ -1,0 +1,22 @@
+[package]
+name = "nexxus-desktop"
+version = "0.1.0"
+edition = "2021"
+
+[workspace]
+
+[dependencies]
+tauri = { version = "2", features = ["tray-icon"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["full"] }
+tokio-tungstenite = "0.21"
+tungstenite = "0.21"
+url = "2"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[[bin]]
+name = "nexxus-desktop"
+path = "src-tauri/main.rs"

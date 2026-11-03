@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NeXXus Node Monitor</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app">
+    <!-- Шапка с статусом узла -->
+    <header class="header">
+      <div class="brand">
+        <span class="brand-icon">●</span>
+        <span class="brand-name">NeXXus Node Monitor</span>
+      </div>
+      <div class="status-indicator">
+        <span class="status-dot" id="status-dot"></span>
+        <span id="status-text">Загрузка...</span>
+      </div>
+    </header>
+
+    <!-- Панель метрик -->
+    <section class="metrics">
+      <div class="metric-card">
+        <div class="metric-label">Uptime</div>
+        <div class="metric-value" id="uptime-text">—</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Пиры</div>
+        <div class="metric-value" id="peer-count">—</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Чанки</div>
+        <div class="metric-value" id="chunk-count">—</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">SMP сообщения</div>
+        <div class="metric-value" id="smp-count">—</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Эпоха</div>
+        <div class="metric-value" id="epoch-text">—</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Tor</div>
+        <div class="metric-value" id="tor-text">—</div>
+      </div>
+    </section>
+
+    <!-- Основная область с панелями -->
+    <main class="content">
+      <!-- Левая колонка -->
+      <div class="column left">
+        <section class="panel">
+          <h3>🌐 Сетевые пиры</h3>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>#</th><th>Node ID</th><th>Адрес</th><th>Направление</th><th>Подключён</th></tr>
+              </thead>
+              <tbody id="peers-body"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="panel">
+          <h3>📦 Хранилище чанков</h3>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>Параметр</th><th>Значение</th></tr>
+              </thead>
+              <tbody id="chunks-body"></tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+
+      <!-- Правая колонка -->
+      <div class="column right">
+        <section class="panel">
+          <h3>⚡ SMP сообщения</h3>
+          <div class="table-wrap smp-table">
+            <table>
+              <thead>
+                <tr><th>ID</th><th>Направление</th><th>Получатель</th><th>Размер</th><th>Статус</th><th>Время</th></tr>
+              </thead>
+              <tbody id="smp-body"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="panel">
+          <h3>📨 Отправить SMP envelope</h3>
+          <form id="smp-form">
+            <input type="text" id="smp-recipient" placeholder="Node ID получателя (hex)" />
+            <input type="text" id="smp-payload" placeholder="Payload (hex)" />
+            <input type="text" id="smp-addr" placeholder="Адрес (опционально)" />
+            <button type="submit" class="btn btn-primary">Отправить</button>
+            <div id="smp-result" class="result"></div>
+          </form>
+        </section>
+      </div>
+    </main>
+
+    <!-- Нижняя панель: управление + логи -->
+    <footer class="footer">
+      <div class="controls">
+        <button class="btn btn-danger" id="btn-pause">Пауза узла</button>
+        <button class="btn btn-success" id="btn-resume">Возобновить</button>
+        <button class="btn btn-outline" id="btn-refresh">Обновить</button>
+        <button class="btn btn-outline" id="toggle-autorefresh">Автообновление: ВКЛ</button>
+      </div>
+      <div class="log-wrap">
+        <h3>📋 Лог активности</h3>
+        <table class="log-table">
+          <thead><tr><th>Время</th><th>Событие</th></tr></thead>
+          <tbody id="log-body"></tbody>
+        </table>
+      </div>
+    </footer>
+  </div>
+
+  <script src="main.js"></script>
+</body>
+</html>

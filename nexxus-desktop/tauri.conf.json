@@ -1,0 +1,43 @@
+{
+  "productName": "NeXXus Node Monitor",
+  "version": "0.1.0",
+  "identifier": "com.nexxus.desktop",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "npm run build",
+    "devPath": "http://localhost:1420",
+    "distDir": "../src"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "NeXXus Node Monitor",
+        "width": 1200,
+        "height": 800,
+        "resizable": true,
+        "fullscreen": false
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:;"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": "src-tauri/icons/icon.png",
+    "resources": [],
+    "externalBinary": [],
+    "copyright": "© 2026 NeXXUs Protocol",
+    "category": "Network",
+    "shortDescription": "NeXXus Node Monitor — десктоп-приложение для управления и мониторинга узла NeXXus",
+    "longDescription": "Десктоп-приложение для мониторинга узла NeXXus с системным треем, панелями статуса, пиров, хранилища чанков, SMP-сообщений, Epoch finalize и Tor."
+  },
+  "systemTray": {
+    "iconPath": "src-tauri/icons/tray-icon.png",
+    "iconAsTemplate": true
+  },
+  "security": {
+    "csp": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:;"
+  }
+}
