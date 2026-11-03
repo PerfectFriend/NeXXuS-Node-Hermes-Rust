@@ -3,7 +3,7 @@
 use core::fmt;
 
 /// 256-bit node identifier in the Kademlia space.
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Ord, PartialOrd, Debug)]
 pub struct NodeId(pub [u8; 32]);
 
 /// SHA-256 digest of a chunk's payload.

@@ -502,8 +502,9 @@ fn socket_addr_to_kad_peer(peer: &crate::net::routing::Peer) -> KadPeer {
 #[cfg(test)]
 mod tests {
     use super::*;
-
+    use nexxus_core::epoch::epoch_signing_bytes;
     use nexxus_core::types::ChunkHash;
+    use nexxus_core::wire::payloads::{CommitteeSig, EpochFinalize};
     use std::net::Ipv4Addr;
     use tempfile::tempdir;
     use crate::net::routing::Peer;
@@ -776,5 +777,99 @@ mod tests {
         assert_eq!(found[0].port, 4002);
 
         server.abort();
+    }
+
+    #[tokio::test]
+    async fn two_daemon_end_to_end() {
+        // Daemon A
+        let dir_a = tempdir().unwrap();
+        let store_a = Arc::new(ChunkStore::open(dir_a.path().join("store.redb")).unwrap());
+        let id_a = NodeId([0x61u8; 32]);
+        let net_a = Arc::new(P2pNetwork::new(id_a, "127.0.0.1:0".parse().unwrap(), store_a));
+        let net_a_clone = Arc::clone(&net_a);
+        let server_a = tokio::spawn(async move { net_a_clone.run().await });
+
+        // Daemon B
+        let dir_b = tempdir().unwrap();
+        let store_b = Arc::new(ChunkStore::open(dir_b.path().join("store.redb")).unwrap());
+        let id_b = NodeId([0x62u8; 32]);
+        let net_b = Arc::new(P2pNetwork::new(id_b, "127.0.0.1:0".parse().unwrap(), store_b));
+        let net_b_clone = Arc::clone(&net_b);
+        let server_b = tokio::spawn(async move { net_b_clone.run().await });
+
+        // Wait for both to bind
+        let mut bound_a = None;
+        for _ in 0..100 {
+            bound_a = net_a.bound_addr().await;
+            if bound_a.is_some() {
+                break;
+            }
+            tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+        }
+        let addr_a = bound_a.expect("daemon A failed to bind");
+
+        let mut bound_b = None;
+        for _ in 0..100 {
+            bound_b = net_b.bound_addr().await;
+            if bound_b.is_some() {
+                break;
+            }
+            tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+        }
+        let addr_b = bound_b.expect("daemon B failed to bind");
+
+        // A announces to B -> B learns A's node_id
+        let learned_a = net_b.send_node_announce(addr_a).await.unwrap();
+        assert_eq!(learned_a, id_a);
+
+        // B announces to A -> A learns B's node_id
+        let learned_b = net_a.send_node_announce(addr_b).await.unwrap();
+        assert_eq!(learned_b, id_b);
+
+        // B stores a chunk
+        let hash = ChunkHash([0x77u8; 32]);
+        let data: Vec<u8> = (0..100).map(|i| i as u8).collect();
+        net_b.store.put_chunk(&hash, &data).expect("store chunk");
+
+        // A fetches the chunk from B
+        let fetched = net_a.fetch_chunk_from_peer(addr_b, hash).await.unwrap();
+        assert_eq!(fetched, data);
+        // A now has it locally too
+        let local = net_a.store.get_chunk(&hash).unwrap().unwrap();
+        assert_eq!(local, data);
+
+        // A sends an SMP envelope to B
+        let payload = b"E2E SMP test";
+        let (ephemeral, env) = SmpEnvelope::seal(
+            id_a.0,
+            id_b.0,
+            &net_b.x25519_pub(),
+            payload,
+        );
+        assert_eq!(&env.ciphertext[..32], &ephemeral);
+        net_a.send_smp_envelope(addr_b, &env).await.unwrap();
+
+        // A sends EpochFinalize to B — B receives it; verification happens on B's side
+        // (B's auditor registry is empty, so verify would reject, but delivery succeeds)
+        let id_signer = Identity::generate();
+        let epoch_number: u64 = 1;
+        let merkle_root = [0x55u8; 32];
+        let total_bytes: u64 = 42;
+        let msg = epoch_signing_bytes(epoch_number, &merkle_root, total_bytes);
+        let sig = id_signer.sign(&msg);
+        let finalize = EpochFinalize {
+            epoch_number,
+            merkle_root,
+            total_bytes,
+            signatures: vec![CommitteeSig {
+                pubkey: id_signer.verifying_key.to_bytes(),
+                signature: sig,
+            }],
+        };
+        let result = net_a.send_epoch_finalize(addr_b, &finalize).await;
+        assert!(result.is_ok());
+
+        server_a.abort();
+        server_b.abort();
     }
 }
