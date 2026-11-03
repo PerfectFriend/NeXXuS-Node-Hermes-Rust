@@ -1,0 +1,215 @@
+From 9156c7429e80bb2c916b78bcd951c77e1a97f33c Mon Sep 17 00:00:00 2001
+From: ProphetThomas <coder@livingcode.local>
+Date: Sun, 4 Oct 2026 03:12:18 +0200
+Subject: [PATCH 1/2] =?UTF-8?q?fix(registry):=20=D0=B8=D0=B4=D0=B5=D0=BD?=
+ =?UTF-8?q?=D1=82=D0=B8=D1=84=D0=B8=D0=BA=D0=B0=D1=82=D0=BE=D1=80=20=D1=83?=
+ =?UTF-8?q?=D0=B7=D0=BB=D0=B0=20128=20=D0=B1=D0=B8=D1=82,=20=D0=BF=D1=80?=
+ =?UTF-8?q?=D0=B8=D0=B2=D1=8F=D0=B7=D0=B0=D0=BD=20=D0=BA=20=D0=BF=D1=83?=
+ =?UTF-8?q?=D0=B1=D0=BB=D0=B8=D1=87=D0=BD=D0=BE=D0=BC=D1=83=20=D0=BA=D0=BB?=
+ =?UTF-8?q?=D1=8E=D1=87=D1=83?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Прежняя реализация брала uint32 из math/rand и отрезала 8 hex-символов:
+32 бита на сетевой идентификатор (50% коллизий примерно к 74 тысячам
+узлов), параметр pubkey не использовался вовсе. Дополнительно
+fmt.Sprintf("%x", struct{uint32}{...}) печатал ведущую '{', то есть
+идентификатор содержал мусорный символ.
+
+Теперь SHA-256 от публичного ключа и 16 байт crypto/rand, первые
+16 байт дайджеста в hex. Диапазон 128 бит, ID привязан к владельцу
+ключа. Тест GenerateNodeID перенесён в nodeid_test.go и дополнен
+проверками ширины, привязки к ключу, зависимости от соли и
+уникальности на 200 тысячах выборок.
+---
+ internal/registry/nodeid_test.go   | 95 ++++++++++++++++++++++++++++++
+ internal/registry/registry.go      | 34 +++++++++--
+ internal/registry/registry_test.go | 15 +----
+ 3 files changed, 127 insertions(+), 17 deletions(-)
+ create mode 100644 internal/registry/nodeid_test.go
+
+diff --git a/internal/registry/nodeid_test.go b/internal/registry/nodeid_test.go
+new file mode 100644
+index 0000000..a308646
+--- /dev/null
++++ b/internal/registry/nodeid_test.go
+@@ -0,0 +1,95 @@
++package registry
++
++import (
++	"strings"
++	"testing"
++)
++
++// nodeIDHexLen — длина hex-тела идентификатора в символах.
++// 128 бит выбраны не «на глаз»: 32-битный диапазон (~4.3 млрд) даёт
++// 50% вероятности коллизии уже примерно на 74 тысячах узлов (парадокс
++// дней рождения), а реестр — это сеть, которая не сжимается.
++const nodeIDHexLen = 32
++
++func TestGenerateNodeID(t *testing.T) {
++	id1 := GenerateNodeID("pk1")
++	id2 := GenerateNodeID("pk2")
++
++	if !strings.HasPrefix(id1, "node-") {
++		t.Fatalf("expected node- prefix, got %s", id1)
++	}
++	if id1 == id2 {
++		t.Fatal("expected different IDs")
++	}
++}
++
++// TestGenerateNodeIDWidth — формат, который видит наружу весь стек:
++// 128 бит вместо прежних 32. Срез первых 8 hex-символов от uint32
++// и есть тот дефект, из-за которого TestGenerateNodeID падал на Cathedral.
++func TestGenerateNodeIDWidth(t *testing.T) {
++	body, ok := strings.CutPrefix(GenerateNodeID("pk-width"), "node-")
++	if !ok {
++		t.Fatal("expected node- prefix")
++	}
++	if len(body) != nodeIDHexLen {
++		t.Fatalf("identifier body is %d hex chars, want %d (128 bits): %q",
++			len(body), nodeIDHexLen, body)
++	}
++	for i, c := range body {
++		if !strings.ContainsRune("0123456789abcdef", c) {
++			t.Fatalf("body[%d]=%q is not lowercase hex: %q", i, c, body)
++		}
++	}
++}
++
++// TestNodeIDFromUsesPubkey: публичный ключ обязан участвовать в ID,
++// иначе запись реестра нельзя связать с владельцем ключа — ID становится
++// просто случайным числом, а параметр функции молча игнорируется.
++func TestNodeIDFromUsesPubkey(t *testing.T) {
++	salt := [16]byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16}
++
++	a1 := nodeIDFrom("pk-alice", salt)
++	a2 := nodeIDFrom("pk-alice", salt)
++	b := nodeIDFrom("pk-bob", salt)
++
++	if a1 != a2 {
++		t.Fatalf("ID not deterministic for the same key and salt: %q vs %q", a1, a2)
++	}
++	if a1 == b {
++		t.Fatalf("different public keys produced the same ID %q — pubkey is ignored", a1)
++	}
++}
++
++// TestNodeIDFromUsesEntropy: соль обязана менять ID, иначе все вызовы
++// для одного владельца дали бы один и тот же идентификатор.
++func TestNodeIDFromUsesEntropy(t *testing.T) {
++	first := [16]byte{1}
++	second := [16]byte{2}
++
++	if nodeIDFrom("pk-alice", first) == nodeIDFrom("pk-alice", second) {
++		t.Fatal("same key with different entropy produced the same ID — salt is ignored")
++	}
++}
++
++// TestGenerateNodeIDUniqueUnderLoad — статистическая защита вместо
++// сравнения одной пары. Объём подобран так, чтобы 32-битный диапазон
++// ломался не «иногда», а практически всегда: при n=200000 вероятность
++// хотя бы одной коллизии равна 1 - exp(-n²/2^(33)) ≈ 99%. Сравнение одной
++// пары давало шанс пройти на дефектном коде, и именно поэтому исходный
++// тест был зелёным на торемade и падал на Cathedral от накопленных
++// в соседних тестах вызовов.
++func TestGenerateNodeIDUniqueUnderLoad(t *testing.T) {
++	const n = 200000
++
++	seen := make(map[string]struct{}, n)
++	for i := 0; i < n; i++ {
++		id := GenerateNodeID("pk-load")
++		if _, dup := seen[id]; dup {
++			t.Fatalf("duplicate identifier %q at sample %d of %d", id, i, n)
++		}
++		seen[id] = struct{}{}
++	}
++	if len(seen) != n {
++		t.Fatalf("map holds %d identifiers, want %d", len(seen), n)
++	}
++}
+\ No newline at end of file
+diff --git a/internal/registry/registry.go b/internal/registry/registry.go
+index c18c66c..f863535 100644
+--- a/internal/registry/registry.go
++++ b/internal/registry/registry.go
+@@ -3,10 +3,11 @@
+ package registry
+ 
+ import (
++	"crypto/rand"
++	"crypto/sha256"
++	"encoding/hex"
+ 	"encoding/json"
+-	"fmt"
+ 	"log/slog"
+-	"math/rand"
+ 	"net"
+ 	"net/http"
+ 	"os"
+@@ -316,8 +317,31 @@ func SelectBestNodes(candidates []*NodeInfo, n int) []*NodeInfo {
+ 	return out
+ }
+ 
+-// GenerateNodeID creates a short unique node identifier.
++// nodeIDFrom собирает идентификатор из публичного ключа владельца и соли.
++// Ключ входит в хеш, поэтому ID нельзя перенести на другой ключ; соль
++// гарантирует, что перезапуск с тем же ключом даёт новый идентификатор.
++// Функция без похода в крипто-генератор — идентичность проверяется
++// детерминированно, без вероятностных осей.
++func nodeIDFrom(pubkey string, salt [16]byte) string {
++	h := sha256.New()
++	h.Write([]byte(pubkey))
++	h.Write([]byte{0})
++	h.Write(salt[:])
++	return "node-" + hex.EncodeToString(h.Sum(nil)[:16])
++}
++
++// GenerateNodeID создаёт сетевой идентификатор узла.
++//
++// Диапазон прежней реализации был 32 бита, а параметр pubkey не
++// использовался вовсе. Коллизии при парадоксе дней рождения на
++// 32 битах достигают 50% примерно к 74 тысячам узлов, а math/rand
++// не является источником, пригодным для сетевых идентификаторов.
+ func GenerateNodeID(pubkey string) string {
+-	h := fmt.Sprintf("%x", struct{ uint32 }{rand.Uint32()})
+-	return "node-" + h[:8]
++	var salt [16]byte
++	if _, err := rand.Read(salt[:]); err != nil {
++		// Отказ генератора означает, что выданный ID был бы предсказуемым.
++		// Лучше явная остановка, чем молчаливо слабая идентичность.
++		panic("registry: crypto/rand unavailable: " + err.Error())
++	}
++	return nodeIDFrom(pubkey, salt)
+ }
+diff --git a/internal/registry/registry_test.go b/internal/registry/registry_test.go
+index c880568..2ccf7db 100644
+--- a/internal/registry/registry_test.go
++++ b/internal/registry/registry_test.go
+@@ -320,18 +320,9 @@ func TestPersistence(t *testing.T) {
+ }
+ 
+ 
+-// TestGenerateNodeID handles the TestGenerateNodeID HTTP request.
+-func TestGenerateNodeID(t *testing.T) {
+-	id1 := GenerateNodeID("pk1")
+-	id2 := GenerateNodeID("pk2")
+-
+-	if !strings.HasPrefix(id1, "node-") {
+-		t.Fatalf("expected node- prefix, got %s", id1)
+-	}
+-	if id1 == id2 {
+-		t.Fatal("expected different IDs")
+-	}
+-}
++// Тест GenerateNodeID переехал в nodeid_test.go: здесь он был разбавлен
++// соседними проверками и проверял одну пару, чего недостаточно для
++// статистического дефекта диапазона.
+ 
+ 
+ // TestCapConstants handles the TestCapConstants HTTP request.
+-- 
+2.53.0
+

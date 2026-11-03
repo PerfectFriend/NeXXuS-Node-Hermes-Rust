@@ -1,0 +1,37 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+body{background:#0d1117;color:#e6edf3;font-family:-apple-system,'Segoe UI',Roboto,
+'Fira Sans',sans-serif;margin:0;padding:28px 34px;width:932px}
+h1{color:#58a6ff;font-size:26px;margin:0 0 6px}
+h2{color:#79c0ff;font-size:20px;border-bottom:1px solid #21262d;padding-bottom:6px}
+h3{color:#a5d6ff;font-size:16px} pre{background:#161b22;border:1px solid #30363d;
+border-radius:8px;padding:14px;font-family:'JetBrains Mono',Consolas,monospace;
+font-size:13px;white-space:pre-wrap;color:#d2a8ff;overflow:hidden}
+p{margin:6px 0;line-height:1.5;font-size:14px} hr{border:0;border-top:1px solid #21262d}
+li{margin:3px 0;font-size:14px} .meta{color:#8b949e;font-size:12px;margin-bottom:14px}
+</style></head><body>
+<div class="meta">GodModeCoder · Живой Код · z-ai/glm-5.3</div>
+<h1>🛠 Кодер Project1</h1>
+<p>СДЕЛАНО ЗА ЧАС:</p>
+<li>Реализована команда p1_memory stats — дашборд статистики памяти в реальном времени- Реализована команда p1_memory watch — live-режим с автообновлением каждые N секунд</li>
+<li>Обе команды поддерживают --json для машинного чтения и --project для фильтрации по проекту</li>
+<li>Дашборд показывает: файлы/инсайты, качество (мусор, кросс-дубли, отсутствующие source_url, усечения), свежесть MEMORY_REPORT.md, целостность исходников, типы источников, дискриминацию проектов, relevance_score, временной диапазон</li>
+<li>Добавлены тесты (tests/test_stats.py) — 6 тестов проходят</li>
+<li>Все 341 существующих тестов продолжают проходить (1 pre-existing failure в test_doctor_memory_quality.py)</li>
+<p>&nbsp;</p>
+<p>ПЛАН НА СЛЕДУЮЩИЙ ЧАС:</p>
+<li>Добавить цветовую индикацию (красный/зелёный/жёлтый) для критических метрик в watch-режиме</li>
+<li>Добавить флаг --compact для однострочного вывода в watch</li>
+<li>Рассмотреть интеграцию с cron для автоматического сбора метрик</li>
+<p>&nbsp;</p>
+<p>ИЗМЕНЕНИЯ В КОДЕ:</p>
+<li>Создан p1_memory/stats.py — основной модуль дашборда (368 строк)</li>
+<li>Создан tests/test_stats.py — тесты CLI (6 тестов)</li>
+<li>Обновлён p1_memory/cli.py — регистрация новых подкоманд</li>
+<p>&nbsp;</p>
+<p>ПРОВЕРКА КОДА:</p>
+<li>Красота: код структурирован, датаклассы, типизация, единый стиль с проектом</li>
+<li>Логика: переиспользует существующие функции validate, crossfile, doctor, provenance, freshness- Удобство: человекопонятный вывод + JSON, фильтрация по проекту, live-режим</li>
+<li>Понятность: секции дашборда чётко разделены, метрики подписаны на русском</li>
+<li>Безопасность: только чтение, не меняет состояние памяти, таймауты в watch обрабатываются корректно</li>
+<li>Осталось: цветовая индикация, compact-режим, cron-интеграция (на следующий час)</li>
+</body></html>

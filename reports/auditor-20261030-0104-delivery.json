@@ -1,0 +1,16 @@
+{
+  "отчёт": "/home/thomas/LivingCode/reports/auditor-20261030-0104.md",
+  "проверено": true,
+  "код_отправки": 0,
+  "message_id": 30263,
+  "chat_id": -1004431090317,
+  "message_thread_id": 252,
+  "file_id": "BQACAgQAAyEGAAMBCB0SjQACdjdq49-CSlyqLqKzvJhK4xU1DbGG8AACyCAAAgLOGFPlr8CPyAt6ZD0E",
+  "file_unique_id": "AgADyCAAAgLOGFM",
+  "file_name": "auditor-20261030-0104.md",
+  "file_size": 18726,
+  "локальный_sha256": "b7828a4e839c362907e4a2db1b89cfa80b82b03be814490af0cd249e8695dfc3",
+  "полученный_sha256": "b7828a4e839c362907e4a2db1b89cfa80b82b03be814490af0cd249e8695dfc3",
+  "получено_байт": 18726,
+  "длительность_слота_сек": 747.27
+}

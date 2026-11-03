@@ -1,0 +1,30 @@
+fix(wallet): idempotent level reward + sign/corruption guards in ELEMENTAL ledger
+
+Cycle 2 (2026-10-02). Five defects reproduced with probes in
+reports/tmp_probe_cycle2.mjs / _cycle2b.mjs BEFORE the fix:
+
+1. rewardLevelCompletion was not idempotent. The call lives in a useEffect
+   (App.tsx:264-270) whose deps are [puzzleWon, geometry, levelIndex,
+   profile, ...], so a geometry switch or profile update while puzzleWon
+   stayed true re-ran the effect and paid the reward again: one level-0 win
+   (10) became 55 across four restarts. Ledger now tracks rewardedLevels
+   keyed by "geometry:index"; repeats return 0.
+2. sendElemental(-50) credited tokens: `balance < amount` did not guard the
+   sign, so balance 100 became 150. Now requires a finite positive amount.
+3. receiveElemental(-30) drove totalReceived negative. Same guard; return
+   type changed void -> boolean (no UI caller exists, verified by grep).
+4. loadLedger returned raw JSON.parse: an array gave balance undefined and
+   then NaN, balance:"100" concatenated to "10010", balance:null produced
+   null+10. Now normalized through a typed coercion.
+5. history.loadHistory returned a non-array verbatim, so corrupt
+   localStorage ("{...}") made the first addTx throw
+   "txs.unshift is not a function". Now Array.isArray-guarded and junk
+   elements filtered.
+
+rewardLevelCompletion also rejects negative/fractional level indices, which
+previously minted a negative reward (-15 for index -5).
+
+Adds tests/wallet.ledger.test.mjs — 27 assertions against the REAL compiled
+src/wallet/*.ts with an in-memory localStorage. Proven non-vacuous: the same
+suite run against the pre-fix sources (git show HEAD:) fails 18 of 27;
+after the fix 27/27 pass. tsc -b exit 0.

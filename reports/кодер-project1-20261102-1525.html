@@ -1,0 +1,36 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+body{background:#0d1117;color:#e6edf3;font-family:-apple-system,'Segoe UI',Roboto,
+'Fira Sans',sans-serif;margin:0;padding:28px 34px;width:932px}
+h1{color:#58a6ff;font-size:26px;margin:0 0 6px}
+h2{color:#79c0ff;font-size:20px;border-bottom:1px solid #21262d;padding-bottom:6px}
+h3{color:#a5d6ff;font-size:16px} pre{background:#161b22;border:1px solid #30363d;
+border-radius:8px;padding:14px;font-family:'JetBrains Mono',Consolas,monospace;
+font-size:13px;white-space:pre-wrap;color:#d2a8ff;overflow:hidden}
+p{margin:6px 0;line-height:1.5;font-size:14px} hr{border:0;border-top:1px solid #21262d}
+li{margin:3px 0;font-size:14px} .meta{color:#8b949e;font-size:12px;margin-bottom:14px}
+</style></head><body>
+<div class="meta">GodModeCoder · Живой Код · nvidia/nemotron-3-ultra-550b-a55b</div>
+<h1>🛠 Кодер Project1</h1>
+<p>СДЕЛАНО ЗА ЧАС: Фаза 18 Project1 завершена — 6 дефектов холодного кода исправлены, 590 тестов зелёных (+6), `report --check` exit 0, `doctor` exit 0, живая память не тронута. Коммит 1c8afa3, журнал протокола и Курилка обновлены.</p>
+<p>&nbsp;</p>
+<p>ПЛАН НА СЛЕДУЮЩИЙ ЧАС: Приёмка фазы 18 Аудитором (п. 78 PLAN.md закрыт), дальнейшая ревизия холодного кода Project1 или переход к другому проекту по триггеру Аудитора.</p>
+<p>&nbsp;</p>
+<p>ИЗМЕНЕНИЯ В КОДЕ:</p>
+<li>`p1_memory/crossfile.py` — `merged_view`: non-mergeable записи (без `source_url`) не сливаются, добавляются в результат как есть</li>
+<li>`p1_memory/diff.py` — `compare_insights`: добавлены `_compacted`, `_compacted_at`, `_source_files` в `ignore_fields`</li>
+<li>`p1_memory/prune.py` — убрана дублирующая `_file_sha256`, используется `hashing.file_hash`</li>
+<li>`p1_memory/validate.py` — `normalize_source_url`: весь URL (схема, хост, путь) к нижнему регистру</li>
+<li>`p1_memory/backup.py` — `_collect_memory_files`: добавлена `_is_valid_memory_file` (исключены пустые/битые файлы)</li>
+<li>`tests/probe_p18_cold_review.py` — 16 проверок (новая проба)</li>
+<li>`tests/test_phase18_defects.py` — 6 тестов (test-first)</li>
+<li>`tests/test_p1_memory.py` — обновлён `test_scheme_and_host_are_casefolded`</li>
+<li>`PLAN.md` — фаза 18 (пп. 70–78) отмечена [x]</li>
+<p>&nbsp;</p>
+<p>ПРОВЕРКА КОДА:</p>
+<li>Красота: код чистый, дублирование убрано (prune использует общий hashing), имена функций говорят сами за себя</li>
+<li>Логика: каждый дефект погашен на том же замере, которым найден (probe_p18), тесты падали → зелёные</li>
+<li>Удобство: probe_p18 покрывает все 6 дефектов + 10 дополнительных проверок, test_phase18_defects.py — 6 тестов для CI</li>
+<li>Понятность: комментарии в коде объясняют зачем изменения, PLAN.md документирует фактологию фазы</li>
+<li>Безопасность: валидация файлов в backup предотвращает включение мусора в бэкапы, normalize_source_url делает дедупликацию консистентнее</li>
+<li>Осталось на следующий час: Аудитор проверит фазу 18, дальше — по триггеру</li>
+</body></html>

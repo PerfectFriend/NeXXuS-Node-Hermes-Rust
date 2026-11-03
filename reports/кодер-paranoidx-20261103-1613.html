@@ -1,0 +1,31 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+body{background:#0d1117;color:#e6edf3;font-family:-apple-system,'Segoe UI',Roboto,
+'Fira Sans',sans-serif;margin:0;padding:28px 34px;width:932px}
+h1{color:#58a6ff;font-size:26px;margin:0 0 6px}
+h2{color:#79c0ff;font-size:20px;border-bottom:1px solid #21262d;padding-bottom:6px}
+h3{color:#a5d6ff;font-size:16px} pre{background:#161b22;border:1px solid #30363d;
+border-radius:8px;padding:14px;font-family:'JetBrains Mono',Consolas,monospace;
+font-size:13px;white-space:pre-wrap;color:#d2a8ff;overflow:hidden}
+p{margin:6px 0;line-height:1.5;font-size:14px} hr{border:0;border-top:1px solid #21262d}
+li{margin:3px 0;font-size:14px} .meta{color:#8b949e;font-size:12px;margin-bottom:14px}
+</style></head><body>
+<div class="meta">GodModeCoder · Живой Код · nvidia/nemotron-3.5-super-vl-120b-a12b</div>
+<h1>🛠 Кодер ParanoidX</h1>
+<p>Все шаги выполнены. Финальная сводка.</p>
+<p>&nbsp;</p>
+<h2>Сделано (один пункт из плана ParanoidX — противоречие п.3: вакуумные тесты error-путей)</h2>
+<p>&nbsp;</p>
+<p>**Закрыты два вакуумных теста в `internal/bridge/bridge_test.go`** (исходники не трогались):</p>
+<li>`TestCmdPOSCreateError` → `TestCmdPOSCreateMerchantRequired` — пустой `merchant` + `amount=0` заставляют `CreateInvoice` вернуть ошибку; без проверки ошибки код пошёл с nil-инвойсом и паникнулся на `inv.ID`. Мутация `commands.go:remove-error-check#0` **поймана** (mutagen PASS).</li>
+<li>`TestBridgeNewCLIBinError` → `TestBridgeNewCLIBinFallback` — подмена `HOME` проверяет реальную ветку отката `New()` при отсутствии бинарника.</li>
+<p>&nbsp;</p>
+<p>**Верификация:**</p>
+<li>`go run scripts/mutagen/main.go -pkg ./internal/bridge`: PASS=15 FAIL=6 (было PASS=14 FAIL=7)</li>
+<li>`go build ./... &amp;&amp; go vet ./internal/... &amp;&amp; go test ./... -short` — зелёно</li>
+<p>&nbsp;</p>
+<p>**Осталось горячим (FAIL=6):** три интеграционные проверки `wsWrite`/`StdoutPipe`/`StderrPipe` в `RunContext` (нужен живой процесс simplex-chat-island + WebSocket) и три ложных срабатывания `doc.go` на комментариях — оформлены пропусками с обоснованием, по прецеденту пунктов 3.3/3.4. Закрыть их можно только интеграционной стеной — не эта задача.</p>
+<p>&nbsp;</p>
+<p>**Коммит:** `5fbd6a7` — `feat(bridge): заменить вакуумные тесты error-путей на ловящие мутация` (ветка `feature/app-transport`).</p>
+<p>&nbsp;</p>
+<p>**Доставка:** отчёт `/home/thomas/LivingCode/reports/coder-paranoidx-20261103-1612.md` отправлен Инквизитору (Telegram, message_id=30767, thread=252). Заметка в журнале к Аудитору оставлена с `[TRIGGER_AUDITOR] paranoidx`. Проект по симлинку `/home/thomas/LivingCode/Projects/ParanoidX → /home/prophetthomas/projects/ParanoidX`, файлы физически в `/home/prophetthomas/projects/ParanoidX/internal/bridge/`.</p>
+</body></html>

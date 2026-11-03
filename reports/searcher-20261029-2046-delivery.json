@@ -1,0 +1,13 @@
+{
+  "report": "/home/thomas/LivingCode/reports/searcher-20261029-2046.md",
+  "sender": "/home/thomas/LivingCode/orchestration/scripts/tg_send.py",
+  "sent": true,
+  "remote_document_verified": true,
+  "message_id": 30249,
+  "chat_id": -1004431090317,
+  "thread_id": 252,
+  "file_name": "searcher-20261029-2046.md",
+  "file_size": 23419,
+  "sha256": "ef9a497030e8da6ab1c24d52b935fb2d495d25c26572c65e55f59cf0a9fe7983",
+  "remote_bytes": 23419
+}

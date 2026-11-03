@@ -1,0 +1,146 @@
+From 2300cc5d1c4a67961884ad1b8705d2533270c41b Mon Sep 17 00:00:00 2001
+From: ProphetThomas <coder@livingcode.local>
+Date: Sun, 4 Oct 2026 03:32:36 +0200
+Subject: [PATCH 2/2] =?UTF-8?q?test(registry):=20=D0=BC=D1=83=D1=82=D0=B0?=
+ =?UTF-8?q?=D1=86=D0=B8=D0=BE=D0=BD=D0=BD=D1=8B=D0=B9=20harness=20=D0=B4?=
+ =?UTF-8?q?=D0=BB=D1=8F=20=D0=B8=D0=B4=D0=B5=D0=BD=D1=82=D0=B8=D1=84=D0=B8?=
+ =?UTF-8?q?=D0=BA=D0=B0=D1=82=D0=BE=D1=80=D0=B0=20=D1=83=D0=B7=D0=BB=D0=B0?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Четыре защиты снимаются по отдельности на копии дерева; помимо теста
+проверяется, что мутация реально изменила копию — иначе зелёный прогон
+ничего не значит.
+---
+ scripts/mut-nodeid-test.sh | 117 +++++++++++++++++++++++++++++++++++++
+ 1 file changed, 117 insertions(+)
+ create mode 100755 scripts/mut-nodeid-test.sh
+
+diff --git a/scripts/mut-nodeid-test.sh b/scripts/mut-nodeid-test.sh
+new file mode 100755
+index 0000000..17d71a9
+--- /dev/null
++++ b/scripts/mut-nodeid-test.sh
+@@ -0,0 +1,117 @@
++#!/usr/bin/env bash
++# Мутационное тестирование фикса 9156c74 (идентификатор узла).
++#
++# Заявка под проверкой: новые тесты nodeid_test.go не вакуумны. Каждая
++# из четырёх защит снимается по отдельности, и соответствующий тест
++# обязан это заметить. Мутация применяется к отдельной копии дерева —
++# рабочий каталог остаётся чистым.
++set -uo pipefail
++P="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
++PASS=0; FAIL=0
++
++# $1 = метка мутации, $2 = python-скрипт, $3 = ожидаемое имя падающего теста
++mutate() {
++  local label="$1" script="$2" want="$3"
++  local W
++  W="$(mktemp -d /home/thomas/.hermes/cache/scratch/pvx-mut-XXXXXX)"
++  # Копируется только то, из чего собирается internal/registry: модуль
++  # целиком копировать не нужно, .git тем более.
++  cp "$P/go.mod" "$P/go.sum" "$W/"
++  cp -a "$P/internal" "$W/internal"
++  printf '%s' "$script" > "$W/mut.py"
++  # python обязан работать с каталогом $W: иначе относительный путь
++  # internal/registry/registry.go указывает на исходник и мутируется он,
++  # а тесты потом гоняются на нетронутой копии — они зеленеют вхолостую.
++  (cd "$W" && python3 mut.py) || { echo "  FAIL [$label] мутация не применилась"; FAIL=$((FAIL+1)); return; }
++  if ! diff -q "$P/internal/registry/registry.go" "$W/internal/registry/registry.go" >/dev/null; then :; else
++    echo "  FAIL [$label] мутация не изменила копию — harness врёт"; FAIL=$((FAIL+1)); return
++  fi
++
++  local out rc
++  out=$(cd "$W" && go vet ./internal/registry/ 2>&1)
++  if [[ -n "$out" ]]; then
++    echo "  FAIL [$label] код не компилируется — мутация некорректна:"
++    echo "$out" | head -5
++    FAIL=$((FAIL+1)); return
++  fi
++
++  out=$(cd "$W" && go test ./internal/registry/ -run "$want" -count=1 2>&1)
++  rc=$?
++  if [[ $rc -ne 0 ]]; then
++    echo "  OK   [$label] тест поймал мутацию: $(echo "$out" | grep -m1 -- '--- FAIL\|FAIL:' || echo "$out" | tail -1)"
++    PASS=$((PASS+1))
++  else
++    echo "  FAIL [$label] тест остался зелёным при снятой защите — ВАКУУМНЫЙ"
++    FAIL=$((FAIL+1))
++  fi
++  rm -rf "$W"
++}
++
++echo "=== sanity: чистое дерево обязано быть зелёным ==="
++if (cd "$P" && go test ./internal/registry/ -run 'NodeID' -count=1 >/dev/null 2>&1); then
++  echo "  OK   baseline зелёный"; PASS=$((PASS+1))
++else
++  echo "  FAIL baseline красный — harness врёт"; FAIL=$((FAIL+1))
++fi
++
++echo
++echo "=== M1: ширина 128 бит -> 32 бита (срез 8 hex) ==="
++mutate "M1 32-битный срез" '
++p="internal/registry/registry.go"; s=open(p).read()
++old="return \"node-\" + hex.EncodeToString(h.Sum(nil)[:16])"
++new="return \"node-\" + hex.EncodeToString(h.Sum(nil)[:4])"
++assert old in s, "anchor not found"
++open(p,"w").write(s.replace(old,new,1))
++' 'TestGenerateNodeIDWidth'
++
++echo
++echo "=== M2: pubkey выкинут из хеша ==="
++mutate "M2 pubkey игнорируется" '
++p="internal/registry/registry.go"; s=open(p).read()
++old="\th.Write([]byte(pubkey))"
++new="\t_ = pubkey"
++assert old in s, "anchor not found"
++open(p,"w").write(s.replace(old,new,1))
++' 'TestNodeIDFromUsesPubkey'
++
++echo
++echo "=== M3: соль обнуляется ==="
++mutate "M3 соль игнорируется" '
++p="internal/registry/registry.go"; s=open(p).read()
++old="\th.Write(salt[:])"
++new="\t_ = salt"
++assert old in s, "anchor not found"
++open(p,"w").write(s.replace(old,new,1))
++' 'TestNodeIDFromUsesEntropy'
++
++echo
++echo "=== M4: возврат к math/rand uint32 (весь прежний дефект) ==="
++mutate "M4 math/rand uint32" '
++p="internal/registry/registry.go"; s=open(p).read()
++old="""	var salt [16]byte
++	if _, err := rand.Read(salt[:]); err != nil {
++		// Отказ генератора означает, что выданный ID был бы предсказуемым.
++		// Лучше явная остановка, чем молчаливо слабая идентичность.
++		panic("registry: crypto/rand unavailable: " + err.Error())
++	}
++	return nodeIDFrom(pubkey, salt)"""
++new="""	mrand.Seed(1)
++	_ = rand.Read
++	_ = sha256.New
++	h := fmt.Sprintf("%x", struct{ uint32 }{mrand.Uint32()})
++	return "node-" + h[:8]"""
++assert old in s, "anchor not found"
++s=s.replace(old,new,1)
++s=s.replace("\t\"crypto/sha256\"\n","\t\"crypto/sha256\"\n\t\"fmt\"\n\tmrand \"math/rand\"\n",1)
++open(p,"w").write(s)
++' 'TestGenerateNodeIDUniqueUnderLoad|TestGenerateNodeIDWidth'
++
++echo
++echo "======================================"
++echo "PASS=${PASS}  FAIL=${FAIL}"
++if [[ $FAIL -eq 0 ]]; then
++  echo "OK  все защиты несут нагрузку: тесты не вакуумны"
++else
++  echo "ERR есть пустые тесты"
++fi
++exit $(( FAIL > 0 ? 1 : 0 ))
+\ No newline at end of file
+-- 
+2.53.0
+

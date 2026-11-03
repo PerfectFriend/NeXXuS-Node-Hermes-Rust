@@ -1,0 +1,32 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+body{background:#0d1117;color:#e6edf3;font-family:-apple-system,'Segoe UI',Roboto,
+'Fira Sans',sans-serif;margin:0;padding:28px 34px;width:932px}
+h1{color:#58a6ff;font-size:26px;margin:0 0 6px}
+h2{color:#79c0ff;font-size:20px;border-bottom:1px solid #21262d;padding-bottom:6px}
+h3{color:#a5d6ff;font-size:16px} pre{background:#161b22;border:1px solid #30363d;
+border-radius:8px;padding:14px;font-family:'JetBrains Mono',Consolas,monospace;
+font-size:13px;white-space:pre-wrap;color:#d2a8ff;overflow:hidden}
+p{margin:6px 0;line-height:1.5;font-size:14px} hr{border:0;border-top:1px solid #21262d}
+li{margin:3px 0;font-size:14px} .meta{color:#8b949e;font-size:12px;margin-bottom:14px}
+</style></head><body>
+<div class="meta">GodModeCoder · Живой Код · nvidia/nemotron-3.5-super-vl-120b-a12b</div>
+<h1>🛠 Профессор</h1>
+<p>Слот Профессора завершён. Всё выполнено за ≈6 минут (START 20:00:14, слот не израсходован — закрыт по квоте 5 завершённых тем, как в предыдущем слоте).</p>
+<p>&nbsp;</p>
+<p>**Что сделано:**</p>
+<p>1. Найден `[TRIGGER_PROFESSOR]` в `agents/journal.md` (стр. 3 — Искатель, дайджест 14:50).</p>
+<p>2. В `Учебнике.md` найдено 38 неизученных строк `- [ ] 🔴`; 27 уникальных тем отправлены на один запуск `laya_bridge.py score` (state-context: рой агентов-кодеров, локальные LLM, UI-гейты, самообучение роя).</p>
+<p>3. Изучены 5 топ-тем (все laya ≥ 1.2), материал взято из учебника + первоисточников (web_extract):</p>
+<p>   - **1.5802** AMD ROCm 7.14 — llama.cpp на ROCm (gfx1103/780M, проверка `./llama-bench -ngl 999` backend=ROCm)</p>
+<p>   - **1.4301** Waku Agent — local-first харнесс (loop/memory/eval в коде, Python+SQLite)</p>
+<p>   - **1.4148** Microsoft Agent Framework (Python+.NET+Go, 14.5k★, tool-approval, MCP/A2A)</p>
+<p>   - **1.4108** Microsoft Secure Parallel Agent Swarms (Azure沙боксы, keyless auth, self-provision compute)</p>
+<p>   - **1.3800** Self-Evolving Agent Harness arXiv:2610.18813 (PAC-learning, бюджеты регрессии, код zgcagi/Harness-RSI)</p>
+<p>4. Конспекты занесены в `/home/thomas/LivingCode/knowledge-base/` (5 файлов) со ссылками на первоисточники и laya-скорами.</p>
+<p>5. В `Учебнике.md` 6 строк переведены `[ ] 🔴 → [x] 🟢 ИЗУЧЕНО 2026-11-03 (Профессор)` с `[[...]]` и `#professor:2026-11-03` (включая дубль microsoft/agent-framework). Осталось **32 неизученных 🔴**.</p>
+<p>6. Отчёт: `/home/thomas/LivingCode/reports/professor-20261103-2006.md`.</p>
+<p>7. Telegram в тему 252 (Cathedral бот): `ok=true`, message_id 30816, документ доставлен.</p>
+<p>8. Запись о слоте добавлена в начало `agents/journal.md` для всей Машины Кода.</p>
+<p>&nbsp;</p>
+<p>**Очередь на следующий слот** (по живым laya-скорам): Jediah Katz 1.2935, oobabooga/textgen 1.2863, Rethinking Verification (L3) 1.2702, DeepSeek-for-VisualStudio 1.2691, Self-Harness 1.2479, livekit/agents 1.2034; затем 0.8–1.2 (MESH 0.9348, SWARMRSI 0.9112, walkinglabs 0.8809, RRSI 0.8713); Evo-Harness 0.739 — в конец.</p>
+</body></html>

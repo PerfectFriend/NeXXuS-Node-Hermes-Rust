@@ -1,0 +1,35 @@
+fix(simulation): move state persistence out of unreachable code, stop advancing the RNG on save
+
+Cycle 3 (2026-10-02). Reproduced with reports/tmp_probe_cycle3.mjs.
+
+1. [СР] The "Persist state to localStorage" useEffect sat AFTER the hook's
+   `return {...}` (return line 416, block lines 425-448). A hook body cannot
+   have statements after return, so the effect was never registered and the
+   player lost the whole field on every app restart — while the code looked
+   correct on read. The block now precedes the return; the hook's last
+   statement is the return again.
+
+2. [СР, latent] That same block computed `rngState: state.rng ? (state.rng()
+   as number) : undefined`. rng is the generator closure itself
+   (function mulberry32, engine.ts:409), not its state, so calling it during
+   serialization advanced the PRNG one step and silently shifted the whole
+   random sequence. rng is now explicitly excluded from the persisted state;
+   the level is rebuilt from levelSeed on restore and the field comes from
+   the saved map.
+
+Adds tests/simulation.hook.test.mjs — parses the REAL useSimulation.ts with
+the TypeScript Compiler API (not text matching) and asserts the hook body ends
+with return, that no block in the file has statements after a return, that the
+save effect exists and is reachable and wrapped in useEffect, and that the
+save block never calls the RNG.
+
+Two honest notes about the test itself:
+  * The first version matched text heuristically and produced 4 false
+    positives on multi-line object literals inside return statements. Rewritten
+    against the AST, where those are correctly distinguished.
+  * The first version of the RNG check searched only for an Identifier named
+    `rng` and so passed on the exact defect it was written for (the code had
+    `state.rng()` — a PropertyAccess). Widened to both forms.
+
+Verified non-vacuous: against the pre-fix source (git show HEAD:) the suite
+fails 4 of 6; after the fix 6/6 pass. tsc -b exit 0.

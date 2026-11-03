@@ -1,0 +1,17 @@
+{
+  "проект": "Project4",
+  "коммит": "87bd8987b5ae54ee7e7c8f186c55548dc2232cde",
+  "инструмент": "/home/thomas/LivingCode/orchestration/scripts/laya_bridge.py triage",
+  "находки": [
+    {"номер": "Н1", "предмет": "Автономный CI и внешние зависимости", "kategoriya": "sredne", "kategoriya_confidence": 0.8004, "srochnost": 1.7561, "action": "otlozhit", "action_confidence": 0.5924},
+    {"номер": "Н2", "предмет": "Ложный успех обычного бенчмарка", "kategoriya": "kritichno", "kategoriya_confidence": 0.3382, "srochnost": 1.8443, "action": "operatoru", "action_confidence": 0.3464},
+    {"номер": "Н3", "предмет": "Повреждённые счётчики JUnit", "kategoriya": "sredne", "kategoriya_confidence": 0.9372, "srochnost": 1.7748, "action": "operatoru", "action_confidence": 0.775},
+    {"номер": "Н4", "предмет": "Несогласованный агрегат реестра", "kategoriya": "sredne", "kategoriya_confidence": 0.8624, "srochnost": 1.8487, "action": "operatoru", "action_confidence": 0.7137},
+    {"номер": "Н5", "предмет": "Подмена каталога после проверки пути", "kategoriya": "nizko", "kategoriya_confidence": 0.5303, "srochnost": 1.6797, "action": "otlozhit", "action_confidence": 0.6346},
+    {"номер": "Н6", "предмет": "Дублирование canonical_record", "kategoriya": "nizko", "kategoriya_confidence": 0.5645, "srochnost": 1.5109, "action": "chinit_seychas", "action_confidence": 0.3602},
+    {"номер": "Н7", "предмет": "Хардкод домашнего каталога", "kategoriya": "sredne", "kategoriya_confidence": 0.5202, "srochnost": 1.6027, "action": "operatoru", "action_confidence": 0.4262},
+    {"номер": "Н8", "предмет": "Шум исторического сравнения корпусов", "kategoriya": "sredne", "kategoriya_confidence": 0.9344, "srochnost": 1.6747, "action": "operatoru", "action_confidence": 0.594},
+    {"номер": "Н9", "предмет": "Перезапись отслеживаемого кейса тестами", "kategoriya": "sredne", "kategoriya_confidence": 0.5735, "srochnost": 1.7483, "action": "otlozhit", "action_confidence": 0.5091}
+  ],
+  "примечание": "Действия сохранены без переназначения. Низкая категория и немедленное действие для Н6 противоречивы; это не доказательство критичности дубля, но запрещает TRIGGER_LORD по условиям слота."
+}

@@ -1,0 +1,36 @@
+fix(sound): sporadic soundtrack timers are now cancellable; startSoundtrack is idempotent
+
+Cycle 4 (2026-10-02). Three defects in src/sound/soundSystem.ts, all about the
+self-perpetuating sporadic chain (seagulls / crows / bardSong):
+
+1. [СР] scheduleSporadic called `setTimeout(playOnce, ...)` and discarded the
+   handle, so stopSoundtrack() could not cancel it. The chain kept
+   re-scheduling itself through src.onended: measured, a single stop left 3
+   live timers, and 10 minutes of virtual time created 20 MORE timers after
+   the music had been switched off. Every toggleMusic(true) stacked three
+   more chains on top of the live ones — unbounded timer growth on Android.
+   Timers are now tracked in sporadicTimers and cleared in stopSoundtrack().
+
+2. [СР] stopSoundtrack() called layer.source.stop() without clearing
+   layer.source.onended first, so stopping each ambient layer scheduled yet
+   another timer on the way out. The handler is now detached before stop().
+
+3. [СР] startSoundtrack() was not idempotent: calling it twice (two consecutive
+   toggleMusic(true), or two call sites) pushed a second set of ambient layers
+   and launched a second triple of chains — music layered over itself and
+   timers doubled. It now stops any previous soundtrack first.
+
+Chains additionally carry a generation counter, so a timer that was already
+scheduled when stopSoundtrack() ran cannot resurrect its chain.
+
+Adds tests/sound.soundtrack.test.mjs — compiles the REAL soundSystem.ts and
+drives it against WebAudio factories plus a hand-rolled virtual clock that
+intercepts setTimeout/clearTimeout (the engine is not touched).
+
+Honest note about the test's own first version: the WebAudio factory fired
+onended only from stop(), so the "chain must not resurrect after stop"
+assertion passed even against the broken code — it was vacuous by
+construction. The factory now models a real AudioBufferSourceNode, which
+fires onended by itself when the buffer finishes, and the virtual clock
+interleaves source completion with timer expiry. After that fix the suite
+fails 5 of 7 against the pre-fix source and passes 7/7 after.

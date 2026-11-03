@@ -1,0 +1,14 @@
+fix(markers): strip 107 destructive '# HOT' lines from non-comment formats + regression test
+
+The HOT/COLD marker walker had injected '# HOT' as line 1 into .ts/.tsx/.js/.mjs/
+.svg/.gradle files, where '#' is NOT a comment. Consequence proven by real runs:
+all four test suites failed with "SyntaxError: Invalid or unexpected token",
+tsc -b could not parse the sources, and android/gradlew had its shebang pushed
+to line 2. Repaired using the canonical marker_guard.marker_safe() as the single
+source of truth (marker removed only where the guard says it must never be
+written). *.bak/*.backup untouched (rule 3).
+
+Adds tests/marker.integrity.test.mjs (191 files scanned) — guards the three
+failure modes plus a live engine.smoke invocation. Verified non-vacuous: with
+"# HOT" forced back onto src/engine/engine.ts the suite fails exit 1, and
+passes after restore. Adds test:markers and test:all npm scripts.

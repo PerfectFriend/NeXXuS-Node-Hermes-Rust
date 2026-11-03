@@ -1,0 +1,156 @@
+{
+  "P1-Учебник-109-желтых": {
+    "rc": 0,
+    "verdict": {
+      "answers": {
+        "kategoriya": {
+          "choice": "sredne",
+          "answer_confidence": 0.6433
+        },
+        "srochnost": {
+          "score": 1.6927,
+          "answer_confidence": 0.7022
+        },
+        "action": {
+          "choice": "operatoru",
+          "answer_confidence": 0.4956
+        }
+      },
+      "routing": {
+        "model": "multilingual"
+      }
+    }
+  },
+  "P2-Project1-фаза14-4-дефекта-без-правок": {
+    "rc": 0,
+    "verdict": {
+      "answers": {
+        "kategoriya": {
+          "choice": "sredne",
+          "answer_confidence": 0.8853
+        },
+        "srochnost": {
+          "score": 1.711,
+          "answer_confidence": 0.7138
+        },
+        "action": {
+          "choice": "otlozhit",
+          "answer_confidence": 0.4858
+        }
+      },
+      "routing": {
+        "model": "multilingual"
+      }
+    }
+  },
+  "P3-крон-LV-coder-project4-rc124-таймаут": {
+    "rc": 0,
+    "verdict": {
+      "answers": {
+        "kategoriya": {
+          "choice": "sredne",
+          "answer_confidence": 0.9205
+        },
+        "srochnost": {
+          "score": 1.7669,
+          "answer_confidence": 0.7693
+        },
+        "action": {
+          "choice": "operatoru",
+          "answer_confidence": 0.3955
+        }
+      },
+      "routing": {
+        "model": "multilingual"
+      }
+    }
+  },
+  "P4-цепочка-once-job-LV-auditor": {
+    "rc": 0,
+    "verdict": {
+      "answers": {
+        "kategoriya": {
+          "choice": "kritichno",
+          "answer_confidence": 0.5498
+        },
+        "srochnost": {
+          "score": 1.8423,
+          "answer_confidence": 0.8475
+        },
+        "action": {
+          "choice": "otlozhit",
+          "answer_confidence": 0.4904
+        }
+      },
+      "routing": {
+        "model": "multilingual"
+      }
+    }
+  },
+  "P5-extinction-check-ложные-orphans": {
+    "rc": 0,
+    "verdict": {
+      "answers": {
+        "kategoriya": {
+          "choice": "sredne",
+          "answer_confidence": 0.7852
+        },
+        "srochnost": {
+          "score": 1.6703,
+          "answer_confidence": 0.6863
+        },
+        "action": {
+          "choice": "operatoru",
+          "answer_confidence": 0.7294
+        }
+      },
+      "routing": {
+        "model": "multilingual"
+      }
+    }
+  },
+  "P6-cycle-start-git-синхронизация": {
+    "rc": 0,
+    "verdict": {
+      "answers": {
+        "kategoriya": {
+          "choice": "kritichno",
+          "answer_confidence": 0.6259
+        },
+        "srochnost": {
+          "score": 1.7142,
+          "answer_confidence": 0.7209
+        },
+        "action": {
+          "choice": "chinit_seychas",
+          "answer_confidence": 0.5052
+        }
+      },
+      "routing": {
+        "model": "multilingual"
+      }
+    }
+  },
+  "P7-journal-262KB-близко-к-лимиту": {
+    "rc": 0,
+    "verdict": {
+      "answers": {
+        "kategoriya": {
+          "choice": "sredne",
+          "answer_confidence": 0.6845
+        },
+        "srochnost": {
+          "score": 1.176,
+          "answer_confidence": 0.5344
+        },
+        "action": {
+          "choice": "otlozhit",
+          "answer_confidence": 0.4233
+        }
+      },
+      "routing": {
+        "model": "multilingual"
+      }
+    }
+  }
+}

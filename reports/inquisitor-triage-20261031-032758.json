@@ -1,0 +1,163 @@
+[
+  {
+    "id": "P1",
+    "problem": "Ролевые кроны Протокола Живого Кода падают с HTTP 400 context_length (limit 262144 токенов, actual 262558-262713): Инквизитор 49 отказов подряд, Супервайзор 30, Кодер Project3 19. Причина измерена: agents/journal.md вырос до 768 КБ и читается ролью целиком, из-за чего запрос не влезает в окно контекста.",
+    "laya": {
+      "answers": {
+        "kategoriya": {
+          "choice": "kritichno",
+          "answer_confidence": 0.55
+        },
+        "srochnost": {
+          "score": 1.6801,
+          "answer_confidence": 0.6927
+        },
+        "action": {
+          "choice": "otlozhit",
+          "answer_confidence": 0.8829
+        }
+      },
+      "routing": {
+        "model": "multilingual"
+      }
+    }
+  },
+  {
+    "id": "P2",
+    "problem": "В реестре кронов 10 ролей (Инквизитор, Супервайзор, Кодеры Project1-4, superguard, elemental-life, cybertarot) ссылаются на скилл autonomous-ai-agents, которого нет как скилла (это имя категории каталога). Живая проверка даёт unknown_skill: роль стартует с ошибкой загрузки скилла и лишним расходом контекста.",
+    "laya": {
+      "answers": {
+        "kategoriya": {
+          "choice": "sredne",
+          "answer_confidence": 0.7707
+        },
+        "srochnost": {
+          "score": 1.5543,
+          "answer_confidence": 0.5715
+        },
+        "action": {
+          "choice": "operatoru",
+          "answer_confidence": 0.5509
+        }
+      },
+      "routing": {
+        "model": "multilingual"
+      }
+    }
+  },
+  {
+    "id": "P3",
+    "problem": "Учебник Живого Кода: 116 строк помечены жёлтым (в процессе), часть уже имеет готовый конспект в knowledge-base, но не переведена в зелёный DEPLOYED; в knowledge-base/knowledge-graph.json узлы остаются в статусе studied при готовом конспекте на диске. Знание написано, но не доставлено агентам.",
+    "laya": {
+      "answers": {
+        "kategoriya": {
+          "choice": "sredne",
+          "answer_confidence": 0.5098
+        },
+        "srochnost": {
+          "score": 1.7615,
+          "answer_confidence": 0.7905
+        },
+        "action": {
+          "choice": "otlozhit",
+          "answer_confidence": 0.8214
+        }
+      },
+      "routing": {
+        "model": "multilingual"
+      }
+    }
+  },
+  {
+    "id": "P4",
+    "problem": "Отчёты, на которые ссылается журнал агентов, отсутствуют на диске: часть файлов reports/*.md теряется, ссылки ведут в пустоту, доказательная база рвётся и есть риск дублирования работы.",
+    "laya": {
+      "answers": {
+        "kategoriya": {
+          "choice": "sredne",
+          "answer_confidence": 0.5634
+        },
+        "srochnost": {
+          "score": 1.5807,
+          "answer_confidence": 0.5903
+        },
+        "action": {
+          "choice": "chinit_seychas",
+          "answer_confidence": 0.5787
+        }
+      },
+      "routing": {
+        "model": "multilingual"
+      }
+    }
+  },
+  {
+    "id": "P5",
+    "problem": "Журнал агентов journal.md не несёт ни источника, ни вида утверждения: любая LLM может дописать в него инструкцию, и она будет прочитана как инструкция. SAFE-Mem (метки kind/authority/scope) и SCP (untrusted by construction) показывают, что проверять надо и извлечение, и точку вызова инструмента.",
+    "laya": {
+      "answers": {
+        "kategoriya": {
+          "choice": "nizko",
+          "answer_confidence": 0.6525
+        },
+        "srochnost": {
+          "score": 1.6265,
+          "answer_confidence": 0.6341
+        },
+        "action": {
+          "choice": "operatoru",
+          "answer_confidence": 0.4048
+        }
+      },
+      "routing": {
+        "model": "multilingual"
+      }
+    }
+  },
+  {
+    "id": "P6",
+    "problem": "Решения, требующие оператора: X/Twitter cookies для Искателя (7 слотов подряд без канала), миграция cybertarot с deprecated Tact на Tolk (3 контракта), внедрение approvals-слоя Cogitator и/или SCP в крон-оркестратор, обновление ROCm только в отдельном окружении, логины Reddit/小红书/Facebook/Instagram.",
+    "laya": {
+      "answers": {
+        "kategoriya": {
+          "choice": "sredne",
+          "answer_confidence": 0.3947
+        },
+        "srochnost": {
+          "score": 1.5911,
+          "answer_confidence": 0.6224
+        },
+        "action": {
+          "choice": "chinit_seychas",
+          "answer_confidence": 0.4207
+        }
+      },
+      "routing": {
+        "model": "multilingual"
+      }
+    }
+  },
+  {
+    "id": "P7",
+    "problem": "Инструмент доставки tg_send.py печатает только message_id, но не file_id, поэтому штатная readback-проверка отправленного документа (скачать обратно и сверить SHA-256) невозможна; все роли вынуждены писать отдельные обходные скрипты.",
+    "laya": {
+      "answers": {
+        "kategoriya": {
+          "choice": "kritichno",
+          "answer_confidence": 0.429
+        },
+        "srochnost": {
+          "score": 1.6633,
+          "answer_confidence": 0.6679
+        },
+        "action": {
+          "choice": "operatoru",
+          "answer_confidence": 0.7401
+        }
+      },
+      "routing": {
+        "model": "multilingual"
+      }
+    }
+  }
+]
