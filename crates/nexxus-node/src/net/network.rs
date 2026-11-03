@@ -740,4 +740,41 @@ mod tests {
 
         server.abort();
     }
+
+    #[tokio::test]
+    async fn kad_find_node_over_wire() {
+        let dir = tempdir().unwrap();
+        let store = Arc::new(ChunkStore::open(dir.path().join("store.redb")).unwrap());
+        let our_id = NodeId([0x47u8; 32]);
+        let net = Arc::new(P2pNetwork::new(our_id, "127.0.0.1:0".parse().unwrap(), store));
+
+        // register a known peer in the server routing table
+        let peer = crate::net::routing::Peer {
+            node_id: NodeId([0x48u8; 32]),
+            addr: "127.0.0.1:4002".parse().unwrap(),
+        };
+        net.register_peer(peer).await;
+
+        let net_clone = Arc::clone(&net);
+        let server = tokio::spawn(async move { net_clone.run().await });
+
+        let mut bound = None;
+        for _ in 0..100 {
+            bound = net.bound_addr().await;
+            if bound.is_some() {
+                break;
+            }
+            tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+        }
+        let listener_addr = bound.expect("listener failed to bind");
+
+        // client dials KadFindNode -> expects KadNodesFound with the registered peer
+        let target = NodeId([0x99u8; 32]);
+        let found = net.dial_find_node(listener_addr, target, 5).await.unwrap();
+        assert_eq!(found.len(), 1);
+        assert_eq!(found[0].node_id, [0x48u8; 32]);
+        assert_eq!(found[0].port, 4002);
+
+        server.abort();
+    }
 }

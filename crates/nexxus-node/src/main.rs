@@ -1,5 +1,6 @@
 //! NeXXUs storage daemon (nexxusd).
-//! Phase 7: redb persistent chunk index + P2P network listener (wire v3).
+//! Phase 8: full network protocol daemon — redb persistent chunk index,
+//! P2P network listener (wire v3), NodeAnnounce/SmpEnvelope/EpochFinalize/PoR handlers.
 
 use std::env;
 use std::net::SocketAddr;
