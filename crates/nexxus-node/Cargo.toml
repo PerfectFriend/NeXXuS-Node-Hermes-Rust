@@ -25,8 +25,12 @@ hex = { workspace = true }
 sha2 = { workspace = true }
 ed25519-dalek = { workspace = true }
 curve25519-dalek = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
 arti-client = { version = "0.47", optional = true, features = ["onion-service-service", "onion-service-client"] }
 tor-rtcompat = { version = "0.47", optional = true, features = ["native-tls"] }
+tokio-tungstenite = "0.21"
+futures-util = "0.3"
 
 [dev-dependencies]
 tempfile = "3"

@@ -54,6 +54,8 @@ pub struct P2pNetwork {
     auditors: Vec<VerifyingKey>,
     /// M-of-N threshold for EpochFinalize acceptance.
     threshold: usize,
+    /// Optional local API for desktop monitor (peer registration).
+    local_api: Option<Arc<crate::local_api::LocalApi>>,
 }
 
 impl P2pNetwork {
@@ -86,6 +88,7 @@ impl P2pNetwork {
             store,
             auditors,
             threshold,
+            local_api: None,
         }
     }
 
@@ -122,12 +125,28 @@ impl P2pNetwork {
             store,
             auditors,
             threshold,
+            local_api: None,
         }
+    }
+
+    /// Attach the local API instance for peer registration and monitoring.
+    pub fn with_local_api(&mut self, api: Arc<crate::local_api::LocalApi>) {
+        self.local_api = Some(api);
     }
 
     /// Ed25519 verifying key (our node public key).
     pub fn verifying_key(&self) -> VerifyingKey {
         self.identity.verifying_key
+    }
+
+    /// Our NodeId.
+    pub fn node_id(&self) -> NodeId {
+        self.our_id
+    }
+
+    /// Listen address as string.
+    pub fn listen_addr_str(&self) -> String {
+        self.listen_addr.to_string()
     }
 
     /// Static X25519 public key (for SMP envelope sealing by peers).
@@ -345,22 +364,34 @@ impl P2pNetwork {
         mut stream: TcpStream,
         _peer: ConnectedPeer,
     ) -> Result<(), NexxusError> {
-        loop {
-            let (opcode, req_id, payload) = match crate::net::frame::recv_frame(&mut stream).await {
-                Ok(f) => f,
-                // clean EOF on idle connection
-                Err(NexxusError::Io(e)) if e.to_string().contains("connection reset")
-                    || e.to_string().contains("broken pipe") =>
-                {
-                    return Ok(())
-                }
-                Err(e) => return Err(e),
-            };
-            if payload.len() > MAX_FRAME_LEN {
-                return Err(NexxusError::Io("frame too large".into()));
-            }
-            self.handle_opcode(&mut stream, opcode, req_id, &payload).await?;
+        let addr = stream.peer_addr().unwrap_or_else(|_| "127.0.0.1:0".parse().unwrap());
+        if let Some(api) = &self.local_api {
+            api.register_peer(addr, None, "inbound").await;
         }
+        let api_clone = self.local_api.clone();
+        let addr_clone = addr;
+        let result = (async {
+            loop {
+                let (opcode, req_id, payload) = match crate::net::frame::recv_frame(&mut stream).await {
+                    Ok(f) => f,
+                    // clean EOF on idle connection
+                    Err(NexxusError::Io(e)) if e.to_string().contains("connection reset")
+                        || e.to_string().contains("broken pipe") =>
+                    {
+                        return Ok(())
+                    }
+                    Err(e) => return Err(e),
+                };
+                if payload.len() > MAX_FRAME_LEN {
+                    return Err(NexxusError::Io("frame too large".into()));
+                }
+                self.handle_opcode(&mut stream, opcode, req_id, &payload).await?;
+            }
+        }).await;
+        if let Some(api) = api_clone {
+            api.unregister_peer(&addr_clone).await;
+        }
+        result
     }
 
     async fn handle_opcode(
