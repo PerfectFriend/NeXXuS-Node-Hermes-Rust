@@ -55,7 +55,7 @@ pub struct P2pNetwork {
     /// M-of-N threshold for EpochFinalize acceptance.
     threshold: usize,
     /// Optional local API for desktop monitor (peer registration).
-    local_api: Option<Arc<crate::local_api::LocalApi>>,
+    pub local_api: Arc<Mutex<Option<Arc<crate::local_api::LocalApi>>>>,
 }
 
 impl P2pNetwork {
@@ -88,7 +88,7 @@ impl P2pNetwork {
             store,
             auditors,
             threshold,
-            local_api: None,
+            local_api: Arc::new(Mutex::new(None)),
         }
     }
 
@@ -125,13 +125,13 @@ impl P2pNetwork {
             store,
             auditors,
             threshold,
-            local_api: None,
+            local_api: Arc::new(Mutex::new(None)),
         }
     }
 
     /// Attach the local API instance for peer registration and monitoring.
-    pub fn with_local_api(&mut self, api: Arc<crate::local_api::LocalApi>) {
-        self.local_api = Some(api);
+    pub async fn set_local_api(&self, api: Arc<crate::local_api::LocalApi>) {
+        *self.local_api.lock().await = Some(api);
     }
 
     /// Ed25519 verifying key (our node public key).
@@ -365,7 +365,7 @@ impl P2pNetwork {
         _peer: ConnectedPeer,
     ) -> Result<(), NexxusError> {
         let addr = stream.peer_addr().unwrap_or_else(|_| "127.0.0.1:0".parse().unwrap());
-        if let Some(api) = &self.local_api {
+        if let Some(api) = self.local_api.lock().await.as_ref() {
             api.register_peer(addr, None, "inbound").await;
         }
         let api_clone = self.local_api.clone();
@@ -388,7 +388,7 @@ impl P2pNetwork {
                 self.handle_opcode(&mut stream, opcode, req_id, &payload).await?;
             }
         }).await;
-        if let Some(api) = api_clone {
+        if let Some(api) = api_clone.lock().await.as_ref() {
             api.unregister_peer(&addr_clone).await;
         }
         result

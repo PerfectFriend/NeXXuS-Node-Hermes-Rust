@@ -52,9 +52,9 @@ fn main() {
             }
         };
 
-        let mut net = Arc::new(P2pNetwork::new(our_id, listen_addr, Arc::clone(&store)));
+        let net = Arc::new(P2pNetwork::new(our_id, listen_addr, Arc::clone(&store)));
         let api = Arc::new(LocalApi::new(Arc::clone(&net), Arc::clone(&store)));
-        Arc::get_mut(&mut net).unwrap().with_local_api(Arc::clone(&api));
+        net.set_local_api(Arc::clone(&api)).await;
 
         println!(
             "nexxusd {} — node {} listening on {}",
