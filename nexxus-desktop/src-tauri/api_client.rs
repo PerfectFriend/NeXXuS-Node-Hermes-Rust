@@ -3,6 +3,7 @@
 
 use serde_json::Value;
 use std::time::Duration;
+use futures_util::{SinkExt, StreamExt};
 use tokio_tungstenite::connect_async;
 use tungstenite::Message;
 use url::Url;

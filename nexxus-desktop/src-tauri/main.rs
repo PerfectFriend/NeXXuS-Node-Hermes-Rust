@@ -1,12 +1,9 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use tauri::{Manager, SystemTray, SystemTrayEvent, SystemTrayMenu, SystemTrayMenuItem};
-use tauri::command;
-use serde::{Deserialize, Serialize};
+use tauri::{Manager, command};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
-mod commands;
 mod api_client;
 
 use api_client::NexxusApiClient;
@@ -93,35 +90,20 @@ async fn node_resume(state: tauri::State<'_, AppState>) -> Result<serde_json::Va
 fn main() {
     let api_client = Arc::new(Mutex::new(NexxusApiClient::new("ws://127.0.0.1:4010")));
 
-    let system_tray = SystemTrayMenu::new()
-        .add_item(SystemTrayMenuItem::new("Открыть дашборд", true, None, "show_dashboard"))
-        .add_item(SystemTrayMenuItem::new("Статус узла", true, None, "node_status"))
-        .add_native_item(SystemTrayMenuItem::Separator)
-        .add_item(SystemTrayMenuItem::new("Пауза узла", true, None, "node_pause"))
-        .add_item(SystemTrayMenuItem::new("Перезапуск узла", true, None, "node_restart"))
-        .add_native_item(SystemTrayMenuItem::Separator)
-        .add_item(SystemTrayMenuItem::new("Настройки", true, None, "settings"))
-        .add_item(SystemTrayMenuItem::new("Выход", true, None, "quit"));
-
     tauri::Builder::default()
         .manage(AppState { api_client })
-        .system_tray(SystemTray::new().with_menu(system_tray))
-        .on_system_tray_event(|app, event| match event {
-            SystemTrayEvent::MenuItemClick { id, .. } => match id.as_str() {
-                "show_dashboard" => {
-                    let window = app.get_window("main").unwrap();
-                    window.show().unwrap();
+        .setup(|app| {
+            let window = app.get_webview_window("main").unwrap();
+            let window_clone = window.clone();
+
+            // Hide window on close, keep running in background
+            window.on_window_event(move |event| {
+                if let tauri::WindowEvent::CloseRequested { .. } = event {
+                    let _ = window_clone.hide();
                 }
-                "quit" => {
-                    std::process::exit(0);
-                }
-                _ => {}
-            },
-            SystemTrayEvent::DoubleClick { .. } => {
-                let window = app.get_window("main").unwrap();
-                window.show().unwrap();
-            }
-            _ => {}
+            });
+
+            Ok(())
         })
         .invoke_handler(tauri::generate_handler![
             node_status,
@@ -134,19 +116,6 @@ fn main() {
             node_pause,
             node_resume,
         ])
-        .setup(|app| {
-            let window = app.get_window("main").unwrap();
-            let window_clone = window.clone();
-
-            // Hide window on close, keep running in tray
-            window.on_window_event(move |event| {
-                if let tauri::WindowEvent::CloseRequested { .. } = event {
-                    window_clone.hide().unwrap();
-                }
-            });
-
-            Ok(())
-        })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
