@@ -1,12 +1,8 @@
-// Интерфейс узла NeXXus — десктоп-монитор с системным треем.
-// Вызывает Tauri команды, которые проксируют JSON-RPC запросы к локальному API nexxusd (127.0.0.1:4010).
-//
-// Архитектура:
-//   - Все данные из nexxusd получаются через Tauri `invoke()` команды.
-//   - Команды на стороне Rust (src-tauri/main.rs) делают JSON-RPC запросы
-//     к WebSocket серверу nexxusd на ws://127.0.0.1:4010.
-//   - Если nexxusd не запущен, каждая команда вернёт ошибку "Connection refused",
-//     которая отображается в логе приложения.
+// Интерфейс узла NeXXus — десктоп-монитор «Ангел-хранитель» ноды.
+// Вызывает Tauri команды, которые:
+//   - Проксируют JSON-RPC запросы к локальному API nexxusd (127.0.0.1:4010)
+//   - Управляют жизненным циклом nexxusd (запуск, перезапуск, остановка)
+//   - Мониторят здоровье ноды и отправляют уведомления в Telegram
 
 import { invoke } from '@tauri-apps/api/core';
 
@@ -16,7 +12,6 @@ const API_BASE = 'ws://127.0.0.1:4010';
 
 // Интервал автообновления в миллисекундах (5 секунд).
 let refreshInterval = null;
-// Флаг включения/выключения автообновления.
 let autoRefresh = true;
 
 // ===== Ссылки на DOM элементы =====
@@ -37,6 +32,22 @@ const chunksBody = document.getElementById('chunks-body');
 const smpBody = document.getElementById('smp-body');
 const logBody = document.getElementById('log-body');
 
+// === Guardian UI ===
+const guardianStateText = document.getElementById('guardian-state');
+const guardianNodeIdText = document.getElementById('guardian-node-id');
+const guardianUptimeText = document.getElementById('guardian-uptime');
+const guardianPeersText = document.getElementById('guardian-peers');
+const guardianFailedChecksText = document.getElementById('guardian-failed-checks');
+const guardianTgStatusText = document.getElementById('guardian-tg-status');
+const guardianStageLog = document.getElementById('guardian-stage-log');
+
+// Кнопки управления guardian
+const btnStartNode = document.getElementById('btn-start-node');
+const btnRestartNode = document.getElementById('btn-restart-node');
+const btnStopNode = document.getElementById('btn-stop-node');
+const btnToggleMonitor = document.getElementById('btn-toggle-monitor');
+const btnTgTest = document.getElementById('btn-tg-test');
+
 // Форма отправки SMP
 const smpForm = document.getElementById('smp-form');
 const smpResult = document.getElementById('smp-result');
@@ -53,6 +64,18 @@ function log(msg) {
   if (logBody.children.length > 50) logBody.removeChild(logBody.lastChild);
 }
 
+/// Добавляет запись в лог этапов Guardian (сценарий запуска).
+function stageLog(msg) {
+  const now = new Date().toLocaleTimeString();
+  const row = document.createElement('tr');
+  row.innerHTML = `<td>${now}</td><td>${msg}</td>`;
+  if (guardianStageLog) {
+    guardianStageLog.insertBefore(row, guardianStageLog.firstChild);
+    if (guardianStageLog.children.length > 30) guardianStageLog.removeChild(guardianStageLog.lastChild);
+  }
+  log(`[GUARDIAN] ${msg}`);
+}
+
 /// Устанавливает визуальный статус подключения (онлайн/оффлайн).
 function setStatus(connected) {
   if (connected) {
@@ -64,7 +87,7 @@ function setStatus(connected) {
   }
 }
 
-/// Проверяет, что строка является корректным hex (только символы 0-9, a-f, A-F).
+/// Проверяет, что строка является корректным hex.
 function isValidHex(str) {
   return /^[0-9a-fA-F]*$/.test(str);
 }
@@ -78,7 +101,149 @@ function hexToBytes(hex) {
   return bytes;
 }
 
-// ===== Функции получения данных =====
+/// Форматирует миллисекунды в читаемое время.
+function formatUptime(ms) {
+  if (!ms) return '—';
+  const sec = Math.floor(ms / 1000);
+  const h = Math.floor(sec / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  const s = sec % 60;
+  return h > 0 ? `${h}ч ${m}м ${s}с` : `${m}м ${s}с`;
+}
+
+// ===== Guardian функции =====
+
+/// Запускает nexxusd через Guardian.
+async function startNode() {
+  try {
+    stageLog('Запрос запуска nexxusd через Guardian...');
+    const res = await invoke('guardian_start_node');
+    const data = JSON.parse(res);
+    updateGuardianUI(data);
+    stageLog(`nexxusd запущен: state=${data.state}, node_id=${data.node_id || '—'}`);
+    log('nexxusd запущен через Guardian');
+    await refreshAll();
+  } catch (e) {
+    stageLog(`Ошибка запуска: ${e.message || e}`);
+    log(`Ошибка запуска nexxusd: ${e.message || e}`);
+  }
+}
+
+/// Перезапускает nexxusd.
+async function restartNode() {
+  try {
+    stageLog('Запрос перезапуска nexxusd...');
+    const res = await invoke('guardian_restart_node');
+    const data = JSON.parse(res);
+    updateGuardianUI(data);
+    stageLog(`nexxusd перезапущен: state=${data.state}`);
+    log('nexxusd перезапущен');
+    await refreshAll();
+  } catch (e) {
+    stageLog(`Ошибка перезапуска: ${e.message || e}`);
+    log(`Ошибка перезапуска nexxusd: ${e.message || e}`);
+  }
+}
+
+/// Останавливает nexxusd.
+async function stopNode() {
+  try {
+    stageLog('Запрос остановки nexxusd...');
+    const res = await invoke('guardian_stop_node');
+    const data = JSON.parse(res);
+    updateGuardianUI(data);
+    stageLog(`nexxusd остановлен: state=${data.state}`);
+    log('nexxusd остановлен');
+    await refreshAll();
+  } catch (e) {
+    stageLog(`Ошибка остановки: ${e.message || e}`);
+    log(`Ошибка остановки nexxusd: ${e.message || e}`);
+  }
+}
+
+/// Проверяет здоровье ноды.
+async function checkHealth() {
+  try {
+    const res = await invoke('guardian_check_health');
+    const data = JSON.parse(res);
+    updateGuardianUI(data);
+    stageLog(`Проверка здоровья: state=${data.state}, failed=${data.failed_checks}`);
+  } catch (e) {
+    // guardian_check_health может вернуть ошибку, но с данными в строке
+    try {
+      const data = JSON.parse(e.message || e);
+      updateGuardianUI(data);
+      stageLog(`Проверка здоровья: state=${data.state}, failed=${data.failed_checks}`);
+    } catch (e2) {
+      stageLog(`Ошибка проверки здоровья: ${e.message || e}`);
+    }
+  }
+}
+
+/// Включает/выключает фоновый мониторинг.
+async function toggleMonitor(enable) {
+  try {
+    await invoke('guardian_toggle_monitor', { enable });
+    const text = enable ? 'ВКЛ' : 'ВЫКЛ';
+    btnToggleMonitor.textContent = `Мониторинг: ${text}`;
+    btnToggleMonitor.className = enable ? 'btn btn-success' : 'btn btn-warning';
+    stageLog(`Фоновый мониторинг: ${text}`);
+    log(`Фоновый мониторинг здоровья: ${text}`);
+  } catch (e) {
+    log(`Ошибка переключения мониторинга: ${e.message || e}`);
+  }
+}
+
+/// Отправляет тестовое сообщение в Telegram.
+async function sendTgTest() {
+  try {
+    const res = await invoke('tg_send_test');
+    const data = JSON.parse(res);
+    if (data.sent) {
+      stageLog('Тестовое сообщение в Telegram отправлено');
+      log('Telegram: тестовое сообщение отправлено');
+    } else {
+      stageLog('Telegram не настроен');
+    }
+  } catch (e) {
+    stageLog(`Ошибка Telegram: ${e.message || e}`);
+    log(`Ошибка Telegram: ${e.message || e}`);
+  }
+}
+
+/// Обновляет UI Guardian на основе данных от бэкенда.
+function updateGuardianUI(data) {
+  if (!guardianStateText) return;
+
+  const state = data.state || 'Stopped';
+  guardianStateText.textContent = state;
+
+  // Цвет состояния
+  guardianStateText.className = state === 'Running' ? 'badge delivered' :
+    state === 'Starting' ? 'badge pending' :
+    state === 'Unhealthy' ? 'badge failed' :
+    state === 'Restarting' ? 'badge pending' :
+    'badge';
+
+  guardianNodeIdText.textContent = data.node_id ? data.node_id.substring(0, 16) + '...' : '—';
+  guardianUptimeText.textContent = formatUptime(data.uptime_ms);
+  guardianPeersText.textContent = data.peers !== undefined ? data.peers : '—';
+  guardianFailedChecksText.textContent = data.failed_checks !== undefined ? data.failed_checks : '0';
+
+  if (guardianTgStatusText) {
+    guardianTgStatusText.textContent = data.tg_configured ? 'Настроен' : 'Не настроен';
+    guardianTgStatusText.className = data.tg_configured ? 'badge delivered' : 'badge failed';
+  }
+
+  // Обновляем основные метрики тоже
+  if (data.node_id) {
+    setStatus(true);
+    if (uptimeText) uptimeText.textContent = formatUptime(data.uptime_ms);
+    if (peerCountText) peerCountText.textContent = data.peers !== undefined ? data.peers : '0';
+  }
+}
+
+// ===== Функции получения данных (существующие) =====
 
 /// Запрашивает статус узла через Tauri команду `node_status`.
 async function fetchNodeStatus() {
@@ -94,7 +259,7 @@ async function fetchNodeStatus() {
     const msg = e.message || e;
     log(`Ошибка статуса: ${msg}`);
     if (msg.includes('Connection refused')) {
-      log('nexxusd не запущен! Запустите nexxusd перед использованием монитора.');
+      log('nexxusd не запущен! Нажмите "Запустить ноду" в панели Guardian.');
     }
     return null;
   }
@@ -200,6 +365,14 @@ async function refreshAll() {
     fetchEpoch(),
     fetchTor(),
   ]);
+  // Также загружаем статус Guardian
+  try {
+    const res = await invoke('guardian_status');
+    const data = JSON.parse(res);
+    updateGuardianUI(data);
+  } catch (e) {
+    // Игнорируем ошибку если Guardian ещё не инициализирован
+  }
 }
 
 /// Отправляет SMP envelope через форму.
@@ -282,6 +455,18 @@ async function resumeNode() {
 // ===== Инициализация =====
 
 document.addEventListener('DOMContentLoaded', () => {
+  // Guardian кнопки
+  if (btnStartNode) btnStartNode.addEventListener('click', startNode);
+  if (btnRestartNode) btnRestartNode.addEventListener('click', restartNode);
+  if (btnStopNode) btnStopNode.addEventListener('click', stopNode);
+  if (btnToggleMonitor) {
+    btnToggleMonitor.addEventListener('click', () => {
+      const currentlyOn = btnToggleMonitor.className.includes('btn-success');
+      toggleMonitor(!currentlyOn);
+    });
+  }
+  if (btnTgTest) btnTgTest.addEventListener('click', sendTgTest);
+
   smpForm.addEventListener('submit', sendSmpEnvelope);
 
   document.getElementById('btn-pause').addEventListener('click', pauseNode);
@@ -299,6 +484,8 @@ document.addEventListener('DOMContentLoaded', () => {
   // Первичное обновление при загрузке
   refreshAll();
   startAutoRefresh();
+  // Проверяем статус Guardian при загрузке
+  checkHealth();
 });
 
 function startAutoRefresh() {

@@ -299,3 +299,60 @@ tbody tr:last-child td {
     grid-template-columns: 1fr;
   }
 }
+
+/* ===== Guardian панель (ангел-хранитель) ===== */
+.guardian-panel {
+  border: 2px solid var(--accent);
+}
+
+.guardian-panel h3 {
+  color: var(--accent);
+}
+
+.guardian-status-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.guardian-stat {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.guardian-stat-label {
+  font-size: 0.7rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.guardian-stat-value {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text);
+  word-break: break-all;
+}
+
+.guardian-controls {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.guardian-controls .btn {
+  flex: 1;
+  min-width: 110px;
+  text-align: center;
+}
+
+/* Лог этапов запуска */
+#guardian-stage-log {
+  font-size: 0.75rem;
+}

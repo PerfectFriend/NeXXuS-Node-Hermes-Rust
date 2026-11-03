@@ -1,6 +1,13 @@
-//! Точка входа Tauri для NeXXus Node Monitor.
-//! Создаёт окно приложения, управляет системным треем и проксирует
-//! JSON-RPC запросы к локальному API nexxusd (ws://127.0.0.1:4010).
+//! Точка входа Tauri для NeXXus Node Monitor — «Ангел-хранитель» ноды.
+//!
+//! Монитор запускается ПЕРЕД nexxusd и:
+//!   1. Запускает nexxusd если он не работает
+//!   2. Мониторит здоровье ноды через периодические JSON-RPC запросы
+//!   3. При потере связи — автоперезапуск nexxusd
+//!   4. Все события отправляет в Telegram бота «Мастер Инквизитор»
+//!   5. Проксирует JSON-RPC запросы к локальному API nexxusd (ws://127.0.0.1:4010)
+//!
+//! Стек: Tauri 2.x (Rust бэкенд + веб-фронтенд), локальный WebSocket API на 127.0.0.1:4010.
 
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
@@ -9,14 +16,121 @@ use std::sync::Arc;
 use tokio::sync::Mutex;
 
 mod api_client;
+mod guardian;
+mod telegram;
 
 use api_client::NexxusApiClient;
+use guardian::Guardian;
+use telegram::TelegramBot;
 
 /// Shared application state managed by Tauri.
-/// Хранит клиента API, доступный из всех команд.
+/// Хранит клиента API, Guardian и Telegram бота.
 struct AppState {
     api_client: Arc<Mutex<NexxusApiClient>>,
+    guardian: Arc<Guardian>,
+    telegram_bot: Arc<Mutex<Option<TelegramBot>>>,
 }
+
+/// Команда: запустить nexxusd через Guardian (ангел-хранитель).
+#[command]
+async fn guardian_start_node(state: tauri::State<'_, AppState>) -> Result<serde_json::Value, String> {
+    let guardian = &state.guardian;
+    let bot = crate::telegram::get_bot().await;
+    let _ = bot.notify_monitor_started().await;
+
+    match guardian.start_nexxusd().await {
+        Ok(()) => {
+            let status = guardian.status_for_frontend().await;
+            Ok(serde_json::to_value(&status).unwrap())
+        }
+        Err(e) => {
+            let _ = bot.notify_node_start_failed(&e).await;
+            Err(e)
+        }
+    }
+}
+
+/// Команда: проверить здоровье ноды вручную.
+#[command]
+async fn guardian_check_health(state: tauri::State<'_, AppState>) -> Result<serde_json::Value, String> {
+    let guardian = &state.guardian;
+    let healthy = guardian.check_health().await;
+    if healthy {
+        let status = guardian.status_for_frontend().await;
+        Ok(serde_json::to_value(&status).unwrap())
+    } else {
+        let status = guardian.status_for_frontend().await;
+        // Возвращаем ошибку, но статус всё равно передаём фронтенду
+        Err(serde_json::to_string(&status).unwrap_or_else(|_| "node unhealthy".into()))
+    }
+}
+
+/// Команда: автоперезапуск nexxusd.
+#[command]
+async fn guardian_restart_node(state: tauri::State<'_, AppState>) -> Result<serde_json::Value, String> {
+    let guardian = &state.guardian;
+    match guardian.restart_nexxusd().await {
+        Ok(()) => {
+            let status = guardian.status_for_frontend().await;
+            Ok(serde_json::to_value(&status).unwrap())
+        }
+        Err(e) => Err(e),
+    }
+}
+
+/// Команда: остановить nexxusd.
+#[command]
+async fn guardian_stop_node(state: tauri::State<'_, AppState>) -> Result<serde_json::Value, String> {
+    let guardian = &state.guardian;
+    match guardian.stop_nexxusd().await {
+        Ok(()) => {
+            let status = guardian.status_for_frontend().await;
+            Ok(serde_json::to_value(&status).unwrap())
+        }
+        Err(e) => Err(e),
+    }
+}
+
+/// Команда: получить статус guardian-а (для фронтенда).
+#[command]
+async fn guardian_status(state: tauri::State<'_, AppState>) -> Result<serde_json::Value, String> {
+    let guardian = &state.guardian;
+    let status = guardian.status_for_frontend().await;
+    Ok(serde_json::to_value(&status).unwrap())
+}
+
+/// Команда: включить/выключить фоновый мониторинг здоровья.
+#[command]
+async fn guardian_toggle_monitor(
+    state: tauri::State<'_, AppState>,
+    enable: bool,
+) -> Result<serde_json::Value, String> {
+    let guardian = &state.guardian;
+    if enable {
+        let g = Arc::clone(guardian);
+        Guardian::start_health_monitor(g).await;
+        Ok(serde_json::json!({ "monitoring": true }))
+    } else {
+        guardian.stop_health_monitor().await;
+        Ok(serde_json::json!({ "monitoring": false }))
+    }
+}
+
+/// Команда: отправить тестовое сообщение в Telegram.
+#[command]
+async fn tg_send_test(_state: tauri::State<'_, AppState>) -> Result<serde_json::Value, String> {
+    let bot = crate::telegram::get_bot().await;
+    if !bot.is_configured() {
+        return Err("Telegram не настроен. Установите NEXXUS_TG_BOT_TOKEN и NEXXUS_TG_CHAT_ID".into());
+    }
+    match bot.send_message("🧪 <b>Тестовое сообщение от NeXXus Guardian</b>\n\nПодключение к боту «Мастер Инквизитор» работает.").await {
+        Ok(()) => Ok(serde_json::json!({ "sent": true })),
+        Err(e) => Err(e),
+    }
+}
+
+/// Существующие команды (проксирование к API nexxusd).
+/// Эти команды работают только если nexxusd запущен.
 
 /// Команда: получить статус узла (node_id, uptime, peers, bound_addr).
 #[command]
@@ -112,13 +226,22 @@ async fn node_resume(state: tauri::State<'_, AppState>) -> Result<serde_json::Va
 }
 
 fn main() {
-    // Создаём клиент API, подключающийся к локальному WebSocket сервера nexxusd.
-    // Если nexxusd не запущен, первый вызов команды вернёт ошибку "Connection refused".
+    // Создаём клиент API для связи с nexxusd.
     let api_client = Arc::new(Mutex::new(NexxusApiClient::new("ws://127.0.0.1:4010")));
 
+    // Создаём Guardian — ангела-хранителя ноды.
+    let guardian = Arc::new(Guardian::new());
+
+    // Инициализируем Telegram бота (чтение из env переменных).
+    let telegram_bot = Arc::new(Mutex::new(Some(TelegramBot::new())));
+
     tauri::Builder::default()
-        .manage(AppState { api_client })
-        .setup(|app| {
+        .manage(AppState {
+            api_client,
+            guardian: Arc::clone(&guardian),
+            telegram_bot,
+        })
+        .setup(move |app| {
             let window = app.get_webview_window("main").unwrap();
             let window_clone = window.clone();
 
@@ -134,9 +257,24 @@ fn main() {
                 }
             });
 
+            // Запускаем фоновый мониторинг здоровья ноды при старте приложения.
+            let g = Arc::clone(&guardian);
+            tauri::async_runtime::spawn(async move {
+                Guardian::start_health_monitor(g).await;
+            });
+
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            // Guardian команды
+            guardian_start_node,
+            guardian_check_health,
+            guardian_restart_node,
+            guardian_stop_node,
+            guardian_status,
+            guardian_toggle_monitor,
+            tg_send_test,
+            // API прокси команды
             node_status,
             node_peers,
             node_chunks,

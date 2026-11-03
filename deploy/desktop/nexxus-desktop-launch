@@ -1,23 +1,11 @@
 #!/usr/bin/env bash
-# Запуск связки nexxusd + nexxus-desktop для тестирования
+# Запуск NeXXus Node Monitor (Ангел-хранитель ноды).
+# Монитор запускается ПЕРВЫМ и сам запускает nexxusd, мониторит здоровье,
+# автоперезапускает при падении и отправляет уведомления в Telegram.
+
 set -e
 
-STORE_PATH="/home/thomas/.nexxus/store.redb"
-DAEMON="/home/thomas/build/cache/cargo-target/release/nexxusd"
 DESKTOP="/home/thomas/build/cache/cargo-target/release/nexxus-desktop"
-
-mkdir -p "$(dirname "$STORE_PATH")"
-
-# Запускаем nexxusd если не запущен
-if ! pgrep -f "nexxusd.*store.redb" > /dev/null; then
-    echo ">>> Запуск nexxusd на $STORE_PATH..."
-    "$DAEMON" "$STORE_PATH" &
-    DAEMON_PID=$!
-    echo ">>> nexxusd PID: $DAEMON_PID"
-    sleep 2
-else
-    echo ">>> nexxusd уже запущен"
-fi
 
 # Находим Wayland дисплей
 if [ -z "${WAYLAND_DISPLAY:-}" ]; then
@@ -28,22 +16,16 @@ if [ -z "${WAYLAND_DISPLAY:-}" ]; then
         fi
     done
 fi
-echo ">>> Wayland дисплей: ${WAYLAND_DISPLAY:-не найден}"
+export WAYLAND_DISPLAY="${WAYLAND_DISPLAY:-wayland-0}"
 
-# Проверяем порты
-echo ">>> Проверка портов..."
-ss -tlnp | grep -E '4001|4010' || echo "Порты не найдены!"
+echo ">>> Wayland дисплей: ${WAYLAND_DISPLAY}"
+echo ">>> Запуск NeXXus Node Monitor (Гардиан)..."
+echo ">>> Монитор сам запустит nexxusd и будет следить за его здоровьем."
+echo ">>> Для уведомлений в Telegram задайте NEXXUS_TG_BOT_TOKEN и NEXXUS_TG_CHAT_ID."
 
-# Запускаем nexxus-desktop
-echo ">>> Запуск nexxus-desktop..."
 "$DESKTOP" &
+
 DESKTOP_PID=$!
 echo ">>> nexxus-desktop PID: $DESKTOP_PID"
 
-echo ">>> Готово. Нажмите Enter для остановки..."
-read -r
-
-# Очистка
-kill "$DESKTOP_PID" 2>/dev/null || true
-kill "$DAEMON_PID" 2>/dev/null || true
-echo ">>> Остановлено"
+wait $DESKTOP_PID

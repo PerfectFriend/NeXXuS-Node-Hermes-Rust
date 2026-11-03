@@ -52,6 +52,44 @@
     <main class="content">
       <!-- Левая колонка -->
       <div class="column left">
+        <!-- Панель Guardian (ангел-хранитель) -->
+        <section class="panel guardian-panel">
+          <h3>🛡️ Guardian — Ангел-хранитель ноды</h3>
+          <div class="guardian-status-grid">
+            <div class="guardian-stat">
+              <div class="guardian-stat-label">Состояние</div>
+              <div class="guardian-stat-value" id="guardian-state">Stopped</div>
+            </div>
+            <div class="guardian-stat">
+              <div class="guardian-stat-label">Node ID</div>
+              <div class="guardian-stat-value" id="guardian-node-id">—</div>
+            </div>
+            <div class="guardian-stat">
+              <div class="guardian-stat-label">Аптайм</div>
+              <div class="guardian-stat-value" id="guardian-uptime">—</div>
+            </div>
+            <div class="guardian-stat">
+              <div class="guardian-stat-label">Пиры</div>
+              <div class="guardian-stat-value" id="guardian-peers">—</div>
+            </div>
+            <div class="guardian-stat">
+              <div class="guardian-stat-label">Ошибок проверки</div>
+              <div class="guardian-stat-value" id="guardian-failed-checks">0</div>
+            </div>
+            <div class="guardian-stat">
+              <div class="guardian-stat-label">Telegram</div>
+              <div class="guardian-stat-value" id="guardian-tg-status">—</div>
+            </div>
+          </div>
+          <div class="guardian-controls">
+            <button class="btn btn-success" id="btn-start-node">▶ Запустить ноду</button>
+            <button class="btn btn-outline" id="btn-restart-node">🔄 Перезапустить</button>
+            <button class="btn btn-danger" id="btn-stop-node">⏹ Остановить</button>
+            <button class="btn btn-outline" id="btn-toggle-monitor">Мониторинг: ВКЛ</button>
+            <button class="btn btn-outline" id="btn-tg-test">📱 Тест Telegram</button>
+          </div>
+        </section>
+
         <section class="panel">
           <h3>🌐 Сетевые пиры</h3>
           <div class="table-wrap">
@@ -79,6 +117,17 @@
 
       <!-- Правая колонка -->
       <div class="column right">
+        <!-- Лог этапов Guardian -->
+        <section class="panel">
+          <h3>📜 Лог этапов запуска</h3>
+          <div class="table-wrap">
+            <table class="log-table">
+              <thead><tr><th>Время</th><th>Этап</th></tr></thead>
+              <tbody id="guardian-stage-log"></tbody>
+            </table>
+          </div>
+        </section>
+
         <section class="panel">
           <h3>⚡ SMP сообщения</h3>
           <div class="table-wrap smp-table">

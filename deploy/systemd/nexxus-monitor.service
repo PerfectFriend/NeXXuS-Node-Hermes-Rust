@@ -1,0 +1,20 @@
+[Unit]
+Description=NeXXus Node Monitor (Гардиан — ангел-хранитель ноды)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=thomas
+WorkingDirectory=/home/thomas/Projects/NeXXus-Node/nexxus-desktop
+Environment="WAYLAND_DISPLAY=wayland-0"
+Environment="NEXXUS_TG_BOT_TOKEN=%i"
+Environment="NEXXUS_TG_CHAT_ID=%i"
+ExecStart=/home/thomas/build/cache/cargo-target/release/nexxus-desktop
+Restart=always
+RestartSec=5
+# Не убивать nexxusd при остановке монитора
+IgnoreSIGPIPE=no
+
+[Install]
+WantedBy=graphical-session.target
