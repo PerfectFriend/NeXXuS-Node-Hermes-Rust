@@ -1,0 +1,91 @@
+//! TCP frame codec: length-delimited wire v3 frames.
+//! 4-byte BE length || frame (HEADER_V3_LEN + payload).
+#![allow(dead_code)]
+
+use nexxus_core::{
+    error::NexxusError,
+    wire::header::{encode_v3, parse_v3},
+    wire::opcode::Opcode,
+    wire::payloads::Payload,
+};
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio::net::TcpStream;
+
+const LEN_LEN: usize = 4;
+
+/// Send a payload as a v3 frame (zero signature — signing handled at the
+/// application/handshake layer; frame integrity is protected by the checksum).
+pub async fn send_frame<T: Payload>(
+    stream: &mut TcpStream,
+    opcode: Opcode,
+    request_id: u32,
+    payload: &T,
+) -> Result<(), NexxusError> {
+    let sig = [0u8; 64];
+    let frame = encode_v3(opcode, request_id, &payload.encode(), &sig);
+    let mut len_buf = [0u8; LEN_LEN];
+    len_buf.copy_from_slice(&(frame.len() as u32).to_be_bytes());
+    stream
+        .write_all(&len_buf)
+        .await
+        .map_err(|e| NexxusError::Io(e.to_string()))?;
+    stream
+        .write_all(&frame)
+        .await
+        .map_err(|e| NexxusError::Io(e.to_string()))?;
+    Ok(())
+}
+
+/// Receive one v3 frame. Returns (opcode, request_id, payload_bytes).
+pub async fn recv_frame(
+    stream: &mut TcpStream,
+) -> Result<(Opcode, u32, Vec<u8>), NexxusError> {
+    let mut len_buf = [0u8; LEN_LEN];
+    stream
+        .read_exact(&mut len_buf)
+        .await
+        .map_err(|e| NexxusError::Io(e.to_string()))?;
+    let len = u32::from_be_bytes(len_buf) as usize;
+    let mut frame = vec![0u8; len];
+    stream
+        .read_exact(&mut frame)
+        .await
+        .map_err(|e| NexxusError::Io(e.to_string()))?;
+    let f = parse_v3(&frame).map_err(|e| NexxusError::Io(format!("frame parse: {e}")))?;
+    Ok((f.opcode, f.request_id, f.payload))
+}
+
+/// Sanity: frame must not exceed a reasonable size to bound memory.
+pub const MAX_FRAME_LEN: usize = 1 << 22; // 4 MiB
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use nexxus_core::wire::payloads::{Ping, Pong};
+
+    #[tokio::test]
+    async fn send_recv_roundtrip_loopback() {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+
+        let handle = tokio::spawn(async move {
+            let (mut stream, _) = listener.accept().await.unwrap();
+            let (op, rid, payload) = recv_frame(&mut stream).await.unwrap();
+            assert_eq!(op, Opcode::Ping);
+            assert_eq!(rid, 0xdeadbeef);
+            let decoded = Ping::decode(&payload).unwrap();
+            let _ = decoded;
+            let pong = Pong;
+            send_frame(&mut stream, Opcode::Pong, rid, &pong).await.unwrap();
+        });
+
+        let mut stream = tokio::net::TcpStream::connect(addr).await.unwrap();
+        send_frame(&mut stream, Opcode::Ping, 0xdeadbeef, &Ping).await.unwrap();
+        let (op, rid, payload) = recv_frame(&mut stream).await.unwrap();
+        assert_eq!(op, Opcode::Pong);
+        assert_eq!(rid, 0xdeadbeef);
+        let _ = Pong::decode(&payload).unwrap();
+        handle.await.unwrap();
+    }
+}

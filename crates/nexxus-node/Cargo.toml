@@ -19,6 +19,9 @@ nexxus-core = { workspace = true }
 nexxus-econ = { workspace = true }
 thiserror = { workspace = true }
 redb = { workspace = true }
+tokio = { version = "1", features = ["full"] }
+rand = { workspace = true }
+hex = { workspace = true }
 arti-client = { version = "0.47", optional = true }
 
 [dev-dependencies]
