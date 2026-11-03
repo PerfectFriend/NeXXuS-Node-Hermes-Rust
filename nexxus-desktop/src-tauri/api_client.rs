@@ -53,15 +53,21 @@ impl NexxusApiClient {
                 let response: Value = serde_json::from_str(&text)
                     .map_err(|e| format!("Invalid JSON response: {e}"))?;
                 if let Some(error) = response.get("error") {
+                    let _ = sender.close().await;
                     Err(format!("API error: {error}"))
                 } else {
-                    Ok(response
+                    let result = response
                         .get("result")
                         .cloned()
-                        .unwrap_or(serde_json::Value::Null))
+                        .unwrap_or(serde_json::Value::Null);
+                    let _ = sender.close().await;
+                    Ok(result)
                 }
             }
-            _ => Err("Unexpected WebSocket message type".to_string()),
+            _ => {
+                let _ = sender.close().await;
+                Err("Unexpected WebSocket message type".to_string())
+            }
         }
     }
 }

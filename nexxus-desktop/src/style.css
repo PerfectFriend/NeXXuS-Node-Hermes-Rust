@@ -253,6 +253,7 @@ tbody tr:last-child td {
 .btn-outline:hover {
   border-color: var(--accent);
   color: var(--accent);
+}
 
 .log-wrap {
   border: 1px solid var(--border);
