@@ -9,7 +9,7 @@ DESKTOP="/home/thomas/build/cache/cargo-target/release/nexxus-desktop"
 mkdir -p "$(dirname "$STORE_PATH")"
 
 # Запускаем nexxusd если не запущен
-if ! pgrep -x nexxusd > /dev/null; then
+if ! pgrep -f "nexxusd.*store.redb" > /dev/null; then
     echo ">>> Запуск nexxusd на $STORE_PATH..."
     "$DAEMON" "$STORE_PATH" &
     DAEMON_PID=$!

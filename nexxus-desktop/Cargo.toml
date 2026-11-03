@@ -21,3 +21,7 @@ tauri-build = { version = "2", features = [] }
 [[bin]]
 name = "nexxus-desktop"
 path = "src-tauri/main.rs"
+
+[[bin]]
+name = "test-api-client"
+path = "test_api_client.rs"
