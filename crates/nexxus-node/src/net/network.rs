@@ -631,4 +631,113 @@ mod tests {
         assert_eq!(k.ip, 0x0a000001);
         assert_eq!(k.port, 4001);
     }
+
+    #[tokio::test]
+    async fn por_challenge_response_over_wire() {
+        let dir = tempdir().unwrap();
+        let store = Arc::new(ChunkStore::open(dir.path().join("store.redb")).unwrap());
+        let our_id = NodeId([0x45u8; 32]);
+        let net = Arc::new(P2pNetwork::new(our_id, "127.0.0.1:0".parse().unwrap(), store));
+
+        let net_clone = Arc::clone(&net);
+        let server = tokio::spawn(async move { net_clone.run().await });
+
+        let mut bound = None;
+        for _ in 0..100 {
+            bound = net.bound_addr().await;
+            if bound.is_some() {
+                break;
+            }
+            tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+        }
+        let listener_addr = bound.expect("listener failed to bind");
+
+        // server stores a chunk first
+        let hash = ChunkHash([0x25u8; 32]);
+        let data: Vec<u8> = (0..256).map(|i| i as u8).collect();
+        net.store
+            .put_chunk(&hash, &data)
+            .expect("store chunk");
+
+        // client sends PorChallenge with seed = chunk hash
+        let mut stream = TcpStream::connect(listener_addr).await.unwrap();
+        let challenge = PorChallenge {
+            seed: hash.0,
+            count: 1,
+            deadline_ms: 5000,
+        };
+        crate::net::frame::send_frame(
+            &mut stream,
+            Opcode::PorChallenge,
+            0x0007,
+            &challenge,
+        )
+        .await
+        .unwrap();
+        let (op, _rid, payload) = crate::net::frame::recv_frame(&mut stream).await.unwrap();
+        assert_eq!(op, Opcode::PorResponse);
+        let resp = PorResponse::decode(&payload).unwrap();
+        assert_eq!(resp.chunk_hash, hash);
+
+        // verify response = SHA-256(chunk_data || seed)
+        let mut h = sha2::Sha256::new();
+        h.update(&data);
+        h.update(hash.0);
+        let expected: [u8; 32] = h.finalize().into();
+        assert_eq!(resp.response, expected);
+
+        server.abort();
+    }
+
+    #[tokio::test]
+    async fn epoch_finalize_over_wire() {
+        let dir = tempdir().unwrap();
+        let store = Arc::new(ChunkStore::open(dir.path().join("store.redb")).unwrap());
+        let our_id = NodeId([0x46u8; 32]);
+        let net = Arc::new(P2pNetwork::new(our_id, "127.0.0.1:0".parse().unwrap(), store));
+
+        let net_clone = Arc::clone(&net);
+        let server = tokio::spawn(async move { net_clone.run().await });
+
+        let mut bound = None;
+        for _ in 0..100 {
+            bound = net.bound_addr().await;
+            if bound.is_some() {
+                break;
+            }
+            tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+        }
+        let listener_addr = bound.expect("listener failed to bind");
+
+        // client builds a valid EpochFinalize with one Ed25519 signature
+        let id = nexxus_core::keys::identity::Identity::generate();
+        let epoch_number: u64 = 7;
+        let merkle_root = [0x33u8; 32];
+        let total_bytes: u64 = 1_000_000;
+
+        let mut msg = Vec::new();
+        msg.extend_from_slice(&epoch_number.to_be_bytes());
+        msg.extend_from_slice(&merkle_root);
+        msg.extend_from_slice(&total_bytes.to_be_bytes());
+        let sig = id.sign(&msg);
+
+        let finalize = nexxus_core::wire::payloads::EpochFinalize {
+            epoch_number,
+            merkle_root,
+            total_bytes,
+            signatures: vec![nexxus_core::wire::payloads::CommitteeSig {
+                pubkey: id.verifying_key.to_bytes(),
+                signature: sig,
+            }],
+        };
+
+        let mut stream = TcpStream::connect(listener_addr).await.unwrap();
+        crate::net::frame::send_frame(&mut stream, Opcode::EpochFinalize, 0x0008, &finalize)
+            .await
+            .unwrap();
+        let (op, _rid, _payload) = crate::net::frame::recv_frame(&mut stream).await.unwrap();
+        assert_eq!(op, Opcode::Pong); // valid multi-sig -> Pong
+
+        server.abort();
+    }
 }
