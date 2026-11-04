@@ -1,8 +1,0 @@
-# HOT
-{
-  "type": "supervisor.correction",
-  "action": "alert",
-  "message": "Агенты неактивны: searcher (неактивен 212 мин)",
-  "cycle": 9999,
-  "timestamp": "2026-08-17T11:14:49.892940+00:00"
-}

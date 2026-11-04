@@ -1,7 +1,0 @@
-<?xml version='1.0' encoding='utf-8'?>
-<resources>
-    <string name="app_name">CyberTarot</string>
-    <string name="title_activity_main">CyberTarot</string>
-    <string name="package_name">com.cybertarot.app</string>
-    <string name="custom_url_scheme">com.cybertarot.app</string>
-</resources>

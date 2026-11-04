@@ -1,7 +1,0 @@
-<?xml version='1.0' encoding='utf-8'?>
-<resources>
-    <string name="app_name">Элементарная жизнь</string>
-    <string name="title_activity_main">Элементарная жизнь</string>
-    <string name="package_name">com.elementallife.app</string>
-    <string name="custom_url_scheme">com.elementallife.app</string>
-</resources>

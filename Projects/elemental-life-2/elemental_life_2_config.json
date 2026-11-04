@@ -1,8 +1,0 @@
-# HOT
-{
-  "evolution_rate": 1.0,
-  "max_cycles": 100,
-  "auto_freeze_threshold": 90,
-  "logging_enabled": true,
-  "log_file": "evolution.log"
-}
