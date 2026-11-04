@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+# Запуск NeXXus Node Monitor (Ангел-хранитель ноды).
+# Приложение запускается свёрнутым в системный трей.
+# Монитор сам запускает nexxusd, мониторит здоровье,
+# автоперезапускает при падении и шлёт уведомления в Telegram.
+
+DESKTOP="/home/thomas/build/cache/cargo-target/release/nexxus-desktop"
+
+# Находим Wayland дисплей
+if [ -z "${WAYLAND_DISPLAY:-}" ]; then
+    for wl in /run/user/$(id -u)/wayland-*; do
+        if [ -S "$wl" ]; then
+            export WAYLAND_DISPLAY=$(basename "$wl")
+            break
+        fi
+    done
+fi
+export WAYLAND_DISPLAY="${WAYLAND_DISPLAY:-wayland-0}"
+
+# Токены для Telegram уведомлений
+export NEXXUS_TG_BOT_TOKEN="${NEXXUS_TG_BOT_TOKEN:-}"
+export NEXXUS_TG_CHAT_ID="${NEXXUS_TG_CHAT_ID:-143293811}"
+
+exec "$DESKTOP"

@@ -1,0 +1,25 @@
+[package]
+name = "nexxus-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[dependencies]
+sha2 = { workspace = true }
+chacha20poly1305 = { workspace = true }
+ed25519-dalek = { workspace = true }
+bip39 = { workspace = true }
+pbkdf2 = { workspace = true }
+hmac = { workspace = true }
+data-encoding = { workspace = true }
+hex = { workspace = true }
+thiserror = { workspace = true }
+rand = { workspace = true }
+zeroize = { workspace = true }
+once_cell = { workspace = true }
+curve25519-dalek = { workspace = true }
+
+[lints]
+workspace = true

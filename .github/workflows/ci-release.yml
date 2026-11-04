@@ -1,0 +1,160 @@
+name: NeXXUs CI & Automated Release Builder
+
+on:
+  push:
+    branches: [ main, master ]
+    tags: [ 'v*' ]
+  pull_request:
+    branches: [ main, master ]
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-test:
+    name: Test & Package NeXXUs Node
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Check out repository
+        uses: actions/checkout@v4
+
+      - name: ⚡ Set up Node.js LTS (v20)
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: 📦 Install npm dependencies
+        run: npm ci
+
+      - name: 🔍 Lint codebase (TypeScript)
+        run: npm run lint
+
+      - name: 🧪 Run Protocol & Golden Vector Test Suites (113 checks)
+        run: npm test
+
+      - name: ⚡ Compile Standalone Daemon Bundle (esbuild)
+        run: |
+          mkdir -p dist
+          npx esbuild scripts/linux-daemon.ts --bundle --platform=node --format=cjs --outfile=dist/nexxusd.cjs
+          ls -lh dist/nexxusd.cjs
+
+      - name: 📦 Build Debian / Ubuntu amd64 Package (.deb)
+        run: |
+          bash scripts/build-deb.sh
+          ls -lh dist/
+
+      - name: 📤 Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: nexxus-dist
+          path: |
+            dist/nexxusd.cjs
+            dist/*.deb
+
+  rust:
+    name: Rust — test, clippy, build nexxusd
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Check out repository
+        uses: actions/checkout@v4
+
+      - name: 🦀 Set up Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: 💾 Cache cargo registry & target
+        uses: Swatinem/rust-cache@v2
+
+      - name: 🧪 cargo test --workspace
+        run: cargo test --workspace
+
+      - name: 🧹 cargo clippy (deny warnings)
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+      - name: 🔨 cargo build --release -p nexxus-node
+        run: cargo build --release -p nexxus-node
+
+      - name: 📤 Upload nexxusd artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nexxusd-rust
+          path: target/release/nexxusd
+
+  rust-tor:
+    name: Rust — build with --features tor (heavy deps)
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Check out repository
+        uses: actions/checkout@v4
+
+      - name: 🦀 Set up Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: 💾 Cache cargo registry & target
+        uses: Swatinem/rust-cache@v2
+
+      - name: 🔨 cargo build --release -p nexxus-node --features tor
+        run: cargo build --release -p nexxus-node --features tor
+
+  desktop:
+    name: Desktop — Rust backend + frontend bundle
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Check out repository
+        uses: actions/checkout@v4
+
+      - name: 🦀 Set up Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: ⚡ Set up Node.js LTS (v20)
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: 🔨 Build desktop Rust backend
+        run: cargo build --release
+        working-directory: nexxus-desktop
+
+      - name: 📦 Install npm dependencies
+        run: npm ci
+
+      - name: 🔨 Build frontend bundle
+        run: npm run build
+
+  release:
+    name: Create GitHub Release
+    needs: [ build-and-test, rust, rust-tor, desktop ]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Check out repository
+        uses: actions/checkout@v4
+
+      - name: 📥 Download Build Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: nexxus-dist
+          path: dist
+
+      - name: 📥 Download nexxusd (Rust) artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: nexxusd-rust
+          path: dist
+
+      - name: 🚀 Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/nexxusd.cjs
+            dist/nexxusd
+            dist/*.deb
+            install.sh
+            install.ps1
+          name: Release ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true

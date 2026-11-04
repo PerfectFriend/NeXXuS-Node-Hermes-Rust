@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NeXXus Node Monitor — Guardian</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app">
+    <header class="header">
+      <div class="logo">🛡️ NeXXus Node Monitor</div>
+      <div class="tray-hint">Работает в системном трее • Клик на иконку — открыть окно</div>
+    </header>
+
+    <main class="content">
+      <section class="panel guardian-panel">
+        <h2>Ангел-хранитель ноды</h2>
+
+        <div class="guardian-status-grid">
+          <div class="guardian-stat">
+            <div class="guardian-stat-label">Состояние</div>
+            <div class="guardian-stat-value" id="guardian-state">Загрузка...</div>
+          </div>
+          <div class="guardian-stat">
+            <div class="guardian-stat-label">Node ID</div>
+            <div class="guardian-stat-value" id="guardian-node-id">—</div>
+          </div>
+          <div class="guardian-stat">
+            <div class="guardian-stat-label">Аптайм</div>
+            <div class="guardian-stat-value" id="guardian-uptime">—</div>
+          </div>
+          <div class="guardian-stat">
+            <div class="guardian-stat-label">Пиры</div>
+            <div class="guardian-stat-value" id="guardian-peers">—</div>
+          </div>
+          <div class="guardian-stat">
+            <div class="guardian-stat-label">Чанки</div>
+            <div class="guardian-stat-value" id="guardian-chunks">—</div>
+          </div>
+          <div class="guardian-stat">
+            <div class="guardian-stat-label">Эпоха</div>
+            <div class="guardian-stat-value" id="guardian-epoch">—</div>
+          </div>
+          <div class="guardian-stat">
+            <div class="guardian-stat-label">Tor</div>
+            <div class="guardian-stat-value" id="guardian-tor">—</div>
+          </div>
+          <div class="guardian-stat">
+            <div class="guardian-stat-label">Telegram</div>
+            <div class="guardian-stat-value" id="guardian-tg">Настроить</div>
+          </div>
+        </div>
+
+        <div class="guardian-controls">
+          <button class="btn btn-primary" id="btn-start">🚀 Запустить ноду</button>
+          <button class="btn btn-danger" id="btn-restart">🔄 Перезапустить</button>
+          <button class="btn btn-outline" id="btn-stop">⏹️ Остановить мониторинг</button>
+          <button class="btn btn-outline" id="btn-toggle-monitor">📊 Мониторинг: ВКЛ</button>
+          <button class="btn btn-outline" id="btn-health">❤️ Проверить здоровье</button>
+          <button class="btn btn-outline" id="btn-tg-test">📱 Тест Telegram</button>
+        </div>
+
+        <div class="stage-log">
+          <h3>Лог этапов запуска</h3>
+          <div id="guardian-stage-log">
+            <div class="log-entry">Гардиан готов к работе</div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script type="module" src="main.js"></script>
+</body>
+</html>

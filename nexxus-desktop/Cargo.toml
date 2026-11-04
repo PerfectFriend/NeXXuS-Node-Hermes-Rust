@@ -1,0 +1,36 @@
+[package]
+name = "nexxus-desktop"
+version = "1.0.0"
+description = "NeXXus Node Monitor — Guardian (ангел-хранитель ноды)"
+edition = "2021"
+
+# Отдельный workspace: пакет живёт внутри репо, но не входит в корневой
+# workspace crates/* — иначе cargo путается ("believes it's in a workspace").
+[workspace]
+
+[dependencies]
+tauri = { version = "2.0", features = ["tray-icon"] }
+tauri-build = { version = "2.0", optional = true }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+reqwest = { version = "0.12", features = ["json"] }
+tokio = { version = "1.0", features = ["full"] }
+futures-util = "0.3"
+tokio-tungstenite = "0.21"
+tungstenite = "0.21"
+url = "2.5"
+
+[build-dependencies]
+tauri-build = { version = "2.0", features = [] }
+
+[profile.release]
+lto = true
+opt-level = "z"
+
+[[bin]]
+name = "nexxus-desktop"
+path = "src-tauri/main.rs"
+
+[[bin]]
+name = "test-api-client"
+path = "test_api_client.rs"

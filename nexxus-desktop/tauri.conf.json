@@ -1,0 +1,43 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "identifier": "nexxus.node.monitor",
+  "productName": "NeXXus Node Monitor",
+  "version": "1.0.0",
+  "build": {
+    "frontendDist": "src-tauri/gen",
+    "devUrl": "http://localhost:1420",
+    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "npm run build"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "NeXXus Node Monitor",
+        "width": 900,
+        "height": 700,
+        "resizable": true,
+        "visible": false,
+        "decorations": true,
+        "label": "main"
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' ws://127.0.0.1:4010;"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/icon-16.png",
+      "icons/icon-32.png",
+      "icons/icon-48.png",
+      "icons/icon-64.png",
+      "icons/icon-128.png",
+      "icons/icon-256.png",
+      "icons/icon-512.png"
+    ],
+    "category": "Network",
+    "shortDescription": "NeXXus Node Monitor — Guardian"
+  }
+}
