@@ -8,8 +8,10 @@ Type=simple
 User=thomas
 WorkingDirectory=/home/thomas/Projects/NeXXus-Node/nexxus-desktop
 Environment="WAYLAND_DISPLAY=wayland-0"
-Environment="NEXXUS_TG_BOT_TOKEN=%i"
-Environment="NEXXUS_TG_CHAT_ID=%i"
+# Установите токены перед запуском:
+#   systemctl --user set-environment NEXXUS_TG_BOT_TOKEN="<token>"
+#   systemctl --user set-environment NEXXUS_TG_CHAT_ID="143293811"
+# Или через ~/.config/environment.d/nexxus-monitor.env
 ExecStart=/home/thomas/build/cache/cargo-target/release/nexxus-desktop
 Restart=always
 RestartSec=5
