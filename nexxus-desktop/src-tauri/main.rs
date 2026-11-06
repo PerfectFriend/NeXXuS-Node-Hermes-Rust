@@ -1,61 +1,28 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+use crate::commands::{
+    guardian_check_health_cmd, guardian_restart_node_cmd, guardian_shutdown_cmd,
+    guardian_start_node_cmd, guardian_status_cmd, guardian_stop_node_cmd,
+    guardian_toggle_monitor_cmd, node_config_get_cmd, node_config_set_cmd,
+    node_config_validate_cmd, run_health_loop, tg_send_test_cmd, AppState,
+};
 use crate::guardian::{
-    guardian_check_health, guardian_restart_node, guardian_shutdown_everything,
-    guardian_start_node, guardian_status, guardian_stop_node, guardian_toggle_monitor,
-    health_loop, tg_send_test,
+    guardian_restart_node, guardian_shutdown_everything, guardian_start_node,
+    guardian_stop_node, tg_send_test,
 };
 use crate::telegram::get_bot;
 use std::sync::Arc;
 use tauri::{
-    command, menu::{Menu, MenuItem, PredefinedMenuItem},
+    menu::{Menu, MenuItem, PredefinedMenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
-    AppHandle, Builder, Manager, State, WindowEvent,
+    AppHandle, Builder, Manager, WindowEvent,
 };
 
 mod api_client;
+mod commands;
 mod guardian;
+mod node_config;
 mod telegram;
-
-/// Общее состояние приложения.
-pub struct AppState {
-    pub guardian: Arc<guardian::GuardianState>,
-}
-
-#[command]
-async fn guardian_start_node_cmd(state: State<'_, AppState>) -> Result<serde_json::Value, String> {
-    guardian_start_node(state.inner().guardian.clone()).await
-}
-
-#[command]
-async fn guardian_check_health_cmd(state: State<'_, AppState>) -> Result<serde_json::Value, String> {
-    guardian_check_health(state.inner().guardian.clone()).await
-}
-
-#[command]
-async fn guardian_restart_node_cmd(state: State<'_, AppState>) -> Result<serde_json::Value, String> {
-    guardian_restart_node(state.inner().guardian.clone()).await
-}
-
-#[command]
-async fn guardian_stop_node_cmd(state: State<'_, AppState>) -> Result<serde_json::Value, String> {
-    guardian_stop_node(state.inner().guardian.clone()).await
-}
-
-#[command]
-async fn guardian_status_cmd(state: State<'_, AppState>) -> Result<serde_json::Value, String> {
-    guardian_status(state.inner().guardian.clone()).await
-}
-
-#[command]
-async fn guardian_toggle_monitor_cmd(state: State<'_, AppState>) -> Result<serde_json::Value, String> {
-    guardian_toggle_monitor(state.inner().guardian.clone()).await
-}
-
-#[command]
-async fn tg_send_test_cmd() -> Result<serde_json::Value, String> {
-    tg_send_test().await
-}
 
 /// Показать окно дашборда (из трея).
 fn show_dashboard(app: &AppHandle) {
@@ -161,7 +128,7 @@ fn main() {
                     let _ = guardian_start_node(guardian.clone()).await;
                 }
                 // Основной цикл: health-check каждые 10 сек + Telegram-отчёты
-                health_loop(guardian).await;
+                run_health_loop(guardian).await;
             });
 
             Ok(())
@@ -173,7 +140,11 @@ fn main() {
             guardian_stop_node_cmd,
             guardian_status_cmd,
             guardian_toggle_monitor_cmd,
+            guardian_shutdown_cmd,
             tg_send_test_cmd,
+            node_config_get_cmd,
+            node_config_set_cmd,
+            node_config_validate_cmd,
         ])
         .on_window_event(|window, event| {
             // Закрытие окна = свернуть в трей, монитор продолжает жить

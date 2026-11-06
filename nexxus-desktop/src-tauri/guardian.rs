@@ -12,6 +12,7 @@ use serde_json::{json, Value};
 use std::process::{Command, Stdio};
 use std::sync::Arc;
 use std::time::{Duration, SystemTime};
+use tokio::net::TcpStream;
 use tokio::sync::Mutex;
 use tokio::time::sleep;
 
@@ -58,6 +59,8 @@ pub struct GuardianState {
     pub node_status: Mutex<Option<NodeStatus>>,
     pub start_time: Mutex<Option<SystemTime>>,
     pub health_failures: Mutex<u32>,
+    /// PID запущенной ноды (заполняется при старте).
+    #[allow(dead_code)]
     pub nexxusd_pid: Mutex<Option<u32>>,
     pub monitor_enabled: Mutex<bool>,
 }
@@ -118,7 +121,7 @@ pub async fn guardian_shutdown_everything(state: Arc<GuardianState>) {
     let _ = bot.notify_guardian_shutdown().await;
 }
 
-/// Запускает nexxusd в фоне.
+/// Запускает nexxusd в фоне с параметрами из `~/.nexxus/node.conf`.
 pub fn start_nexxusd() -> Result<(), String> {
     if is_nexxusd_running() {
         return Ok(());
@@ -126,6 +129,10 @@ pub fn start_nexxusd() -> Result<(), String> {
 
     // Удаляем залоченный файл БД если есть
     let _ = std::fs::remove_file(format!("{}.lock", NEXXUSD_STORE));
+
+    // Конфиг ноды (монитор — единственный источник настроек).
+    let cfg = crate::node_config::load();
+    let env = crate::node_config::to_env(&cfg);
 
     // Лог ноды: stderr перенаправляем в файл (иначе `nexxusd logs` не найдёт его).
     let log_path = std::path::PathBuf::from(NEXXUSD_LOG);
@@ -141,11 +148,16 @@ pub fn start_nexxusd() -> Result<(), String> {
         .try_clone()
         .map_err(|e| format!("Не удалось клонировать лог: {e}"))?;
 
-    let _child = Command::new(NEXXUSD_BIN)
-        .arg(NEXXUSD_STORE)
+    let mut cmd = Command::new(NEXXUSD_BIN);
+    cmd.arg(NEXXUSD_STORE)
         .env("NEXXUS_LOG", &log_path)
         .stdout(Stdio::from(log_out))
-        .stderr(Stdio::from(log_err))
+        .stderr(Stdio::from(log_err));
+    for (key, value) in env {
+        cmd.env(key, value);
+    }
+
+    let _child = cmd
         .spawn()
         .map_err(|e| format!("Не удалось запустить nexxusd: {e}"))?;
 
@@ -168,12 +180,37 @@ pub async fn wait_for_api_ready(timeout_sec: u64) -> bool {
     false
 }
 
-/// Проверяет доступность API через простой HTTP/WebSocket запрос.
+/// Проверяет доступность API через WebSocket-handshake.
+///
+/// Раньше здесь был голый TCP-connect: нода принимала соединение и тут же
+/// писала в лог «WebSocket accept failed: Handshake not finished», засоряя
+/// лог при каждом health-check. Теперь отправляем настоящий WS-handshake
+/// и ждём ответ 101 Switching Protocols.
 pub async fn api_is_reachable() -> bool {
-    // Пробуем TCP подключение к порту 4010
-    tokio::net::TcpStream::connect(format!("{API_HOST}:{API_PORT}"))
-        .await
-        .is_ok()
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+    let Ok(mut stream) = TcpStream::connect(format!("{API_HOST}:{API_PORT}")).await else {
+        return false;
+    };
+
+    let request = format!(
+        "GET / HTTP/1.1\r\nHost: {API_HOST}:{API_PORT}\r\n\
+         Upgrade: websocket\r\nConnection: Upgrade\r\n\
+         Sec-WebSocket-Version: 13\r\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\n\r\n"
+    );
+    if stream.write_all(request.as_bytes()).await.is_err() {
+        return false;
+    }
+
+    let mut buf = [0u8; 64];
+    let Ok(n) = tokio::time::timeout(Duration::from_secs(3), stream.read(&mut buf)).await else {
+        return false;
+    };
+    let Ok(n) = n else {
+        return false;
+    };
+    let response = String::from_utf8_lossy(&buf[..n]);
+    response.starts_with("HTTP/1.1 101")
 }
 
 /// Выполняет JSON-RPC запрос к локальному API (через WebSocket).

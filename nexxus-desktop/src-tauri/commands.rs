@@ -1,2 +1,102 @@
-//! Tauri commands — интерфейс между фронтендом и локальным API nexxusd.
-//! Реализовано в main.rs; этот файл зарезервирован для будущих команд.
+//! Tauri-команды монитора.
+//!
+//! Все команды, доступные фронтенду, объявлены здесь — `main.rs` отвечает
+//! только за инициализацию, трей и регистрацию обработчика.
+
+use crate::guardian::{
+    guardian_check_health, guardian_restart_node, guardian_shutdown_everything,
+    guardian_start_node, guardian_status, guardian_stop_node, guardian_toggle_monitor,
+    health_loop, tg_send_test,
+};
+use crate::node_config::{self, NodeConfig};
+use serde_json::{json, Value};
+use std::sync::Arc;
+use tauri::{command, State};
+
+/// Общее состояние приложения.
+pub struct AppState {
+    pub guardian: Arc<crate::guardian::GuardianState>,
+}
+
+// --- Управление нодой ---
+
+#[command]
+pub async fn guardian_start_node_cmd(state: State<'_, AppState>) -> Result<Value, String> {
+    guardian_start_node(state.inner().guardian.clone()).await
+}
+
+#[command]
+pub async fn guardian_check_health_cmd(state: State<'_, AppState>) -> Result<Value, String> {
+    guardian_check_health(state.inner().guardian.clone()).await
+}
+
+#[command]
+pub async fn guardian_restart_node_cmd(state: State<'_, AppState>) -> Result<Value, String> {
+    guardian_restart_node(state.inner().guardian.clone()).await
+}
+
+#[command]
+pub async fn guardian_stop_node_cmd(state: State<'_, AppState>) -> Result<Value, String> {
+    guardian_stop_node(state.inner().guardian.clone()).await
+}
+
+#[command]
+pub async fn guardian_status_cmd(state: State<'_, AppState>) -> Result<Value, String> {
+    guardian_status(state.inner().guardian.clone()).await
+}
+
+#[command]
+pub async fn guardian_toggle_monitor_cmd(state: State<'_, AppState>) -> Result<Value, String> {
+    guardian_toggle_monitor(state.inner().guardian.clone()).await
+}
+
+/// Полное отключение: стоп ноды + Telegram-отчёт. Процесс монитора
+/// завершает себя сам после отчёта (выгрузка из памяти).
+#[command]
+pub async fn guardian_shutdown_cmd(state: State<'_, AppState>) -> Result<Value, String> {
+    guardian_shutdown_everything(state.inner().guardian.clone()).await;
+    // «Паника»: жёсткая выгрузка процесса монитора из памяти.
+    std::process::exit(0);
+}
+
+#[command]
+pub async fn tg_send_test_cmd() -> Result<Value, String> {
+    tg_send_test().await
+}
+
+// --- Конфигурация ноды ---
+
+/// Возвращает текущую конфигурацию ноды (из `~/.nexxus/node.conf`).
+#[command]
+pub fn node_config_get_cmd() -> Result<Value, String> {
+    let cfg = node_config::load();
+    serde_json::to_value(&cfg).map_err(|e| format!("Не удалось сериализовать конфиг: {e}"))
+}
+
+/// Сохраняет конфигурацию ноды. Перезапуск ноды выполняется отдельно
+/// (`guardian_restart_node_cmd`), чтобы пользователь видел результат.
+#[command]
+pub fn node_config_set_cmd(cfg: NodeConfig) -> Result<Value, String> {
+    node_config::validate(&cfg)?;
+    node_config::save(&cfg)?;
+    Ok(json!({
+        "status": "saved",
+        "config": cfg,
+        "env": node_config::to_env(&cfg)
+            .into_iter()
+            .map(|(k, v)| json!({ "key": k, "value": v }))
+            .collect::<Vec<_>>(),
+    }))
+}
+
+/// Проверяет конфигурацию без сохранения (dry-run для UI).
+#[command]
+pub fn node_config_validate_cmd(cfg: NodeConfig) -> Result<Value, String> {
+    node_config::validate(&cfg)?;
+    Ok(json!({ "valid": true }))
+}
+
+/// Запускает фоновый цикл мониторинга (используется в setup main.rs).
+pub async fn run_health_loop(state: Arc<crate::guardian::GuardianState>) {
+    health_loop(state).await;
+}
