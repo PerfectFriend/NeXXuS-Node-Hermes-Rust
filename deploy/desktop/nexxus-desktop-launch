@@ -4,7 +4,7 @@
 # Монитор сам запускает nexxusd, мониторит здоровье,
 # автоперезапускает при падении и шлёт уведомления в Telegram.
 
-DESKTOP="/home/thomas/build/cache/cargo-target/release/nexxus-desktop"
+DESKTOP="/home/thomas/build/cache/cargo-target-nexxus/release/nexxus-desktop"
 
 # Находим Wayland дисплей
 if [ -z "${WAYLAND_DISPLAY:-}" ]; then

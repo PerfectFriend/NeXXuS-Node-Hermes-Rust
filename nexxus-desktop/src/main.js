@@ -45,6 +45,7 @@ function addStageLog(message, type = 'info') {
 }
 
 // Обновление интерфейса
+let lastOk = null; // null=нет данных, true=связь есть, false=была потеряна
 function updateUI() {
   els.state.textContent = state.guardianState;
   els.nodeId.textContent = state.nodeId;
@@ -88,7 +89,16 @@ async function fetchStatus() {
     }
 
     updateUI();
+    if (lastOk !== true) {
+      if (lastOk === false) {
+        addStageLog('✅ Связь с нодой восстановлена', 'success');
+      }
+      lastOk = true;
+    }
   } catch (e) {
+    if (lastOk !== false) {
+      lastOk = false;
+    }
     addStageLog(`Ошибка получения статуса: ${e}`, 'error');
   }
 }
@@ -117,12 +127,12 @@ async function restartNode() {
   }
 }
 
-// Остановить мониторинг
+// Остановить ноду
 async function stopNode() {
-  addStageLog('Остановка мониторинга...', 'info');
+  addStageLog('Остановка ноды...', 'info');
   try {
     await invoke('guardian_stop_node_cmd');
-    addStageLog('Мониторинг остановлен', 'success');
+    addStageLog('Нода остановлена (процесс выгружен)', 'success');
     await fetchStatus();
   } catch (e) {
     addStageLog(`Ошибка остановки: ${e}`, 'error');

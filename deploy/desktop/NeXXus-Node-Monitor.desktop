@@ -14,7 +14,7 @@ Actions=Show;Quit
 
 [Desktop Action Show]
 Name=Показать панель управления
-Exec=/home/thomas/build/cache/cargo-target/release/nexxus-desktop
+Exec=/home/thomas/build/cache/cargo-target-nexxus/release/nexxus-desktop
 
 [Desktop Action Quit]
 Name=Выход

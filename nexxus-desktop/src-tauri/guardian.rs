@@ -15,13 +15,16 @@ use std::time::{Duration, SystemTime};
 use tokio::sync::Mutex;
 use tokio::time::sleep;
 
-const NEXXUSD_BIN: &str = "/home/thomas/build/cache/cargo-target/release/nexxusd";
+const NEXXUSD_BIN: &str = "/home/thomas/build/cache/cargo-target-nexxus/release/nexxusd";
 const NEXXUSD_STORE: &str = "/home/thomas/.nexxus/store.redb";
+/// Файл лога ноды — его же читает команда `nexxusd logs`.
+const NEXXUSD_LOG: &str = "/home/thomas/.nexxus/nexxusd.log";
 const API_HOST: &str = "127.0.0.1";
 const API_PORT: u16 = 4010;
 pub const API_URL: &str = "ws://127.0.0.1:4010";
 const HEALTH_INTERVAL_SEC: u64 = 10;
 const MAX_HEALTH_FAILURES: u32 = 3;
+const HEARTBEAT_INTERVAL_SEC: u64 = 3600;
 
 /// Состояние монитора ноды.
 #[derive(Clone, Debug, serde::Serialize, Default, PartialEq)]
@@ -75,13 +78,44 @@ impl GuardianState {
 /// Является ли процесс nexxusd запущенным.
 pub fn is_nexxusd_running() -> bool {
     let output = Command::new("pgrep")
-        .args(&["-f", "nexxusd.*store.redb"])
+        .args(["-f", "nexxusd.*store.redb"])
         .stdout(Stdio::piped())
         .output();
     match output {
         Ok(out) => !out.stdout.is_empty(),
         Err(_) => false,
     }
+}
+
+/// Останавливает nexxusd (SIGTERM, затем добивание SIGKILL).
+pub fn stop_nexxusd() -> Result<(), String> {
+    let _ = Command::new("pkill")
+        .args(["-f", "nexxusd.*store.redb"])
+        .status();
+    std::thread::sleep(Duration::from_millis(1500));
+    // Если пережил SIGTERM — SIGKILL
+    if is_nexxusd_running() {
+        let _ = Command::new("pkill")
+            .args(["-9", "-f", "nexxusd.*store.redb"])
+            .status();
+        std::thread::sleep(Duration::from_millis(500));
+    }
+    if is_nexxusd_running() {
+        return Err("nexxusd не завершился после SIGKILL".into());
+    }
+    Ok(())
+}
+
+/// Полное отключение: стоп ноды + Telegram-отчёт. Вызывается из трея;
+/// после возврата вызывающий завершает процесс монитора (выгрузка из памяти).
+pub async fn guardian_shutdown_everything(state: Arc<GuardianState>) {
+    *state.monitor_enabled.lock().await = false;
+    *state.state.lock().await = MonitorState::Stopped;
+    let bot = get_bot().await;
+    if let Err(e) = stop_nexxusd() {
+        let _ = bot.notify_node_start_failed(&format!("При полном отключении: {e}")).await;
+    }
+    let _ = bot.notify_guardian_shutdown().await;
 }
 
 /// Запускает nexxusd в фоне.
@@ -93,10 +127,25 @@ pub fn start_nexxusd() -> Result<(), String> {
     // Удаляем залоченный файл БД если есть
     let _ = std::fs::remove_file(format!("{}.lock", NEXXUSD_STORE));
 
+    // Лог ноды: stderr перенаправляем в файл (иначе `nexxusd logs` не найдёт его).
+    let log_path = std::path::PathBuf::from(NEXXUSD_LOG);
+    if let Some(parent) = log_path.parent() {
+        let _ = std::fs::create_dir_all(parent);
+    }
+    let log_out = std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(&log_path)
+        .map_err(|e| format!("Не удалось открыть лог {}: {e}", log_path.display()))?;
+    let log_err = log_out
+        .try_clone()
+        .map_err(|e| format!("Не удалось клонировать лог: {e}"))?;
+
     let _child = Command::new(NEXXUSD_BIN)
         .arg(NEXXUSD_STORE)
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
+        .env("NEXXUS_LOG", &log_path)
+        .stdout(Stdio::from(log_out))
+        .stderr(Stdio::from(log_err))
         .spawn()
         .map_err(|e| format!("Не удалось запустить nexxusd: {e}"))?;
 
@@ -122,10 +171,9 @@ pub async fn wait_for_api_ready(timeout_sec: u64) -> bool {
 /// Проверяет доступность API через простой HTTP/WebSocket запрос.
 pub async fn api_is_reachable() -> bool {
     // Пробуем TCP подключение к порту 4010
-    match tokio::net::TcpStream::connect(format!("{API_HOST}:{API_PORT}")).await {
-        Ok(_) => true,
-        Err(_) => false,
-    }
+    tokio::net::TcpStream::connect(format!("{API_HOST}:{API_PORT}"))
+        .await
+        .is_ok()
 }
 
 /// Выполняет JSON-RPC запрос к локальному API (через WebSocket).
@@ -178,49 +226,78 @@ pub async fn get_node_status() -> Result<NodeStatus, String> {
     })
 }
 
-/// Получает информацию о пирах.
+/// Получает информацию о пирах (для дашборда/расширений).
+#[allow(dead_code)]
 pub async fn get_node_peers() -> Result<Value, String> {
     api_call("node_peers", None).await
 }
 
 /// Получает информацию о чанках.
+#[allow(dead_code)]
 pub async fn get_node_chunks() -> Result<Value, String> {
     api_call("node_chunks", None).await
 }
 
 /// Получает информацию об эпохе.
+#[allow(dead_code)]
 pub async fn get_node_epoch() -> Result<Value, String> {
     api_call("node_epoch", None).await
 }
 
 /// Получает информацию о Tor.
+#[allow(dead_code)]
 pub async fn get_node_tor() -> Result<Value, String> {
     api_call("node_tor", None).await
 }
 
 /// Фоновый цикл мониторинга здоровья.
+/// Алерты — только на переходах состояния (без спама каждые 10 сек),
+/// heartbeat — раз в час, отчёт об активации Tor — при смене состояния.
 pub async fn health_loop(state: Arc<GuardianState>) {
     let bot = get_bot().await;
     let _ = bot.notify_monitor_started().await;
 
+    let mut heartbeat_ticks: u64 = 0;
+    let mut last_tor: String = String::new();
+
     loop {
         sleep(Duration::from_secs(HEALTH_INTERVAL_SEC)).await;
 
-        let enabled = *state.monitor_enabled.lock().await;
-        if !enabled {
+        if !*state.monitor_enabled.lock().await {
             continue;
         }
 
         let mut state_lock = state.state.lock().await;
+        let prev_state = state_lock.clone();
 
         match get_node_status().await {
             Ok(status) => {
                 *state.health_failures.lock().await = 0;
                 *state.node_status.lock().await = Some(status.clone());
-                if *state_lock == MonitorState::Unhealthy || *state_lock == MonitorState::Restarting {
+
+                // Восстановление после нездоровья/перезапуска
+                if prev_state == MonitorState::Unhealthy || prev_state == MonitorState::Restarting {
                     let _ = bot.notify_node_restarted().await;
                 }
+
+                // Активация Tor: отчёт при первом появлении onion-адреса
+                if status.tor != last_tor {
+                    if !status.tor.is_empty() && status.tor != "unknown" && status.tor != "disabled"
+                        && !last_tor.is_empty()
+                    {
+                        let _ = bot.notify_node_tor(&status.tor).await;
+                    }
+                    last_tor = status.tor.clone();
+                }
+
                 *state_lock = MonitorState::Running;
+
+                // Heartbeat раз в час
+                heartbeat_ticks += 1;
+                if heartbeat_ticks * HEALTH_INTERVAL_SEC >= HEARTBEAT_INTERVAL_SEC {
+                    heartbeat_ticks = 0;
+                    let _ = bot.notify_heartbeat(&status.node_id, status.peers, status.uptime_ms).await;
+                }
             }
             Err(e) => {
                 let mut failures = state.health_failures.lock().await;
@@ -228,7 +305,10 @@ pub async fn health_loop(state: Arc<GuardianState>) {
                 let current_failures = *failures;
                 drop(failures);
 
-                let _ = bot.notify_node_unhealthy(&e).await;
+                // Алерт только на ПЕРВОЙ неудаче эпизода (transition-only)
+                if prev_state != MonitorState::Unhealthy && prev_state != MonitorState::Restarting {
+                    let _ = bot.notify_node_unhealthy(&e).await;
+                }
 
                 if current_failures >= MAX_HEALTH_FAILURES {
                     *state_lock = MonitorState::Restarting;
@@ -291,7 +371,7 @@ pub async fn guardian_start_node(state: Arc<GuardianState>) -> Result<Value, Str
             *state.node_status.lock().await = Some(status.clone());
             let mut state_lock = state.state.lock().await;
             *state_lock = MonitorState::Running;
-            let _ = bot.notify_node_started(&status.node_id, &API_URL).await;
+            let _ = bot.notify_node_started(&status.node_id, API_URL).await;
             Ok(json!({"status": "started", "node_id": status.node_id}))
         }
         Err(e) => {
@@ -324,26 +404,36 @@ pub async fn guardian_restart_node(state: Arc<GuardianState>) -> Result<Value, S
     let _ = bot.notify_node_restarting("Ручной перезапуск").await;
 
     // Убиваем nexxusd
-    let _ = Command::new("pkill").args(&["-f", "nexxusd.*store.redb"]).status();
+    let _ = Command::new("pkill").args(["-f", "nexxusd.*store.redb"]).status();
     sleep(Duration::from_secs(2)).await;
 
     guardian_start_node(state).await
 }
 
-/// Останавливает мониторинг (не ноду).
+/// Останавливает ноду (реальный pkill) и мониторинг.
 pub async fn guardian_stop_node(state: Arc<GuardianState>) -> Result<Value, String> {
     *state.monitor_enabled.lock().await = false;
     *state.state.lock().await = MonitorState::Stopped;
     let bot = get_bot().await;
-    let _ = bot.notify_monitor_stopped().await;
-    Ok(json!({"status": "stopped"}))
+    let _ = bot.notify_node_stopping().await;
+    let result = stop_nexxusd();
+    match &result {
+        Ok(_) => {
+            let _ = bot.notify_node_stopped().await;
+        }
+        Err(e) => {
+            let _ = bot.notify_node_start_failed(&format!("Остановка ноды: {e}")).await;
+        }
+    }
+    result?;
+    Ok(json!({"status": "node_stopped"}))
 }
 
 /// Возвращает текущее состояние гардиана.
 pub async fn guardian_status(state: Arc<GuardianState>) -> Result<Value, String> {
     let state_val = { state.state.lock().await.clone() };
     let node_status = { state.node_status.lock().await.clone() };
-    let enabled = { state.monitor_enabled.lock().await.clone() };
+    let enabled = { *state.monitor_enabled.lock().await };
 
     Ok(json!({
         "state": format!("{:?}", state_val),
@@ -353,19 +443,11 @@ pub async fn guardian_status(state: Arc<GuardianState>) -> Result<Value, String>
     }))
 }
 
-/// Переключает мониторинг ВКЛ/ВЫКЛ.
+/// Переключает мониторинг ВКЛ/ВЫКЛ (сам цикл живёт постоянно —
+/// это только флаг участия в мониторинге).
 pub async fn guardian_toggle_monitor(state: Arc<GuardianState>) -> Result<Value, String> {
     let mut enabled = state.monitor_enabled.lock().await;
     *enabled = !*enabled;
-
-    if *enabled {
-        // Запускаем цикл мониторинга в фоне
-        let state_clone = Arc::clone(&state);
-        tokio::spawn(async move {
-            health_loop(state_clone).await;
-        });
-    }
-
     Ok(json!({"monitor_enabled": *enabled}))
 }
 

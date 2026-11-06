@@ -1,4 +1,5 @@
 //! WebSocket JSON-RPC клиент для локального API nexxusd (порт 4010).
+#![allow(dead_code)]
 
 use futures_util::{SinkExt, StreamExt};
 use serde_json::{json, Value};

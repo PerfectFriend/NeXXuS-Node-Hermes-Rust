@@ -16,8 +16,21 @@ pub struct TelegramBot {
 
 impl TelegramBot {
     pub fn new() -> Self {
-        let token = std::env::var("NEXXUS_TG_BOT_TOKEN").ok();
-        let chat_id = std::env::var("NEXXUS_TG_CHAT_ID").ok();
+        // Токен: env → secrets-файл проекта (тот же источник, что у orchestration-скриптов).
+        // Значение никогда не логируется и не попадает в конфиги.
+        let token = std::env::var("NEXXUS_TG_BOT_TOKEN").ok().filter(|t| !t.is_empty()).or_else(|| {
+            std::fs::read_to_string(format!(
+                "{}/.hermes/secrets/cathedral_bot_token",
+                std::env::var("HOME").unwrap_or_else(|_| "/tmp".into())
+            ))
+            .ok()
+            .map(|s| s.trim().to_string())
+            .filter(|t| !t.is_empty())
+        });
+        let chat_id = std::env::var("NEXXUS_TG_CHAT_ID")
+            .ok()
+            .filter(|c| !c.is_empty())
+            .or_else(|| Some("143293811".to_string()));
         Self {
             client: Client::new(),
             token,
@@ -97,6 +110,29 @@ impl TelegramBot {
         self.send_message("✅ <b>nexxusd перезапущен и отвечает</b>").await
     }
 
+    pub async fn notify_node_stopping(&self) -> Result<(), String> {
+        if !self.is_configured() { return Ok(()); }
+        self.send_message("⏹ <b>Остановка nexxusd...</b>\n\nРучная остановка ноды через монитор.").await
+    }
+
+    pub async fn notify_node_stopped(&self) -> Result<(), String> {
+        if !self.is_configured() { return Ok(()); }
+        self.send_message("🛑 <b>nexxusd остановлен</b>\n\nПроцесс ноды выгружен из памяти.").await
+    }
+
+    pub async fn notify_node_tor(&self, tor: &str) -> Result<(), String> {
+        if !self.is_configured() { return Ok(()); }
+        self.send_message(&format!(
+            "🧅 <b>Tor-сервис активирован</b>\n\n{}",
+            tor
+        )).await
+    }
+
+    pub async fn notify_guardian_shutdown(&self) -> Result<(), String> {
+        if !self.is_configured() { return Ok(()); }
+        self.send_message("⛔ <b>NeXXus полностью отключён</b>\n\nНода и монитор выгружены из памяти. Автоперезапуск отключён — запуск вручную.").await
+    }
+
     pub async fn notify_heartbeat(&self, node_id: &str, peers: usize, uptime_ms: u128) -> Result<(), String> {
         if !self.is_configured() { return Ok(()); }
         let uptime_min = uptime_ms / 60_000;
@@ -106,6 +142,7 @@ impl TelegramBot {
         )).await
     }
 
+    #[allow(dead_code)]
     pub async fn notify_monitor_stopped(&self) -> Result<(), String> {
         if !self.is_configured() { return Ok(()); }
         self.send_message("🛑 <b>NeXXus Guardian остановлен</b>").await

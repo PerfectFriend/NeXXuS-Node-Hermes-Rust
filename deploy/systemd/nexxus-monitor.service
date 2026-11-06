@@ -12,11 +12,14 @@ Environment="WAYLAND_DISPLAY=wayland-0"
 #   systemctl --user set-environment NEXXUS_TG_BOT_TOKEN="<token>"
 #   systemctl --user set-environment NEXXUS_TG_CHAT_ID="143293811"
 # Или через ~/.config/environment.d/nexxus-monitor.env
-ExecStart=/home/thomas/build/cache/cargo-target/release/nexxus-desktop
-Restart=always
+ExecStart=/home/thomas/build/cache/cargo-target-nexxus/release/nexxus-desktop
+# on-failure: при падении монитор перезапускается, а «Полное отключение»
+# (осознанный exit 0 из трея) остаётся выключенным.
+Restart=on-failure
 RestartSec=5
-# Не убивать nexxusd при остановке монитора
-IgnoreSIGPIPE=no
+# nexxusd запускается монитором как дочерний процесс и не должен умирать
+# вместе с ним: KillMode=process вместо control-group.
+KillMode=process
 
 [Install]
 WantedBy=graphical-session.target
