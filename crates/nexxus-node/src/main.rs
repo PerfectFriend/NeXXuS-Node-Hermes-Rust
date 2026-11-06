@@ -157,51 +157,61 @@ fn main() {
 
         // --- Tor (feature `tor`, NEXXUS_TOR=0 чтобы выключить): bootstrap arti
         // и публикация onion v3 hidden service на P2P-порту; статус — в node_tor.
+        //
+        // Бутстрап выполняется в фоновой задаче: он занимает десятки секунд
+        // (а при проблемах с сетью — минуты), и раньше блокировал запуск
+        // слушателей, из-за чего порт 4010 не поднимался и монитор получал
+        // "connection refused". Теперь P2P и API стартуют сразу, а статус Tor
+        // обновляется асинхронно (node_tor).
         #[cfg(feature = "tor")]
         if std::env::var("NEXXUS_TOR")
             .map(|v| v != "0" && !v.eq_ignore_ascii_case("false"))
             .unwrap_or(true)
         {
-            match tor::TorSession::new().await {
-                Ok(mut ts) => {
-                    match ts.publish_onion(listen_addr).await {
-                        Ok(onion) => {
-                            eprintln!("nexxusd: tor onion v3 published: {onion}");
-                            api.set_tor_status(crate::local_api::TorStatus {
-                                enabled: true,
-                                onion_address: Some(onion),
-                                connected: true,
-                            })
-                            .await;
+            let api_tor = Arc::clone(&api);
+            let listen_addr_tor = listen_addr;
+            tokio::spawn(async move {
+                match tor::TorSession::new().await {
+                    Ok(mut ts) => {
+                        match ts.publish_onion(listen_addr_tor).await {
+                            Ok(onion) => {
+                                eprintln!("nexxusd: tor onion v3 published: {onion}");
+                                api_tor.set_tor_status(crate::local_api::TorStatus {
+                                    enabled: true,
+                                    onion_address: Some(onion),
+                                    connected: true,
+                                })
+                                .await;
+                            }
+                            Err(e) => {
+                                eprintln!("nexxusd: tor onion publish failed: {e}");
+                                api_tor.set_tor_status(crate::local_api::TorStatus {
+                                    enabled: true,
+                                    onion_address: None,
+                                    connected: false,
+                                })
+                                .await;
+                            }
                         }
-                        Err(e) => {
-                            eprintln!("nexxusd: tor onion publish failed: {e}");
-                            api.set_tor_status(crate::local_api::TorStatus {
-                                enabled: true,
-                                onion_address: None,
-                                connected: false,
-                            })
-                            .await;
-                        }
+                        // Сессия живёт в API (для node_dial_onion) и в отдельной задаче до конца процесса.
+                        let ts = Arc::new(ts);
+                        api_tor.set_tor_session(Arc::clone(&ts)).await;
+                        tokio::spawn(async move {
+                            let _session = ts;
+                            std::future::pending::<()>().await;
+                        });
                     }
-                    // Сессия живёт в API (для node_dial_onion) и в отдельной задаче до конца процесса.
-                    let ts = Arc::new(ts);
-                    api.set_tor_session(Arc::clone(&ts)).await;
-                    tokio::spawn(async move {
-                        let _session = ts;
-                        std::future::pending::<()>().await;
-                    });
+                    Err(e) => {
+                        eprintln!("nexxusd: tor bootstrap failed: {e}");
+                        api_tor.set_tor_status(crate::local_api::TorStatus {
+                            enabled: false,
+                            onion_address: None,
+                            connected: false,
+                        })
+                        .await;
+                    }
                 }
-                Err(e) => {
-                    eprintln!("nexxusd: tor bootstrap failed: {e}");
-                    api.set_tor_status(crate::local_api::TorStatus {
-                        enabled: false,
-                        onion_address: None,
-                        connected: false,
-                    })
-                    .await;
-                }
-            }
+            });
         }
         #[cfg(not(feature = "tor"))]
         {
