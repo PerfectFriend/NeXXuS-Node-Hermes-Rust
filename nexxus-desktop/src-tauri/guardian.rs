@@ -122,8 +122,16 @@ pub async fn guardian_shutdown_everything(state: Arc<GuardianState>) {
 }
 
 /// Запускает nexxusd в фоне с параметрами из `~/.nexxus/node.conf`.
+///
+/// Если нода уже установлена как systemd-юнит и запущена — монитор её не
+/// трогает: второй процесс занял бы тот же порт и упал бы с `address in use`.
 pub fn start_nexxusd() -> Result<(), String> {
     if is_nexxusd_running() {
+        return Ok(());
+    }
+
+    // Нода под управлением systemd — оставляем её как есть.
+    if crate::node_unit::is_installed() && crate::node_unit::unit_state() == "active" {
         return Ok(());
     }
 

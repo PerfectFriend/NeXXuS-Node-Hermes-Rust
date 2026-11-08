@@ -96,6 +96,43 @@ pub fn node_config_validate_cmd(cfg: NodeConfig) -> Result<Value, String> {
     Ok(json!({ "valid": true }))
 }
 
+// --- Установка / удаление ноды как системной службы ---
+
+/// Ставит ноду как user-юнит systemd: генерирует файл из текущего конфига,
+/// делает daemon-reload и enable --now.
+#[command]
+pub fn node_install_cmd() -> Result<Value, String> {
+    let cfg = node_config::load();
+    let path = crate::node_unit::install_unit(&cfg)?;
+    crate::node_unit::enable_and_start()?;
+    Ok(json!({
+        "status": "installed",
+        "unit": path.to_string_lossy(),
+        "unit_state": crate::node_unit::unit_state(),
+    }))
+}
+
+/// Останавливает и выключает юнит ноды (сам монитор остаётся работать).
+#[command]
+pub fn node_uninstall_cmd() -> Result<Value, String> {
+    crate::node_unit::disable_and_stop()?;
+    Ok(json!({
+        "status": "uninstalled",
+        "unit_state": crate::node_unit::unit_state(),
+    }))
+}
+
+/// Состояние установки ноды (для дашборда).
+#[command]
+pub fn node_install_status_cmd() -> Result<Value, String> {
+    Ok(json!({
+        "installed": crate::node_unit::is_installed(),
+        "unit_path": crate::node_unit::node_unit_path().to_string_lossy(),
+        "unit_state": crate::node_unit::unit_state(),
+        "monitor_unit_state": crate::node_unit::monitor_unit_state(),
+    }))
+}
+
 /// Запускает фоновый цикл мониторинга (используется в setup main.rs).
 pub async fn run_health_loop(state: Arc<crate::guardian::GuardianState>) {
     health_loop(state).await;

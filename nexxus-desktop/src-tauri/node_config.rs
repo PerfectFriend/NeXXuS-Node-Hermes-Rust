@@ -114,8 +114,16 @@ pub fn validate(cfg: &NodeConfig) -> Result<(), String> {
 
 /// Читает конфигурацию из файла; отсутствующий/битый файл → дефолты.
 pub fn load() -> NodeConfig {
-    let path = config_path();
-    let Ok(content) = std::fs::read_to_string(&path) else {
+    load_from(&config_path())
+}
+
+/// Читает конфигурацию из произвольного пути.
+///
+/// Явный путь вместо глобального env-переопределения: тесты в Rust
+/// выполняются параллельно в одном процессе, и общий `NEXXUS_CONFIG_DIR`
+/// приводил к гонке между тестами.
+pub fn load_from(path: &std::path::Path) -> NodeConfig {
+    let Ok(content) = std::fs::read_to_string(path) else {
         return NodeConfig::default();
     };
     let mut cfg = NodeConfig::default();
@@ -152,10 +160,15 @@ pub fn load() -> NodeConfig {
 
 /// Сохраняет конфигурацию атомарно (temp + rename) с правами 0600.
 pub fn save(cfg: &NodeConfig) -> Result<(), String> {
+    save_to(cfg, &config_path())
+}
+
+/// Сохраняет конфигурацию в произвольный путь (атомарно, права 0600).
+pub fn save_to(cfg: &NodeConfig, path: &std::path::Path) -> Result<(), String> {
     validate(cfg)?;
-    let dir = config_dir();
-    std::fs::create_dir_all(&dir).map_err(|e| format!("Не удалось создать {}: {e}", dir.display()))?;
-    let path = config_path();
+    if let Some(dir) = path.parent() {
+        std::fs::create_dir_all(dir).map_err(|e| format!("Не удалось создать {}: {e}", dir.display()))?;
+    }
     let tmp = path.with_extension("conf.tmp");
 
     let body = format!(
@@ -176,7 +189,7 @@ pub fn save(cfg: &NodeConfig) -> Result<(), String> {
         use std::os::unix::fs::PermissionsExt;
         let _ = std::fs::set_permissions(&tmp, std::fs::Permissions::from_mode(0o600));
     }
-    std::fs::rename(&tmp, &path).map_err(|e| format!("Не удалось сохранить {}: {e}", path.display()))?;
+    std::fs::rename(&tmp, path).map_err(|e| format!("Не удалось сохранить {}: {e}", path.display()))?;
     Ok(())
 }
 
@@ -199,6 +212,9 @@ mod tests {
     use super::*;
 
     /// Изолированный каталог конфигурации на время теста.
+    ///
+    /// Путь передаётся явно в `load_from`/`save_to`, а не через env: тесты
+    /// выполняются параллельно, и общий env-переопределитель давал гонку.
     struct TempDir(PathBuf);
 
     impl TempDir {
@@ -210,15 +226,18 @@ mod tests {
             ));
             let _ = std::fs::remove_dir_all(&dir);
             std::fs::create_dir_all(&dir).unwrap();
-            std::env::set_var("NEXXUS_CONFIG_DIR", &dir);
             Self(dir)
+        }
+
+        /// Путь к файлу конфигурации внутри временного каталога.
+        fn conf(&self) -> PathBuf {
+            self.0.join("node.conf")
         }
     }
 
     impl Drop for TempDir {
         fn drop(&mut self) {
             let _ = std::fs::remove_dir_all(&self.0);
-            std::env::remove_var("NEXXUS_CONFIG_DIR");
         }
     }
 
@@ -235,7 +254,8 @@ mod tests {
 
     #[test]
     fn save_then_load_roundtrip() {
-        let _tmp = TempDir::new("roundtrip");
+        let tmp = TempDir::new("roundtrip");
+        let path = tmp.conf();
         let cfg = NodeConfig {
             listen: "0.0.0.0:4001".into(),
             api: "127.0.0.1:5010".into(),
@@ -246,8 +266,8 @@ mod tests {
             spec_version: "v3".into(),
             log_path: "/tmp/custom.log".into(),
         };
-        save(&cfg).unwrap();
-        let loaded = load();
+        save_to(&cfg, &path).unwrap();
+        let loaded = load_from(&path);
         assert_eq!(loaded, cfg);
     }
 
@@ -275,36 +295,37 @@ mod tests {
 
     #[test]
     fn invalid_threshold_rejected() {
-        let _tmp = TempDir::new("invalid");
+        let tmp = TempDir::new("invalid");
+        let path = tmp.conf();
         // Порог без аудиторов — кворум недостижим.
         let bad = NodeConfig { threshold: 3, ..NodeConfig::default() };
-        assert!(save(&bad).is_err());
+        assert!(save_to(&bad, &path).is_err());
         // Порог больше числа аудиторов — тоже ошибка.
         let bad2 = NodeConfig {
             auditors: vec!["aa".into()],
             threshold: 5,
             ..NodeConfig::default()
         };
-        assert!(save(&bad2).is_err());
+        assert!(save_to(&bad2, &path).is_err());
         // Нулевая эпоха — ошибка.
         let bad3 = NodeConfig { epoch_secs: 0, ..NodeConfig::default() };
-        assert!(save(&bad3).is_err());
+        assert!(save_to(&bad3, &path).is_err());
         // Некорректный адрес — ошибка.
         let bad4 = NodeConfig { listen: "no-port".into(), ..NodeConfig::default() };
-        assert!(save(&bad4).is_err());
+        assert!(save_to(&bad4, &path).is_err());
         // Корректная конфигурация сохраняется.
         let good = NodeConfig {
             auditors: vec!["aa".into(), "bb".into(), "cc".into()],
             threshold: 2,
             ..NodeConfig::default()
         };
-        assert!(save(&good).is_ok());
+        assert!(save_to(&good, &path).is_ok());
     }
 
     #[test]
     fn missing_file_yields_defaults() {
-        let _tmp = TempDir::new("missing");
-        let cfg = load();
+        let tmp = TempDir::new("missing");
+        let cfg = load_from(&tmp.conf());
         assert_eq!(cfg, NodeConfig::default());
     }
 }
