@@ -31,7 +31,7 @@
 
 ## Phase A — Безопасность узла и API (фундамент, закрывает реальные дыры)
 
-### Task A1: Токен-аутентификация локального WS API
+### Task A1: Токен-аутентификация локального WS API — ✅ DONE (commit 52a38f0)
 - **Files:** Modify `crates/nexxus-node/src/local_api.rs`, `crates/nexxus-node/src/main.rs`; Create `crates/nexxus-node/src/api_auth.rs`; Modify `nexxus-desktop/src-tauri/api_client.rs`.
 - **Interfaces:** `api_auth::Token::generate() -> String` (32 байта CSPRNG, hex), хранение в `~/.nexxus/api.token` (0600, создаётся при первом старте); handshake: клиент шлёт `{"method":"auth","token":...}` первой рамкой, до успеха — только `auth` и `ping`; `LocalApi::set_token(...)`.
 - **Steps:** тест `ws_call_without_token_rejected` (подключиться, вызвать node_status без токена → ErrorResponse/close) → FAIL → реализация → PASS; негативный тест с неверным токеном; монитор читает токен из файла и передаёт в handshake; `cargo test -p nexxus-node`, clippy, смоук `test-api-client` с токеном → 200/ok. Commit `feat(node): token auth for local WS API`.
