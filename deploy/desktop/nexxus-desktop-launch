@@ -1,24 +1,41 @@
 #!/usr/bin/env bash
-# Запуск NeXXus Node Monitor (Ангел-хранитель ноды).
-# Приложение запускается свёрнутым в системный трей.
-# Монитор сам запускает nexxusd, мониторит здоровье,
-# автоперезапускает при падении и шлёт уведомления в Telegram.
+# Запуск NeXXus Node Monitor (Ангел-хранитель ноды) из ярлыка рабочего стола.
+#
+# Модель запуска — ярлык (.desktop), а не systemd-автозагрузка: сессия
+# рабочего стола уже несёт DISPLAY / WAYLAND_DISPLAY / XDG_RUNTIME_DIR,
+# поэтому графическое окружение восстанавливать не надо.
+# Приложение стартует свёрнутым в трей; монитор сам поднимает nexxusd,
+# следит за здоровьем, автоперезапускает при падении и шлёт отчёты
+# в Telegram.
+#
+# Секреты (токен бота, chat id) здесь НЕ лежат: монитор читает их из
+# ~/.hermes/secrets/ и env, если заданы.
 
-DESKTOP="/home/thomas/build/cache/cargo-target-nexxus/release/nexxus-desktop"
+set -u
 
-# Находим Wayland дисплей
+BIN="/home/thomas/build/cache/cargo-target-nexxus/release/nexxus-desktop"
+LOG_DIR="${HOME}/.nexxus"
+LOG="${LOG_DIR}/monitor.out"
+
+# PATH — чтобы монитор находил nexxusd и системные утилиты.
+export PATH="${HOME}/build/bin:${PATH}"
+
+# Графика: ничего не подставляем насильно. X11-сессия использует DISPLAY
+# из .desktop, Wayland-сессия — WAYLAND_DISPLAY из .desktop.
+# Принудительный export WAYLAND_DISPLAY=wayland-0 ломал запуск в
+# X11-сессиях, где сокета wayland-0 нет.
 if [ -z "${WAYLAND_DISPLAY:-}" ]; then
     for wl in /run/user/$(id -u)/wayland-*; do
         if [ -S "$wl" ]; then
-            export WAYLAND_DISPLAY=$(basename "$wl")
+            export WAYLAND_DISPLAY="$(basename "$wl")"
             break
         fi
     done
 fi
-export WAYLAND_DISPLAY="${WAYLAND_DISPLAY:-wayland-0}"
 
-# Токены для Telegram уведомлений
-export NEXXUS_TG_BOT_TOKEN="${NEXXUS_TG_BOT_TOKEN:-}"
-export NEXXUS_TG_CHAT_ID="${NEXXUS_TG_CHAT_ID:-143293811}"
+mkdir -p "${LOG_DIR}"
 
-exec "$DESKTOP"
+# Однократный запуск: монитор сам проверяет lock-файл и тихо выходит,
+# если уже запущен — повторный клик по ярлыку не порождает конфликт с
+# работающей нодой.
+exec "${BIN}" >>"${LOG}" 2>&1

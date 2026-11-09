@@ -20,6 +20,14 @@ const NEXXUSD_BIN: &str = "/home/thomas/build/cache/cargo-target-nexxus/release/
 const NEXXUSD_STORE: &str = "/home/thomas/.nexxus/store.redb";
 /// Файл лога ноды — его же читает команда `nexxusd logs`.
 const NEXXUSD_LOG: &str = "/home/thomas/.nexxus/nexxusd.log";
+/// Шаблон командной строки процесса ноды.
+///
+/// По одному только имени `nexxusd` искать нельзя: под этим именем
+/// запускается сам бинарь, а совпадение строилось по `store.redb`, который
+/// есть не у всех способов запуска. Привязываемся к пути бинаря —
+/// у монитора путь оканчивается на `nexxus-desktop`, поэтому совпадения
+/// с ним не происходит.
+const NEXXUSD_MATCH: &str = "cargo-target-nexxus/release/nexxusd";
 const API_HOST: &str = "127.0.0.1";
 const API_PORT: u16 = 4010;
 pub const API_URL: &str = "ws://127.0.0.1:4010";
@@ -81,7 +89,7 @@ impl GuardianState {
 /// Является ли процесс nexxusd запущенным.
 pub fn is_nexxusd_running() -> bool {
     let output = Command::new("pgrep")
-        .args(["-f", "nexxusd.*store.redb"])
+        .args(["-f", NEXXUSD_MATCH])
         .stdout(Stdio::piped())
         .output();
     match output {
@@ -91,15 +99,26 @@ pub fn is_nexxusd_running() -> bool {
 }
 
 /// Останавливает nexxusd (SIGTERM, затем добивание SIGKILL).
+///
+/// Если нода стоит как systemd-юнит, останавливаем её через systemctl —
+/// иначе `Restart=on-failure` её воскресит, и кнопка «Остановить» снова
+/// будет выглядеть нерабочей.
 pub fn stop_nexxusd() -> Result<(), String> {
+    if crate::node_unit::is_installed() {
+        let _ = Command::new("systemctl")
+            .args(["--user", "stop", crate::node_unit::NODE_UNIT_NAME])
+            .status();
+        std::thread::sleep(Duration::from_millis(800));
+    }
+
     let _ = Command::new("pkill")
-        .args(["-f", "nexxusd.*store.redb"])
+        .args(["-f", NEXXUSD_MATCH])
         .status();
     std::thread::sleep(Duration::from_millis(1500));
     // Если пережил SIGTERM — SIGKILL
     if is_nexxusd_running() {
         let _ = Command::new("pkill")
-            .args(["-9", "-f", "nexxusd.*store.redb"])
+            .args(["-9", "-f", NEXXUSD_MATCH])
             .status();
         std::thread::sleep(Duration::from_millis(500));
     }
@@ -295,6 +314,20 @@ pub async fn get_node_tor() -> Result<Value, String> {
     api_call("node_tor", None).await
 }
 
+/// Путь к файлу-запросу на полное отключение.
+///
+/// Второй экземпляр монитора не может сам остановить первый (lock-файл
+/// занят), поэтому оставляет запрос — работающий экземпляр подхватит его
+/// на ближайшем тике health loop.
+pub fn shutdown_request_path() -> std::path::PathBuf {
+    crate::node_config::config_dir().join("monitor.shutdown")
+}
+
+/// Создан ли файл-запрос на отключение.
+pub fn shutdown_requested() -> bool {
+    shutdown_request_path().exists()
+}
+
 /// Фоновый цикл мониторинга здоровья.
 /// Алерты — только на переходах состояния (без спама каждые 10 сек),
 /// heartbeat — раз в час, отчёт об активации Tor — при смене состояния.
@@ -307,6 +340,15 @@ pub async fn health_loop(state: Arc<GuardianState>) {
 
     loop {
         sleep(Duration::from_secs(HEALTH_INTERVAL_SEC)).await;
+
+        // Запрос на полное отключение извне (второй экземпляр с --shutdown,
+        // .desktop-действие Quit). Обрабатываем всегда, даже когда мониторинг
+        // выключен кнопкой «Остановить ноду».
+        if shutdown_requested() {
+            let _ = std::fs::remove_file(shutdown_request_path());
+            guardian_shutdown_everything(state.clone()).await;
+            std::process::exit(0);
+        }
 
         if !*state.monitor_enabled.lock().await {
             continue;
@@ -392,6 +434,10 @@ pub async fn guardian_start_node(state: Arc<GuardianState>) -> Result<Value, Str
         let mut state_lock = state.state.lock().await;
         *state_lock = MonitorState::Starting;
     }
+
+    // Мониторинг включаем здесь: после «Остановить ноду» он был выключен,
+    // и без этого нода поднималась «мёртвой» — без health-check и отчётов.
+    *state.monitor_enabled.lock().await = true;
 
     let bot = get_bot().await;
     let _ = bot.notify_node_starting().await;

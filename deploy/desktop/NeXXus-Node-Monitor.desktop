@@ -1,12 +1,12 @@
 [Desktop Entry]
 Name=NeXXus Node Monitor
 GenericName=NeXXus Node Guardian
-Comment=Ангел-хранитель ноды NeXXus — мониторинг, автозапуск, уведомления Telegram
+Comment=Монитор ноды NeXXus: запуск из ярлыка, контроль здоровья, отчёты в Telegram (без автозагрузки — только ручной запуск)
 Exec=/home/thomas/Projects/NeXXus-Node/deploy/desktop/nexxus-desktop-launch
 Icon=nexxus-desktop
 Terminal=false
 Type=Application
-Categories=Network;System;Monitor;
+Categories=System;Monitor;
 StartupNotify=true
 StartupWMClass=nexxus-desktop
 X-GNOME-UsesNotifications=true
@@ -14,8 +14,10 @@ Actions=Show;Quit
 
 [Desktop Action Show]
 Name=Показать панель управления
-Exec=/home/thomas/build/cache/cargo-target-nexxus/release/nexxus-desktop
+Exec=/home/thomas/Projects/NeXXus-Node/deploy/desktop/nexxus-desktop-launch
 
+# Полное отключение — через lock-файл: если монитор запущен, он сам
+# обработает это как штатный выход (нода остановится, процесс уйдёт).
 [Desktop Action Quit]
-Name=Выход
-Exec=pkill -f nexxus-desktop
+Name=Полное отключение
+Exec=/home/thomas/build/cache/cargo-target-nexxus/release/nexxus-desktop --shutdown

@@ -52,7 +52,7 @@
 - `nexxus-desktop/src/index.html` — каркас с вкладками.
 - `nexxus-desktop/src/style.css` — тема и сетка.
 - `deploy/nexxus-monitor.service` — **новый**: unit для ноды (монитор управляет им).
-- `deploy/desktop/nexxus-monitor-autostart.desktop` — **новый**: автозапуск монитора в трее.
+- `deploy/desktop/NeXXus-Node-Monitor.desktop` + `deploy/desktop/nexxus-desktop-launch` — запуск монитора из ярлыка рабочего стола (по новому условию: без автозагрузки/systemd, однократный запуск через lock-файл, действие Quit шлёт `--shutdown`).
 
 **Нода (изменяемые):**
 - `crates/nexxus-node/src/local_api.rs` — добавить методы `node_config`, `node_log_tail`, `node_identity_export` (seed по явному флагу), `node_backups`.

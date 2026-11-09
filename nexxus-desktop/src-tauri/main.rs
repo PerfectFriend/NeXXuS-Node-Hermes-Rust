@@ -8,8 +8,8 @@ use crate::commands::{
     node_uninstall_cmd, run_health_loop, tg_send_test_cmd, AppState,
 };
 use crate::guardian::{
-    guardian_restart_node, guardian_shutdown_everything, guardian_start_node,
-    guardian_stop_node, tg_send_test,
+    guardian_check_health, guardian_restart_node, guardian_shutdown_everything,
+    guardian_start_node, guardian_stop_node, tg_send_test,
 };
 use crate::telegram::get_bot;
 use std::sync::Arc;
@@ -22,9 +22,18 @@ use tauri::{
 mod api_client;
 mod commands;
 mod guardian;
+mod instance;
 mod node_config;
 mod node_unit;
 mod telegram;
+
+/// Обновляет подсказку трея — единственный способ дать пользователю
+/// обратную связь от пунктов меню без открытого окна.
+fn set_tray_tooltip(app: &AppHandle, text: &str) {
+    if let Some(tray) = app.tray_by_id("main") {
+        let _ = tray.set_tooltip(Some(text));
+    }
+}
 
 /// Показать окно дашборда (из трея).
 fn show_dashboard(app: &AppHandle) {
@@ -36,6 +45,28 @@ fn show_dashboard(app: &AppHandle) {
 }
 
 fn main() {
+    // Флаг --shutdown (из .desktop-действия Quit): работающий экземпляр
+    // держит lock, поэтому этот процесс не запустится — вместо этого он
+    // оставляет файл-запрос, и работающий монитор выполнит полное
+    // отключение на ближайшем тике health loop.
+    if std::env::args().any(|a| a == "--shutdown") {
+        let _ = std::fs::write(guardian::shutdown_request_path(), "shutdown\n");
+        eprintln!("Запрошено полное отключение — работающий монитор остановит ноду и выйдет.");
+        std::process::exit(0);
+    }
+
+    // Однократный запуск: второй экземпляр (повторный клик по ярлыку) не
+    // поднимает вторую ноду и не воскрешает остановленную — выходит тихо.
+    let _instance_lock = match instance::InstanceLock::acquire() {
+        Ok(lock) => lock,
+        Err(msg) => {
+            let log = crate::node_config::config_dir().join("monitor.log");
+            let _ = std::fs::write(&log, format!("{}\n", msg));
+            eprintln!("{msg}");
+            std::process::exit(0);
+        }
+    };
+
     let guardian_state = Arc::new(guardian::GuardianState::new());
     let app_state = AppState { guardian: guardian_state.clone() };
 
@@ -72,7 +103,24 @@ fn main() {
                     let guardian = app.state::<AppState>().guardian.clone();
                     match event.id().as_ref() {
                         "open" => show_dashboard(&app),
-                        "health" => show_dashboard(&app),
+                        // Проверка здоровья реально опрашивает ноду и
+                        // показывает результат в подсказке трея; дашборд
+                        // открывается параллельно.
+                        "health" => {
+                            show_dashboard(&app);
+                            tauri::async_runtime::spawn(async move {
+                                match guardian_check_health(guardian).await {
+                                    Ok(status) => set_tray_tooltip(
+                                        &app,
+                                        &format!("NeXXus Monitor — здоровье: {status}"),
+                                    ),
+                                    Err(e) => set_tray_tooltip(
+                                        &app,
+                                        &format!("NeXXus Monitor — ошибка здоровья: {e}"),
+                                    ),
+                                }
+                            });
+                        }
                         "tg" => {
                             tauri::async_runtime::spawn(async move {
                                 let _ = tg_send_test().await;
@@ -80,23 +128,41 @@ fn main() {
                         }
                         "start" => {
                             tauri::async_runtime::spawn(async move {
-                                let _ = guardian_start_node(guardian).await;
+                                match guardian_start_node(guardian).await {
+                                    Ok(_) => set_tray_tooltip(&app, "NeXXus Monitor — нода запущена"),
+                                    Err(e) => set_tray_tooltip(&app, &format!("NeXXus Monitor — ошибка запуска: {e}")),
+                                }
                             });
                         }
                         "restart" => {
                             tauri::async_runtime::spawn(async move {
-                                let _ = guardian_restart_node(guardian).await;
+                                match guardian_restart_node(guardian).await {
+                                    Ok(_) => set_tray_tooltip(&app, "NeXXus Monitor — нода перезапущена"),
+                                    Err(e) => set_tray_tooltip(&app, &format!("NeXXus Monitor — ошибка перезапуска: {e}")),
+                                }
                             });
                         }
+                        // Ошибку остановки нельзя проглатывать: раньше
+                        // `let _ =` делал кнопку визуально нерабочей.
                         "stop" => {
                             tauri::async_runtime::spawn(async move {
-                                let _ = guardian_stop_node(guardian).await;
+                                match guardian_stop_node(guardian).await {
+                                    Ok(_) => set_tray_tooltip(&app, "NeXXus Monitor — нода остановлена"),
+                                    Err(e) => set_tray_tooltip(&app, &format!("NeXXus Monitor — ошибка остановки: {e}")),
+                                }
                             });
                         }
-                        // Полное отключение: стоп ноды + отчёт + выгрузка монитора
+                        // Полное отключение: стоп ноды + отчёт + выгрузка монитора.
+                        // Таймаут жёсткий: даже если Telegram недоступен,
+                        // процесс обязан уйти из памяти — иначе кнопка
+                        // «не срабатывает» при любой сетевой проблеме.
                         "shutdown" => {
                             tauri::async_runtime::spawn(async move {
-                                guardian_shutdown_everything(guardian).await;
+                                let _ = tokio::time::timeout(
+                                    std::time::Duration::from_secs(15),
+                                    guardian_shutdown_everything(guardian),
+                                )
+                                .await;
                                 // «Паника»: жёсткая выгрузка процесса монитора из памяти
                                 std::process::exit(0);
                             });

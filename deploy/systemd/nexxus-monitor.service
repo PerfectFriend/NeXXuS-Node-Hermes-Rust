@@ -8,10 +8,11 @@ Type=simple
 User=thomas
 WorkingDirectory=/home/thomas/Projects/NeXXus-Node/nexxus-desktop
 Environment="WAYLAND_DISPLAY=wayland-0"
-# Установите токены перед запуском:
-#   systemctl --user set-environment NEXXUS_TG_BOT_TOKEN="<token>"
-#   systemctl --user set-environment NEXXUS_TG_CHAT_ID="143293811"
-# Или через ~/.config/environment.d/nexxus-monitor.env
+# Установите секреты перед запуском (значения живут вне репозитория):
+#   ~/.hermes/secrets/cathedral_bot_token  — токен бота
+#   ~/.hermes/secrets/nexxus_chat_id       — chat id для отчётов
+# или через env: NEXXUS_TG_BOT_TOKEN / NEXXUS_TG_CHAT_ID
+# (или ~/.config/environment.d/nexxus-monitor.env)
 ExecStart=/home/thomas/build/cache/cargo-target-nexxus/release/nexxus-desktop
 # on-failure: при падении монитор перезапускается, а «Полное отключение»
 # (осознанный exit 0 из трея) остаётся выключенным.

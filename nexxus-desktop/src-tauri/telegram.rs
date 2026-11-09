@@ -18,21 +18,34 @@ impl TelegramBot {
     pub fn new() -> Self {
         // Токен: env → secrets-файл проекта (тот же источник, что у orchestration-скриптов).
         // Значение никогда не логируется и не попадает в конфиги.
+        let home = std::env::var("HOME").unwrap_or_else(|_| "/tmp".into());
         let token = std::env::var("NEXXUS_TG_BOT_TOKEN").ok().filter(|t| !t.is_empty()).or_else(|| {
-            std::fs::read_to_string(format!(
-                "{}/.hermes/secrets/cathedral_bot_token",
-                std::env::var("HOME").unwrap_or_else(|_| "/tmp".into())
-            ))
-            .ok()
-            .map(|s| s.trim().to_string())
-            .filter(|t| !t.is_empty())
+            std::fs::read_to_string(format!("{home}/.hermes/secrets/cathedral_bot_token"))
+                .ok()
+                .map(|s| s.trim().to_string())
+                .filter(|t| !t.is_empty())
         });
+
+        // Chat ID: env → secrets-файл. В репозитории идентификатора нет —
+        // он не является публичным значением и не должен попадать в git.
         let chat_id = std::env::var("NEXXUS_TG_CHAT_ID")
             .ok()
             .filter(|c| !c.is_empty())
-            .or_else(|| Some("143293811".to_string()));
+            .or_else(|| {
+                std::fs::read_to_string(format!("{home}/.hermes/secrets/nexxus_chat_id"))
+                    .ok()
+                    .map(|s| s.trim().to_string())
+                    .filter(|c| !c.is_empty())
+            });
+
         Self {
-            client: Client::new(),
+            // Таймауты обязательны: без них зависший Telegram-запрос блокировал
+            // «полное отключение» — процесс не доходил до выгрузки из памяти.
+            client: Client::builder()
+                .connect_timeout(std::time::Duration::from_secs(5))
+                .timeout(std::time::Duration::from_secs(10))
+                .build()
+                .unwrap_or_default(),
             token,
             chat_id,
         }
