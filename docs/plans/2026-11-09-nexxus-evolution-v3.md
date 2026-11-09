@@ -36,7 +36,7 @@
 - **Interfaces:** `api_auth::Token::generate() -> String` (32 байта CSPRNG, hex), хранение в `~/.nexxus/api.token` (0600, создаётся при первом старте); handshake: клиент шлёт `{"method":"auth","token":...}` первой рамкой, до успеха — только `auth` и `ping`; `LocalApi::set_token(...)`.
 - **Steps:** тест `ws_call_without_token_rejected` (подключиться, вызвать node_status без токена → ErrorResponse/close) → FAIL → реализация → PASS; негативный тест с неверным токеном; монитор читает токен из файла и передаёт в handshake; `cargo test -p nexxus-node`, clippy, смоук `test-api-client` с токеном → 200/ok. Commit `feat(node): token auth for local WS API`.
 
-### Task A2: Шифрование store.redb at rest
+### Task A2: Шифрование store.redb at rest — ✅ DONE (commit 787c963)
 - **Files:** Modify `crates/nexxus-node/src/storage.rs`, `vault.rs`; Create `crates/nexxus-node/src/at_rest.rs`.
 - **Interfaces:** ключ стора выводится из seed (HKDF-SHA256, info="nexxus-store-v1"); значение чанка шифруется XChaCha20-Poly1305 с nonce = chunk_hash; redb хранит только ciphertext+tag; миграция: при открытии существующего открытого стора — один проход re-encrypt (прогресс в лог), флаг в метаданных стора.
 - **Steps:** тест `store_roundtrip_encrypted_on_disk` (записать чанк, прочитать сырой файл redb — не содержит plaintext; прочитать через API — Ok) → FAIL → реализация → PASS; тест миграции на фиктивном сторе; clippy; смоук upload/download поверх зашифрованного стора. Commit `feat(node): encrypted-at-rest chunk store`.
