@@ -41,7 +41,7 @@
 - **Interfaces:** ключ стора выводится из seed (HKDF-SHA256, info="nexxus-store-v1"); значение чанка шифруется XChaCha20-Poly1305 с nonce = chunk_hash; redb хранит только ciphertext+tag; миграция: при открытии существующего открытого стора — один проход re-encrypt (прогресс в лог), флаг в метаданных стора.
 - **Steps:** тест `store_roundtrip_encrypted_on_disk` (записать чанк, прочитать сырой файл redb — не содержит plaintext; прочитать через API — Ok) → FAIL → реализация → PASS; тест миграции на фиктивном сторе; clippy; смоук upload/download поверх зашифрованного стора. Commit `feat(node): encrypted-at-rest chunk store`.
 
-### Task A3: Panic PIN (dual-PIN, экспоненциальный кулдаун) по спецификации §5
+### Task A3: Panic PIN (dual-PIN, экспоненциальный кулдаун) по спецификации §5 — ✅ DONE
 - **База уже вендорена**: `crates/nexxus-core/src/keys/vault.rs` — AES-256-GCM vault с duress-PIN, формат JSON совместим с `BIP39-ABOARD-SDK` (PerfectFriend/BIP39-Onboarding-pipeline, Apache-2.0, наш репо): поле `kdf_rounds` — новые vault пишем 600k (OWASP 2023), старые vault SDK без поля читаем со 100k (тест `sdk_vault_without_kdf_rounds_opens_with_100k`). `check_pin` → `PinCheck::{Ok,Duress,Wrong}`.
 - **Files:** Create `crates/nexxus-node/src/panic.rs`; Modify `local_api.rs` (методы `panic_arm`, `panic_enter`, `panic_status`), `identity_store.rs` (duress-wipe: затирание seed + store, необратимо); UI позже (Phase B).
 - **Interfaces:** кулдаун удваивается при каждой ошибке (1 мин → 2 → 4 … cap 24 ч), сброс только верным PIN; duress-PIN → wipe + ложный успех. Состояние кулдауна — в `~/.nexxus/panic.state` (не в vault).
