@@ -33,6 +33,9 @@ pub enum NexxusError {
 
     #[error("io: {0}")]
     Io(String),
+
+    #[error("vault: {0}")]
+    Vault(String),
 }
 
 impl From<std::io::Error> for NexxusError {

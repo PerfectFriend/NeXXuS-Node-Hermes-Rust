@@ -42,8 +42,9 @@
 - **Steps:** тест `store_roundtrip_encrypted_on_disk` (записать чанк, прочитать сырой файл redb — не содержит plaintext; прочитать через API — Ok) → FAIL → реализация → PASS; тест миграции на фиктивном сторе; clippy; смоук upload/download поверх зашифрованного стора. Commit `feat(node): encrypted-at-rest chunk store`.
 
 ### Task A3: Panic PIN (dual-PIN, экспоненциальный кулдаун) по спецификации §5
+- **База уже вендорена**: `crates/nexxus-core/src/keys/vault.rs` — AES-256-GCM vault с duress-PIN, формат JSON совместим с `BIP39-ABOARD-SDK` (PerfectFriend/BIP39-Onboarding-pipeline, Apache-2.0, наш репо): поле `kdf_rounds` — новые vault пишем 600k (OWASP 2023), старые vault SDK без поля читаем со 100k (тест `sdk_vault_without_kdf_rounds_opens_with_100k`). `check_pin` → `PinCheck::{Ok,Duress,Wrong}`.
 - **Files:** Create `crates/nexxus-node/src/panic.rs`; Modify `local_api.rs` (методы `panic_arm`, `panic_enter`, `panic_status`), `identity_store.rs` (duress-wipe: затирание seed + store, необратимо); UI позже (Phase B).
-- **Interfaces:** `PanicPin::new(real, duress)`; `enter(pin) -> Result<PinKind, CooldownSecs>`; кулдаун удваивается при каждой ошибке (1 мин → 2 → 4 … cap 24 ч), сброс только верным PIN; duress-PIN → wipe + ложный успех.
+- **Interfaces:** кулдаун удваивается при каждой ошибке (1 мин → 2 → 4 … cap 24 ч), сброс только верным PIN; duress-PIN → wipe + ложный успех. Состояние кулдауна — в `~/.nexxus/panic.state` (не в vault).
 - **Steps:** тесты кулдауна и wipe (на копии стора во временной dir); API-тест: 3 неверных PIN подряд → кулдаун растёт; clippy; commit `feat(node): panic PIN with exponential cooldown and duress wipe`.
 
 ### Task A4: Hygiene памяти и процессов
@@ -70,10 +71,12 @@
 - `nexxus-desktop/src-tauri/onboarding.rs`: `StepId` (Welcome → Identity → Store → Network → Notifications → Done), состояние в `~/.nexxus/onboarding.json`, `advance` идемпотентен и отклоняет пропуски; тесты как в старом плане Task 3. Commit `feat(desktop): onboarding state machine`.
 
 ### Task C2: BIP39 регистрация/восстановление/экспорт в UI
-- В `identity_store.rs`: `export_mnemonic(confirm: bool)`, `import_mnemonic` (отказ на чужую фразу поверх существующего стора); проброс в API (`node_identity_export` с подтверждением, сид — только в ответе один раз, не в лог); UI: генерация 12/24 слов, ввод при восстановлении, QR-код сида (qrcode в dev-deps фронта), чекбокс «я записал». Тесты: roundtrip node_id, отказ без confirm. Commit `feat: BIP39 register/restore/export with confirmation`.
+- В `identity_store.rs`: `export_mnemonic(confirm: bool)`, `import_mnemonic` (отказ на чужую фразу поверх существующего стора); проброс в API (`node_identity_export` с подтверждением, сид — только в ответе один раз, не в лог); UI: генерация 12/24 слов, ввод при восстановлении, QR-код сида (qrcode в dev-deps фронта), чекбокс «я записал».
+- **Вендорено из нашего репо BIP39-Onboarding-pipeline**: `crates/nexxus-core/src/keys/verification.rs` — `generate_verification_challenges` (3 вопроса «какое слово под номером N», 4 дистрактора из wordlist, retry с другими позициями) + `check_challenge`; UI онбординга использует их вместо своей логики.
+- Тесты: roundtrip node_id, отказ без confirm, challenges: 3 позиции/5 вариантов, retry исключает прежние. Commit `feat: BIP39 register/restore/export + verification challenges`.
 
 ### Task C3: Зашифрованный бэкап сид-фразы
-- age-подобное шифрование (XChaCha20-Poly1305 + scrypt KDF) файла `seed.age` с паролем; хранение рядом со стором; восстановление из него. Тесты roundtrip + отказ при неверном пароле. Commit `feat(desktop): encrypted seed backup (seed.age)`.
+- Используем вендоренный `keys::vault`: `encrypt_vault_payload(seed_json, pin, Some(duress_pin))` → `seed.vault` рядом со стором (AES-256-GCM, PBKDF2 600k, формат совместим с BIP39-ABOARD-SDK); восстановление — `decrypt_vault_payload`, duress → ложный успех + сигнал в лог/Telegram. Тесты roundtrip + отказ при неверном PIN + tamper → AeadAuthFailed. Commit `feat(desktop): encrypted seed vault backup (SDK-compatible)`.
 
 ## Phase D — Бэкапы, восстановление, self-heal
 
