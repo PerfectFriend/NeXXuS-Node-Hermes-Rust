@@ -47,7 +47,7 @@
 - **Interfaces:** кулдаун удваивается при каждой ошибке (1 мин → 2 → 4 … cap 24 ч), сброс только верным PIN; duress-PIN → wipe + ложный успех. Состояние кулдауна — в `~/.nexxus/panic.state` (не в vault).
 - **Steps:** тесты кулдауна и wipe (на копии стора во временной dir); API-тест: 3 неверных PIN подряд → кулдаун растёт; clippy; commit `feat(node): panic PIN with exponential cooldown and duress wipe`.
 
-### Task A4: Hygiene памяти и процессов
+### Task A4: Hygiene памяти и процессов — ✅ DONE
 - `zeroize` для seed/keys в памяти (добавить dep `zeroize`), запрет дампа core (`setrlimit` через libc уже в дереве зависимостей tokio — добавить прямой dep), сид не в аргументах CLI (уже env), логи не содержат секретов (тест-скан логов). Commit `chore(node): zeroize secrets, no core dumps`.
 
 ## Phase B — Дашборд монитора v2 (оживляет 8 мёртвых команд + панели)
