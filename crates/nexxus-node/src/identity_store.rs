@@ -21,6 +21,8 @@ pub struct NodeIdentity {
     pub identity: Identity,
     pub node_id: NodeId,
     pub x25519_secret: [u8; 32],
+    /// BIP-39 seed (64 байта) — из него выводится в т.ч. ключ шифрования стора.
+    pub seed: [u8; 64],
 }
 
 /// Load the identity from the store, or generate a new mnemonic, persist it
@@ -81,6 +83,7 @@ fn derive_identity(seed: &IdentitySeed) -> NodeIdentity {
         identity,
         node_id,
         x25519_secret,
+        seed: *seed.seed_bytes(),
     }
 }
 

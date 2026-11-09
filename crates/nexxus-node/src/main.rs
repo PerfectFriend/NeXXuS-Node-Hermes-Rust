@@ -21,6 +21,7 @@ mod storage;
 mod tor;
 mod local_api;
 mod api_auth;
+mod at_rest;
 mod identity_store;
 mod cli;
 mod vault;
@@ -127,6 +128,19 @@ fn main() {
             eprintln!("  {phrase}");
         }
         let our_id = node_iden.node_id;
+
+        // --- Шифрование стора at rest (Phase A2): ключ из seed через HKDF ---
+        // Если стор уже зашифрован — ключ валидируется; если открыт — миграция
+        // всех чанков в один проход. При неверном ключе/повреждении — exit.
+        let store_key = at_rest::StoreKey::derive(&node_iden.seed);
+        match store.enable_encryption(store_key) {
+            Ok(0) => println!("nexxusd: store encryption at rest enabled (already encrypted)"),
+            Ok(n) => println!("nexxusd: store encrypted at rest, {n} chunks migrated"),
+            Err(e) => {
+                eprintln!("nexxusd: FATAL: cannot enable store encryption: {e}");
+                process::exit(1);
+            }
+        }
 
         // --- P2P сеть ---
         // Используем персистентную идентичность из стора (детерминированные
