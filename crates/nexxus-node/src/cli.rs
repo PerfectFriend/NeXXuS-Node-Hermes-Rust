@@ -27,14 +27,42 @@ fn api_addr() -> String {
 }
 
 /// One JSON-RPC call over WebSocket to the local daemon.
+///
+/// Сначала выполняет `auth` с токеном из `~/.nexxus/api.token`
+/// (или `NEXXUS_API_TOKEN_FILE`), затем — сам запрос на том же соединении.
 pub async fn ws_call(method: &str, params: Value) -> Result<Value, String> {
     let url = format!("ws://{}", api_addr());
     let (ws, _resp) = tokio_tungstenite::connect_async(&url)
         .await
         .map_err(|e| format!("connect {url}: {e} (is `nexxusd serve` running?)"))?;
     let (mut write, mut read) = ws.split();
+
+    // --- auth handshake ---
+    let token = crate::api_auth::load_token(&crate::api_auth::token_file_path())
+        .map_err(|e| format!("read API token: {e}"))?
+        .ok_or_else(|| "API token file is empty/missing — restart nexxusd".to_string())?;
+    let auth_req = serde_json::to_string(&json!({
+        "jsonrpc": "2.0", "id": 1, "method": "auth", "params": {"token": token},
+    }))
+    .unwrap();
+    write
+        .send(tokio_tungstenite::tungstenite::Message::Text(auth_req))
+        .await
+        .map_err(|e| format!("send auth: {e}"))?;
+    while let Some(msg) = read.next().await {
+        if let Ok(tokio_tungstenite::tungstenite::Message::Text(t)) = msg {
+            let v: Value = serde_json::from_str(&t).map_err(|e| format!("bad json: {e}"))?;
+            if let Some(err) = v.get("error") {
+                if !err.is_null() {
+                    return Err(format!("auth failed: {err}"));
+                }
+            }
+            break;
+        }
+    }
+
     let req = serde_json::to_string(&json!({
-        "jsonrpc": "2.0", "id": 1, "method": method, "params": params,
+        "jsonrpc": "2.0", "id": 2, "method": method, "params": params,
     }))
     .unwrap();
     write

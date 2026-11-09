@@ -17,6 +17,24 @@ impl NexxusApiClient {
         Self { url: url.into() }
     }
 
+    /// Токен API из ~/.nexxus/api.token (или NEXXUS_API_TOKEN_FILE).
+    fn read_token() -> Result<String, String> {
+        let path = std::env::var("NEXXUS_API_TOKEN_FILE").ok().filter(|p| !p.is_empty())
+            .map(std::path::PathBuf::from)
+            .unwrap_or_else(|| {
+                let home = std::env::var("HOME").unwrap_or_else(|_| ".".into());
+                std::path::PathBuf::from(home).join(".nexxus").join("api.token")
+            });
+        let content = std::fs::read_to_string(&path)
+            .map_err(|e| format!("read {}: {e}", path.display()))?;
+        let token = content.trim().to_string();
+        if token.is_empty() {
+            Err("API token file is empty".into())
+        } else {
+            Ok(token)
+        }
+    }
+
     async fn request(&self, method: &str, params: Value) -> Result<Value, String> {
         let url = Url::parse(&self.url).map_err(|e| e.to_string())?;
         let (ws_stream, _) = connect_async(url)
@@ -25,7 +43,33 @@ impl NexxusApiClient {
 
         let (mut sender, mut receiver) = ws_stream.split();
 
-        let id = 1u64;
+        // --- auth handshake: первый фрейм на соединении ---
+        let token = Self::read_token()?;
+        let auth = serde_json::json!({
+            "jsonrpc": "2.0",
+            "method": "auth",
+            "params": {"token": token},
+            "id": 1u64,
+        });
+        sender
+            .send(Message::Text(auth.to_string()))
+            .await
+            .map_err(|e| format!("WebSocket send auth failed: {e}"))?;
+        let msg = tokio::time::timeout(Duration::from_secs(5), receiver.next())
+            .await
+            .map_err(|_| "Auth response timeout".to_string())?
+            .ok_or("WebSocket stream ended during auth")?
+            .map_err(|e| format!("WebSocket auth receive failed: {e}"))?;
+        if let Message::Text(text) = msg {
+            let v: Value = serde_json::from_str(&text).map_err(|e| format!("Invalid auth JSON: {e}"))?;
+            if let Some(error) = v.get("error") {
+                if !error.is_null() {
+                    return Err(format!("auth failed: {error}"));
+                }
+            }
+        }
+
+        let id = 2u64;
         let request = serde_json::json!({
             "jsonrpc": "2.0",
             "method": method,

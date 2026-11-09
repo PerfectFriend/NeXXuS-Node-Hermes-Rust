@@ -20,6 +20,7 @@ mod net;
 mod storage;
 mod tor;
 mod local_api;
+mod api_auth;
 mod identity_store;
 mod cli;
 mod vault;
@@ -154,6 +155,22 @@ fn main() {
 
         // --- Локальное WebSocket API ---
         let api = Arc::new(LocalApi::new(Arc::clone(&net), Arc::clone(&store)));
+
+        // --- Токен доступа к API (fail-closed): без токена API не стартует ---
+        let token_path = api_auth::token_file_path();
+        match api_auth::load_or_create_token(&token_path) {
+            Ok(token) => {
+                api.set_api_token(token);
+                println!("nexxusd: API token загружен/создан, файл {}", token_path.display());
+            }
+            Err(e) => {
+                eprintln!(
+                    "nexxusd: FATAL: не удалось загрузить/создать API-токен {}: {e}. API не запускается (fail-closed).",
+                    token_path.display()
+                );
+                process::exit(1);
+            }
+        }
 
         // --- Tor (feature `tor`, NEXXUS_TOR=0 чтобы выключить): bootstrap arti
         // и публикация onion v3 hidden service на P2P-порту; статус — в node_tor.

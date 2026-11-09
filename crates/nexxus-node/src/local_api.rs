@@ -176,6 +176,64 @@ pub struct LocalApi {
     /// Живая Tor-сессия (feature `tor`) — для dial_onion через чужие .onion.
     #[cfg(feature = "tor")]
     tor_session: Arc<Mutex<Option<Arc<crate::tor::TorSession>>>>,
+    /// Токен доступа к API (api_auth). None = fail-closed: кроме ping ничего не доступно.
+    api_token: std::sync::Mutex<Option<String>>,
+}
+
+/// JSON-RPC error code: не пройдена аутентификация.
+pub const ERR_UNAUTHORIZED: i32 = -32001;
+
+/// Гейт аутентификации: вызывается до диспетчеризации метода.
+///
+/// Возвращает `Some((response, close_after))`, если запрос обработан
+/// самим гейтом (ping / auth / отказ), и `None`, если надо диспетчить
+/// обычным образом (соединение уже аутентифицировано).
+///
+/// Fail-closed: без настроенного токена (`expected == None`) доступен
+/// только `ping`.
+fn auth_gate(
+    expected: Option<&str>,
+    req: &JsonRpcRequest,
+    authenticated: &mut bool,
+) -> Option<(JsonRpcResponse, bool)> {
+    if *authenticated {
+        return None;
+    }
+    match req.method.as_str() {
+        "ping" => Some((
+            ok_response(req.id.clone(), serde_json::json!({"pong": true})),
+            false, // соединение остаётся открытым
+        )),
+        "auth" => {
+            let supplied = req
+                .params
+                .as_ref()
+                .and_then(|p| p.get("token"))
+                .and_then(|t| t.as_str())
+                .unwrap_or("");
+            match expected {
+                Some(expected) if !supplied.is_empty() && supplied == expected => {
+                    *authenticated = true;
+                    Some((
+                        ok_response(req.id.clone(), serde_json::json!({"authenticated": true})),
+                        false, // после успешного auth ждём настоящий запрос на этом же соединении
+                    ))
+                }
+                _ => Some((
+                    error_response(req.id.clone(), ERR_UNAUTHORIZED, "invalid or missing token".into()),
+                    true, // закрываем соединение
+                )),
+            }
+        }
+        _ => Some((
+            error_response(
+                req.id.clone(),
+                ERR_UNAUTHORIZED,
+                format!("method '{}' requires auth", req.method),
+            ),
+            true,
+        )),
+    }
 }
 
 impl LocalApi {
@@ -189,6 +247,7 @@ impl LocalApi {
             smp_history: Arc::new(Mutex::new(Vec::new())),
             smp_inbox_tx,
             smp_inbox_rx: Arc::new(Mutex::new(Some(smp_inbox_rx))),
+            api_token: std::sync::Mutex::new(None),
             epoch_info: Arc::new(Mutex::new(EpochInfo {
                 epoch_number: 0,
                 merkle_root: hex::encode([0u8; 32]),
@@ -268,6 +327,11 @@ impl LocalApi {
         *self.epoch_info.lock().await = info;
     }
 
+    /// Устанавливает токен доступа к API (из api_auth::load_or_create_token).
+    pub fn set_api_token(&self, token: String) {
+        *self.api_token.lock().unwrap() = Some(token);
+    }
+
     #[cfg(feature = "tor")]
     pub async fn set_tor_status(&self, status: TorStatus) {
         *self.tor_status.lock().await = status;
@@ -293,6 +357,7 @@ impl LocalApi {
             }
         }
         let result = match req.method.as_str() {
+            "ping" => Ok(serde_json::json!({"pong": true})),
             "node_status" => self.handle_node_status().await,
             "node_peers" => self.handle_node_peers().await,
             "node_chunks" => self.handle_node_chunks().await,
@@ -619,6 +684,9 @@ impl LocalApi {
         ws_stream: tokio_tungstenite::WebSocketStream<tokio::net::TcpStream>,
     ) -> Result<(), NexxusError> {
         let (mut ws_sender, mut ws_receiver) = ws_stream.split();
+        // Соединение начинается неаутентифицированным; после успешного
+        // `auth` на нём можно выполнить один настоящий запрос.
+        let mut authenticated = false;
         while let Some(msg) = ws_receiver.next().await {
             let msg = msg.map_err(|e| NexxusError::Io(e.to_string()))?;
             match msg {
@@ -633,6 +701,21 @@ impl LocalApi {
                             continue;
                         }
                     };
+
+                    // Гейт аутентификации: обрабатывает ping/auth/отказы сам.
+                    let expected = self.api_token.lock().unwrap().clone();
+                    if let Some((resp, close_after)) = auth_gate(expected.as_deref(), &req, &mut authenticated) {
+                        let text = serde_json::to_string(&resp).unwrap_or_default();
+                        if ws_sender.send(Message::Text(text)).await.is_err() {
+                            break;
+                        }
+                        if close_after {
+                            let _ = ws_sender.close().await;
+                            break;
+                        }
+                        continue;
+                    }
+
                     let resp = self.handle_request(req).await;
                     let text = serde_json::to_string(&resp).unwrap_or_default();
                     if ws_sender.send(Message::Text(text)).await.is_err() {
@@ -648,5 +731,83 @@ impl LocalApi {
             }
         }
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn req(method: &str, params: Option<Value>) -> JsonRpcRequest {
+        JsonRpcRequest {
+            jsonrpc: Some("2.0".into()),
+            method: method.into(),
+            params,
+            id: Some(serde_json::json!(1)),
+        }
+    }
+
+    fn resp_code(resp: &JsonRpcResponse) -> i32 {
+        resp.error.as_ref().map(|e| e.code).unwrap_or(0)
+    }
+
+    #[test]
+    fn gate_denies_methods_without_auth() {
+        let mut auth = false;
+        let r = auth_gate(Some("secret"), &req("node_status", None), &mut auth).unwrap();
+        assert_eq!(resp_code(&r.0), ERR_UNAUTHORIZED);
+        assert!(r.1, "соединение должно закрываться");
+        assert!(!auth);
+    }
+
+    #[test]
+    fn gate_allows_ping_without_auth() {
+        let mut auth = false;
+        let r = auth_gate(Some("secret"), &req("ping", None), &mut auth).unwrap();
+        assert_eq!(resp_code(&r.0), 0);
+        assert!(!r.1, "ping не закрывает соединение");
+        assert!(!auth);
+    }
+
+    #[test]
+    fn gate_rejects_wrong_token_and_closes() {
+        let mut auth = false;
+        let r = auth_gate(
+            Some("secret"),
+            &req("auth", Some(serde_json::json!({"token": "wrong"}))),
+            &mut auth,
+        )
+        .unwrap();
+        assert_eq!(resp_code(&r.0), ERR_UNAUTHORIZED);
+        assert!(r.1);
+        assert!(!auth);
+    }
+
+    #[test]
+    fn gate_accepts_correct_token_and_keeps_connection_open() {
+        let mut auth = false;
+        let r = auth_gate(
+            Some("secret"),
+            &req("auth", Some(serde_json::json!({"token": "secret"}))),
+            &mut auth,
+        )
+        .unwrap();
+        assert_eq!(resp_code(&r.0), 0);
+        assert!(!r.1, "после auth соединение остаётся открытым для запроса");
+        assert!(auth);
+
+        // После auth гейт больше не перехватывает — диспетчеризация обычная.
+        assert!(auth_gate(Some("secret"), &req("node_status", None), &mut auth).is_none());
+    }
+
+    #[test]
+    fn gate_fails_closed_without_configured_token() {
+        let mut auth = false;
+        // Даже верный-looking auth отклоняется, если токен не задан.
+        let r = auth_gate(None, &req("auth", Some(serde_json::json!({"token": "x"}))), &mut auth).unwrap();
+        assert_eq!(resp_code(&r.0), ERR_UNAUTHORIZED);
+        // ping по-прежнему работает — для health-check монитора.
+        let r = auth_gate(None, &req("ping", None), &mut auth).unwrap();
+        assert_eq!(resp_code(&r.0), 0);
     }
 }

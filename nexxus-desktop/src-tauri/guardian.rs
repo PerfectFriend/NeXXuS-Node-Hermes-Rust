@@ -241,36 +241,10 @@ pub async fn api_is_reachable() -> bool {
 }
 
 /// Выполняет JSON-RPC запрос к локальному API (через WebSocket).
+/// Делегирует в `crate::api_client::api_call`, которая сначала делает
+/// `auth` с токеном из `~/.nexxus/api.token`.
 pub async fn api_call(method: &str, params: Option<Value>) -> Result<Value, String> {
-    use futures_util::{SinkExt, StreamExt};
-    use tokio_tungstenite::connect_async;
-    use url::Url;
-
-    let url = Url::parse(API_URL).map_err(|e| format!("Неверный URL API: {e}"))?;
-    let (ws_stream, _) = connect_async(url).await.map_err(|e| format!("WebSocket connect failed: {e}"))?;
-    let (mut sender, mut receiver) = ws_stream.split();
-
-    let request = json!({
-        "jsonrpc": "2.0",
-        "method": method,
-        "params": params,
-        "id": 1
-    });
-
-    sender.send(request.to_string().into()).await.map_err(|e| format!("WebSocket send failed: {e}"))?;
-
-    let timeout = Duration::from_secs(5);
-    match tokio::time::timeout(timeout, receiver.next()).await {
-        Ok(Some(Ok(msg))) => {
-            let _ = sender.close().await;
-            let text = msg.to_text().map_err(|e| format!("WebSocket text error: {e}"))?;
-            let resp: Value = serde_json::from_str(text).map_err(|e| format!("JSON parse error: {e}"))?;
-            Ok(resp)
-        }
-        Ok(Some(Err(e))) => Err(format!("WebSocket receive error: {e}")),
-        Ok(None) => Err("WebSocket connection closed".into()),
-        Err(_) => Err("WebSocket timeout".into()),
-    }
+    crate::api_client::api_call(method, params).await
 }
 
 /// Получает статус ноды через API.
