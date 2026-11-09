@@ -22,6 +22,7 @@ mod tor;
 mod local_api;
 mod api_auth;
 mod at_rest;
+mod panic;
 mod identity_store;
 mod cli;
 mod vault;

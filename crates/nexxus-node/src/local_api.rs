@@ -178,6 +178,10 @@ pub struct LocalApi {
     tor_session: Arc<Mutex<Option<Arc<crate::tor::TorSession>>>>,
     /// Токен доступа к API (api_auth). None = fail-closed: кроме ping ничего не доступно.
     api_token: std::sync::Mutex<Option<String>>,
+    /// Panic PIN менеджер (Phase A3): состояние в panic.state рядом со store.
+    panic: Arc<std::sync::Mutex<crate::panic::PanicManager>>,
+    /// Выставляется при duress-PIN: после отправки ответа — wipe стора + выход.
+    duress_wipe: std::sync::atomic::AtomicBool,
 }
 
 /// JSON-RPC error code: не пройдена аутентификация.
@@ -239,6 +243,7 @@ fn auth_gate(
 impl LocalApi {
     pub fn new(network: Arc<P2pNetwork>, store: Arc<ChunkStore>) -> Self {
         let (smp_inbox_tx, smp_inbox_rx) = mpsc::unbounded_channel();
+        let panic_path = crate::panic::PanicManager::default_path(store.path());
         Self {
             network,
             store,
@@ -248,6 +253,19 @@ impl LocalApi {
             smp_inbox_tx,
             smp_inbox_rx: Arc::new(Mutex::new(Some(smp_inbox_rx))),
             api_token: std::sync::Mutex::new(None),
+            panic: Arc::new(std::sync::Mutex::new(
+                crate::panic::PanicManager::load(panic_path)
+                .unwrap_or_else(|_| {
+                    // Невалидный panic.state — fail-closed: панику нельзя обойти
+                    // молча. Создаём "не armed" менеджер и пишем ошибку в лог.
+                    eprintln!("nexxusd: WARNING: panic.state unreadable, panic disabled");
+                    crate::panic::PanicManager::load(
+                        std::env::temp_dir().join("nexxus-panic-unreadable.state"),
+                    )
+                    .expect("temp panic state must load")
+                }),
+            )),
+            duress_wipe: std::sync::atomic::AtomicBool::new(false),
             epoch_info: Arc::new(Mutex::new(EpochInfo {
                 epoch_number: 0,
                 merkle_root: hex::encode([0u8; 32]),
@@ -373,11 +391,66 @@ impl LocalApi {
             "node_download" => self.handle_node_download(req.params).await,
             "node_por" => self.handle_node_por().await,
             "node_test_interhost" => self.handle_node_test_interhost(req.params).await,
+            "panic_status" => self.handle_panic_status(),
+            "panic_arm" => self.handle_panic_arm(req.params),
+            "panic_enter" => self.handle_panic_enter(req.params),
             _ => return error_response(id, ERR_METHOD_NOT_FOUND, format!("method '{}' not found", req.method)),
         };
         match result {
             Ok(v) => ok_response(id, v),
             Err(e) => error_response(id, ERR_INTERNAL_ERROR, e.to_string()),
+        }
+    }
+
+    fn handle_panic_status(&self) -> Result<Value, NexxusError> {
+        let st = self.panic.lock().unwrap().status();
+        Ok(serde_json::json!({
+            "armed": st.armed,
+            "fail_count": st.fail_count,
+            "cooldown_remaining_secs": st.cooldown_remaining_secs,
+        }))
+    }
+
+    fn handle_panic_arm(&self, params: Option<Value>) -> Result<Value, NexxusError> {
+        let pin = params
+            .as_ref()
+            .and_then(|p| p.get("pin"))
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| NexxusError::Vault("param 'pin' required".into()))?;
+        let duress = params
+            .as_ref()
+            .and_then(|p| p.get("duress_pin"))
+            .and_then(|v| v.as_str());
+        self.panic.lock().unwrap().arm(pin, duress)?;
+        Ok(serde_json::json!({"armed": true}))
+    }
+
+    fn handle_panic_enter(&self, params: Option<Value>) -> Result<Value, NexxusError> {
+        use crate::panic::EnterOutcome;
+        let pin = params
+            .as_ref()
+            .and_then(|p| p.get("pin"))
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| NexxusError::Vault("param 'pin' required".into()))?;
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_secs())
+            .unwrap_or(0);
+        match self.panic.lock().unwrap().enter(pin, now)? {
+            EnterOutcome::Ok => Ok(serde_json::json!({"ok": true})),
+            EnterOutcome::Duress => {
+                // Ложный успех: снаружи неотличимо от Ok. После отправки
+                // ответа handle_ws затрёт стор и завершит процесс.
+                self.duress_wipe
+                    .store(true, std::sync::atomic::Ordering::SeqCst);
+                Ok(serde_json::json!({"ok": true}))
+            }
+            EnterOutcome::Wrong { cooldown_secs } => {
+                Ok(serde_json::json!({"ok": false, "cooldown_secs": cooldown_secs}))
+            }
+            EnterOutcome::Cooldown { remaining_secs } => {
+                Ok(serde_json::json!({"ok": false, "cooldown_remaining_secs": remaining_secs}))
+            }
         }
     }
 
@@ -720,6 +793,19 @@ impl LocalApi {
                     let text = serde_json::to_string(&resp).unwrap_or_default();
                     if ws_sender.send(Message::Text(text)).await.is_err() {
                         break;
+                    }
+                    // Duress-PIN: ответ уже отправлен (ложный успех) —
+                    // теперь необратимо затираем стор и выходим.
+                    if self.duress_wipe.load(std::sync::atomic::Ordering::SeqCst) {
+                        let _ = ws_sender.close().await;
+                        let store_path = self.store.path().to_path_buf();
+                        eprintln!(
+                            "nexxusd: DURESS PIN entered — wiping store {} and panic state",
+                            store_path.display()
+                        );
+                        let _ = crate::panic::wipe_file(&store_path);
+                        let _ = crate::panic::wipe_file(&crate::panic::PanicManager::default_path(&store_path));
+                        std::process::exit(0);
                     }
                     // Корректно закрываем WebSocket соединение после ответа,
                     // чтобы клиент не оставлял висячие соединения.
