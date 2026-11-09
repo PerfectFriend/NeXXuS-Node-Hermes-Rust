@@ -13,6 +13,7 @@ use hmac::{Hmac, Mac};
 use nexxus_core::error::NexxusError;
 use nexxus_core::types::ChunkHash;
 use sha2::Sha256;
+use zeroize::Zeroize;
 
 /// Ключ в meta, помечающий, что стор зашифрован.
 pub const STORE_ENCRYPTION_META: &str = "store_encryption";
@@ -25,6 +26,12 @@ const HKDF_INFO: &[u8] = b"nexxus-store-key";
 /// 256-битный ключ шифрования стора, выведенный из seed.
 #[derive(Clone)]
 pub struct StoreKey(pub [u8; 32]);
+
+impl Drop for StoreKey {
+    fn drop(&mut self) {
+        self.0.zeroize();
+    }
+}
 
 impl StoreKey {
     /// HKDF-SHA256 (extract+expand, RFC 5869) от seed ноды.

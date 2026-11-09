@@ -32,7 +32,20 @@ use crate::storage::ChunkStore;
 use crate::local_api::LocalApi;
 use crate::identity_store::load_or_create_identity;
 
+/// Запрет core dumps (RLIMIT_CORE=0): seed/ключи не должны попадать в дампы
+/// памяти процесса на диск. Safe-обёртка `rlimit` (workspace forbids unsafe).
+#[cfg(unix)]
+pub fn disable_core_dumps() {
+    if let Err(e) = rlimit::setrlimit(rlimit::Resource::CORE, 0, 0) {
+        eprintln!("nexxusd: WARNING: setrlimit(RLIMIT_CORE, 0) failed: {e}");
+    }
+}
+
+#[cfg(not(unix))]
+pub fn disable_core_dumps() {}
+
 fn main() {
+    disable_core_dumps();
     // Логи arti/Tor по RUST_LOG (по умолчанию — только предупреждения nexxusd).
     #[cfg(feature = "tor")]
     {
@@ -133,7 +146,7 @@ fn main() {
         // --- Шифрование стора at rest (Phase A2): ключ из seed через HKDF ---
         // Если стор уже зашифрован — ключ валидируется; если открыт — миграция
         // всех чанков в один проход. При неверном ключе/повреждении — exit.
-        let store_key = at_rest::StoreKey::derive(&node_iden.seed);
+        let store_key = at_rest::StoreKey::derive(&node_iden.seed[..]);
         match store.enable_encryption(store_key) {
             Ok(0) => println!("nexxusd: store encryption at rest enabled (already encrypted)"),
             Ok(n) => println!("nexxusd: store encrypted at rest, {n} chunks migrated"),
@@ -152,7 +165,7 @@ fn main() {
             Arc::new(P2pNetwork::with_keys(
                 our_id,
                 node_iden.identity,
-                node_iden.x25519_secret,
+                *node_iden.x25519_secret,
                 listen_addr,
                 Arc::clone(&store),
             ))
@@ -160,7 +173,7 @@ fn main() {
             Arc::new(P2pNetwork::with_keys_and_auditors(
                 our_id,
                 node_iden.identity,
-                node_iden.x25519_secret,
+                *node_iden.x25519_secret,
                 listen_addr,
                 Arc::clone(&store),
                 auditor_keys.clone(),
@@ -351,4 +364,15 @@ fn main() {
             }
         }
     });
+}
+
+#[cfg(test)]
+mod tests {
+    #[cfg(unix)]
+    #[test]
+    fn core_dumps_disabled() {
+        super::disable_core_dumps();
+        let (cur, _max) = rlimit::getrlimit(rlimit::Resource::CORE).unwrap();
+        assert_eq!(cur, 0, "RLIMIT_CORE должен быть 0 после disable_core_dumps");
+    }
 }

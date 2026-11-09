@@ -2342,6 +2342,7 @@ dependencies = [
  "nexxus-econ",
  "rand 0.8.8",
  "redb",
+ "rlimit",
  "safelog",
  "serde",
  "serde_json",
@@ -2354,6 +2355,7 @@ dependencies = [
  "tor-hsservice",
  "tor-rtcompat",
  "tracing-subscriber",
+ "zeroize",
 ]
 
 [[package]]
@@ -3162,6 +3164,15 @@ checksum = "f8dd2a808d456c4a54e300a23e9f5a67e122c3024119acbfd73e3bf664491cb2"
 dependencies = [
  "hmac",
  "subtle",
+]
+
+[[package]]
+name = "rlimit"
+version = "0.10.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7043b63bd0cd1aaa628e476b80e6d4023a3b50eb32789f2728908107bd0c793a"
+dependencies = [
+ "libc",
 ]
 
 [[package]]

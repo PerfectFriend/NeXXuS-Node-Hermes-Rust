@@ -20,9 +20,10 @@ pub const META_IDENTITY_MNEMONIC: &str = "identity_mnemonic";
 pub struct NodeIdentity {
     pub identity: Identity,
     pub node_id: NodeId,
-    pub x25519_secret: [u8; 32],
-    /// BIP-39 seed (64 байта) — из него выводится в т.ч. ключ шифрования стора.
-    pub seed: [u8; 64],
+    /// X25519 secret — zeroize при drop.
+    pub x25519_secret: zeroize::Zeroizing<[u8; 32]>,
+    /// BIP-39 seed (64 байта) — zeroize при drop; из него выводится ключ стора.
+    pub seed: zeroize::Zeroizing<[u8; 64]>,
 }
 
 /// Load the identity from the store, or generate a new mnemonic, persist it
@@ -82,8 +83,8 @@ fn derive_identity(seed: &IdentitySeed) -> NodeIdentity {
     NodeIdentity {
         identity,
         node_id,
-        x25519_secret,
-        seed: *seed.seed_bytes(),
+        x25519_secret: zeroize::Zeroizing::new(x25519_secret),
+        seed: zeroize::Zeroizing::new(*seed.seed_bytes()),
     }
 }
 
