@@ -69,7 +69,14 @@ async fn send_and_recv(
 /// Возвращает ответ метода (объект с `result` или `error`) — как раньше.
 pub async fn api_call(method: &str, params: Option<Value>) -> Result<Value, String> {
     let url = Url::parse(&crate::guardian::api_url()).map_err(|e| format!("Неверный URL API: {e}"))?;
-    let (ws_stream, _) = connect_async(url).await.map_err(|e| format!("WebSocket connect failed: {e}"))?;
+    // connect_async сам по себе без таймаута: если порт слушается, но WS-handshake
+    // не отвечает, команда «Start» зависала бы на Starting бесконечно.
+    let connect = connect_async(url);
+    let (ws_stream, _) = match tokio::time::timeout(std::time::Duration::from_secs(5), connect).await {
+        Ok(Ok(pair)) => pair,
+        Ok(Err(e)) => return Err(format!("WebSocket connect failed: {e}")),
+        Err(_) => return Err("WebSocket connect timeout (5s)".into()),
+    };
     let (mut sender, mut receiver) = ws_stream.split();
 
     // --- auth handshake ---

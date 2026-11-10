@@ -164,8 +164,10 @@ pub fn start_nexxusd() -> Result<(), String> {
         return Ok(());
     }
 
-    // Удаляем залоченный файл БД если есть
-    let _ = std::fs::remove_file(format!("{}.lock", NEXXUSD_STORE));
+    // Lock-файл БД НЕ удаляем: redb держит его через flock, после падения
+    // процесса flock снимается ОС сама, а удаление файла под живым процессом
+    // (запущенным по другому пути, не попавшему под pgrep) давало бы второму
+    // экземпляру открыть ту же БД — риск двойной записи и порчи store.redb.
 
     // Конфиг ноды (монитор — единственный источник настроек).
     let cfg = crate::node_config::load();
@@ -532,4 +534,31 @@ pub async fn tg_send_test() -> Result<Value, String> {
     let bot = get_bot().await;
     bot.send_message("🧪 <b>Тест от NeXXus Guardian</b>\n\nПодключение к Telegram работает.").await?;
     Ok(json!({"status": "sent"}))
+}
+
+#[cfg(test)]
+mod start_flow_tests {
+    use super::*;
+    use std::time::Instant;
+
+    /// Прогоняет реальный флоу кнопки «Start»: start_nexxusd → wait_for_api_ready →
+    /// node_status, с замерами каждого шага. Ловит зависание на Starting.
+    #[tokio::test]
+    async fn start_flow_completes_with_timings() {
+        let _ = stop_nexxusd();
+        let t0 = Instant::now();
+        start_nexxusd().expect("start_nexxusd");
+        eprintln!("[t+{:.1?}] spawned", t0.elapsed());
+
+        let ready = wait_for_api_ready(30).await;
+        eprintln!("[t+{:.1?}] wait_for_api_ready(30) = {ready}", t0.elapsed());
+        assert!(ready, "API не поднялся за 30с — это и есть 'зависание на Starting'");
+
+        let status = get_node_status().await;
+        eprintln!("[t+{:.1?}] get_node_status = {:?}", t0.elapsed(), status.as_ref().map(|s| &s.node_id));
+        assert!(status.is_ok(), "node_status failed: {:?}", status.err());
+
+        let _ = stop_nexxusd();
+        eprintln!("[t+{:.1?}] done", t0.elapsed());
+    }
 }
