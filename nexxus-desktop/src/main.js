@@ -1,10 +1,11 @@
 import { invoke } from '@tauri-apps/api/core';
+import { render as renderOverview } from './views/overview.js';
 
-// Состояние
+// Состояние (flat, чтобы view-модули читали одно и то же)
 let state = {
   guardianState: 'unknown',
   nodeId: '—',
-  uptime: '—',
+  uptimeMs: 0,
   peers: '—',
   chunks: '—',
   epoch: '—',
@@ -14,14 +15,6 @@ let state = {
 
 // Элементы DOM
 const els = {
-  state: document.getElementById('guardian-state'),
-  nodeId: document.getElementById('guardian-node-id'),
-  uptime: document.getElementById('guardian-uptime'),
-  peers: document.getElementById('guardian-peers'),
-  chunks: document.getElementById('guardian-chunks'),
-  epoch: document.getElementById('guardian-epoch'),
-  tor: document.getElementById('guardian-tor'),
-  tg: document.getElementById('guardian-tg'),
   btnStart: document.getElementById('btn-start'),
   btnRestart: document.getElementById('btn-restart'),
   btnStop: document.getElementById('btn-stop'),
@@ -30,6 +23,23 @@ const els = {
   btnTgTest: document.getElementById('btn-tg-test'),
   stageLog: document.getElementById('guardian-stage-log'),
 };
+
+// --- Роутер вкладок ---
+const TABS = ['overview', 'node', 'network', 'storage', 'logs', 'tor', 'epoch'];
+
+function activateTab(name) {
+  if (!TABS.includes(name)) name = 'overview';
+  document.querySelectorAll('.tab-btn').forEach((b) => {
+    b.classList.toggle('active', b.dataset.tab === name);
+  });
+  document.querySelectorAll('.tab-pane').forEach((p) => {
+    p.classList.toggle('active', p.id === `pane-${name}`);
+  });
+}
+
+document.querySelectorAll('.tab-btn').forEach((btn) => {
+  btn.addEventListener('click', () => activateTab(btn.dataset.tab));
+});
 
 // Лог этапов
 function addStageLog(message, type = 'info') {
@@ -44,33 +54,13 @@ function addStageLog(message, type = 'info') {
   }
 }
 
-// Обновление интерфейса
-let lastOk = null; // null=нет данных, true=связь есть, false=была потеряна
+// Обновление интерфейса: overview-панель рендерит view-модуль
 function updateUI() {
-  els.state.textContent = state.guardianState;
-  els.nodeId.textContent = state.nodeId;
-  els.uptime.textContent = state.uptime;
-  els.peers.textContent = state.peers;
-  els.chunks.textContent = state.chunks;
-  els.epoch.textContent = state.epoch;
-  els.tor.textContent = state.tor;
-  els.tg.textContent = state.monitorEnabled ? 'Активно' : 'Не настроено';
-
-  // Цвет состояния
-  els.state.className = 'guardian-stat-value';
-  if (state.guardianState === 'Running') {
-    els.state.classList.add('status-running');
-  } else if (state.guardianState === 'Unhealthy') {
-    els.state.classList.add('status-unhealthy');
-  } else if (state.guardianState === 'Starting' || state.guardianState === 'Restarting') {
-    els.state.classList.add('status-starting');
-  }
-
-  els.btnToggle.textContent = state.monitorEnabled ? '📊 Мониторинг: ВКЛ' : '📊 Мониторинг: ВЫКЛ';
-  els.btnToggle.className = `btn btn-${state.monitorEnabled ? 'outline' : 'primary'}`;
+  renderOverview(document, state);
 }
 
 // Запрос статуса
+let lastOk = null; // null=нет данных, true=связь есть, false=была потеряна
 async function fetchStatus() {
   try {
     const result = await invoke('guardian_status_cmd');
@@ -80,8 +70,7 @@ async function fetchStatus() {
     const nodeStatus = result.node_status;
     if (nodeStatus) {
       state.nodeId = nodeStatus.node_id || '—';
-      const uptimeMs = nodeStatus.uptime_ms || 0;
-      state.uptime = Math.floor(uptimeMs / 60000) + ' мин';
+      state.uptimeMs = nodeStatus.uptime_ms || 0;
       state.peers = String(nodeStatus.peers || 0);
       state.chunks = String(nodeStatus.chunks || 0);
       state.epoch = String(nodeStatus.epoch || 0);
@@ -176,9 +165,10 @@ async function testTelegram() {
 
 // Инициализация
 async function init() {
+  activateTab('overview');
   addStageLog('Гардиан инициализирован. Окно скрыто в трей.', 'info');
   await fetchStatus();
-  setInterval(fetchStatus, 10000);
+  setInterval(fetchStatus, 5000); // авто-обновление 5 с
 }
 
 // Обработчики кнопок

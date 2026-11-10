@@ -14,6 +14,17 @@
     </header>
 
     <main class="content">
+      <nav class="tabs">
+        <button class="tab-btn active" data-tab="overview">📊 Обзор</button>
+        <button class="tab-btn" data-tab="node">⚙️ Нода</button>
+        <button class="tab-btn" data-tab="network">🌐 Сеть</button>
+        <button class="tab-btn" data-tab="storage">💾 Хранилище</button>
+        <button class="tab-btn" data-tab="logs">📜 Логи</button>
+        <button class="tab-btn" data-tab="tor">🧅 Tor</button>
+        <button class="tab-btn" data-tab="epoch">⏳ Эпоха</button>
+      </nav>
+
+      <div class="tab-pane active" id="pane-overview">
       <section class="panel guardian-panel">
         <h2>Ангел-хранитель ноды</h2>
 
@@ -68,6 +79,14 @@
           </div>
         </div>
       </section>
+      </div>
+
+      <div class="tab-pane" id="pane-node"><section class="panel"><h2>Нода и конфиг</h2><p class="muted">Панель в работе (Phase B2): конфиг, установка, полное отключение.</p></section></div>
+      <div class="tab-pane" id="pane-network"><section class="panel"><h2>Сеть</h2><p class="muted">Панель в работе (Phase B3): пиры, dial, pause/resume.</p></section></div>
+      <div class="tab-pane" id="pane-storage"><section class="panel"><h2>Хранилище</h2><p class="muted">Панель в работе (Phase B3): чанки, upload/download, PoR.</p></section></div>
+      <div class="tab-pane" id="pane-logs"><section class="panel"><h2>Логи</h2><p class="muted">Панель в работе (Phase B3): tail логов ноды.</p></section></div>
+      <div class="tab-pane" id="pane-tor"><section class="panel"><h2>Tor</h2><p class="muted">Панель в работе (Phase B3): статус, onion, dial.</p></section></div>
+      <div class="tab-pane" id="pane-epoch"><section class="panel"><h2>Эпоха</h2><p class="muted">Панель в работе (Phase B3): merkle root, finalize.</p></section></div>
     </main>
   </div>
 
