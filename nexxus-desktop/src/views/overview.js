@@ -9,18 +9,24 @@ export function render(root, state) {
     const el = root.getElementById(id);
     if (el) el.textContent = text;
   };
+  // Node ID вынесен в широкое поле над вкладками.
+  set('node-id-value', state.nodeId);
   set('guardian-state', state.guardianState);
-  set('guardian-node-id', state.nodeId);
+  set('guardian-api', state.apiReachable ? 'Доступен' : 'Недоступен');
   set('guardian-uptime', formatUptime(state.uptimeMs));
   set('guardian-peers', state.peers);
   set('guardian-chunks', state.chunks);
   set('guardian-epoch', state.epoch);
   set('guardian-tor', state.tor);
-  set('guardian-tg', state.monitorEnabled ? 'Активно' : 'Не настроено');
+  set('guardian-tg', state.tgConfigured ? 'Настроен' : 'Не настроен');
 
   const stateEl = root.getElementById('guardian-state');
   if (stateEl) {
     stateEl.className = `guardian-stat-value ${statusClass(state.guardianState)}`;
+  }
+  const apiEl = root.getElementById('guardian-api');
+  if (apiEl) {
+    apiEl.className = `guardian-stat-value ${state.apiReachable ? 'status-running' : 'status-unhealthy'}`;
   }
 
   const btnToggle = root.getElementById('btn-toggle-monitor');

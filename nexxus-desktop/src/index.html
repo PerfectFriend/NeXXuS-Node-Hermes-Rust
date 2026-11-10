@@ -13,6 +13,12 @@
       <div class="tray-hint">Работает в системном трее • Клик на иконку — открыть окно</div>
     </header>
 
+    <section class="node-id-hero">
+      <div class="node-id-label">NODE ID</div>
+      <div class="node-id-value" id="node-id-value">—</div>
+      <button class="btn btn-mini" id="btn-copy-node-id" title="Скопировать Node ID">📋 Копировать</button>
+    </section>
+
     <main class="content">
       <nav class="tabs">
         <button class="tab-btn active" data-tab="overview">📊 Обзор</button>
@@ -24,69 +30,167 @@
         <button class="tab-btn" data-tab="epoch">⏳ Эпоха</button>
       </nav>
 
+      <!-- ОБЗОР -->
       <div class="tab-pane active" id="pane-overview">
-      <section class="panel guardian-panel">
-        <h2>Ангел-хранитель ноды</h2>
+        <section class="panel guardian-panel">
+          <h2>Ангел-хранитель ноды</h2>
 
-        <div class="guardian-status-grid">
-          <div class="guardian-stat">
-            <div class="guardian-stat-label">Состояние</div>
-            <div class="guardian-stat-value" id="guardian-state">Загрузка...</div>
+          <div class="guardian-status-grid">
+            <div class="guardian-stat">
+              <div class="guardian-stat-label">Состояние</div>
+              <div class="guardian-stat-value" id="guardian-state">Загрузка...</div>
+            </div>
+            <div class="guardian-stat">
+              <div class="guardian-stat-label">API</div>
+              <div class="guardian-stat-value" id="guardian-api">—</div>
+            </div>
+            <div class="guardian-stat">
+              <div class="guardian-stat-label">Аптайм</div>
+              <div class="guardian-stat-value" id="guardian-uptime">—</div>
+            </div>
+            <div class="guardian-stat">
+              <div class="guardian-stat-label">Пиры</div>
+              <div class="guardian-stat-value" id="guardian-peers">—</div>
+            </div>
+            <div class="guardian-stat">
+              <div class="guardian-stat-label">Чанки</div>
+              <div class="guardian-stat-value" id="guardian-chunks">—</div>
+            </div>
+            <div class="guardian-stat">
+              <div class="guardian-stat-label">Эпоха</div>
+              <div class="guardian-stat-value" id="guardian-epoch">—</div>
+            </div>
+            <div class="guardian-stat">
+              <div class="guardian-stat-label">Tor</div>
+              <div class="guardian-stat-value" id="guardian-tor">—</div>
+            </div>
+            <div class="guardian-stat">
+              <div class="guardian-stat-label">Telegram</div>
+              <div class="guardian-stat-value" id="guardian-tg">—</div>
+            </div>
           </div>
-          <div class="guardian-stat">
-            <div class="guardian-stat-label">Node ID</div>
-            <div class="guardian-stat-value" id="guardian-node-id">—</div>
-          </div>
-          <div class="guardian-stat">
-            <div class="guardian-stat-label">Аптайм</div>
-            <div class="guardian-stat-value" id="guardian-uptime">—</div>
-          </div>
-          <div class="guardian-stat">
-            <div class="guardian-stat-label">Пиры</div>
-            <div class="guardian-stat-value" id="guardian-peers">—</div>
-          </div>
-          <div class="guardian-stat">
-            <div class="guardian-stat-label">Чанки</div>
-            <div class="guardian-stat-value" id="guardian-chunks">—</div>
-          </div>
-          <div class="guardian-stat">
-            <div class="guardian-stat-label">Эпоха</div>
-            <div class="guardian-stat-value" id="guardian-epoch">—</div>
-          </div>
-          <div class="guardian-stat">
-            <div class="guardian-stat-label">Tor</div>
-            <div class="guardian-stat-value" id="guardian-tor">—</div>
-          </div>
-          <div class="guardian-stat">
-            <div class="guardian-stat-label">Telegram</div>
-            <div class="guardian-stat-value" id="guardian-tg">Настроить</div>
-          </div>
-        </div>
 
-        <div class="guardian-controls">
-          <button class="btn btn-primary" id="btn-start">🚀 Запустить ноду</button>
-          <button class="btn btn-danger" id="btn-restart">🔄 Перезапустить</button>
-          <button class="btn btn-outline" id="btn-stop">⏹️ Остановить мониторинг</button>
-          <button class="btn btn-outline" id="btn-toggle-monitor">📊 Мониторинг: ВКЛ</button>
-          <button class="btn btn-outline" id="btn-health">❤️ Проверить здоровье</button>
-          <button class="btn btn-outline" id="btn-tg-test">📱 Тест Telegram</button>
-        </div>
-
-        <div class="stage-log">
-          <h3>Лог этапов запуска</h3>
-          <div id="guardian-stage-log">
-            <div class="log-entry">Гардиан готов к работе</div>
+          <div class="guardian-controls">
+            <button class="btn btn-primary" id="btn-start">🚀 Запустить ноду</button>
+            <button class="btn btn-danger" id="btn-restart">🔄 Перезапустить</button>
+            <button class="btn btn-outline" id="btn-stop">⏹️ Остановить ноду</button>
+            <button class="btn btn-outline" id="btn-toggle-monitor">📊 Мониторинг: ВКЛ</button>
+            <button class="btn btn-outline" id="btn-health">❤️ Проверить здоровье</button>
+            <button class="btn btn-outline" id="btn-tg-test">📱 Тест Telegram</button>
           </div>
-        </div>
-      </section>
+
+          <div class="stage-log">
+            <h3>Лог этапов запуска</h3>
+            <div id="guardian-stage-log">
+              <div class="log-entry">Гардиан готов к работе</div>
+            </div>
+          </div>
+        </section>
       </div>
 
-      <div class="tab-pane" id="pane-node"><section class="panel"><h2>Нода и конфиг</h2><p class="muted">Панель в работе (Phase B2): конфиг, установка, полное отключение.</p></section></div>
-      <div class="tab-pane" id="pane-network"><section class="panel"><h2>Сеть</h2><p class="muted">Панель в работе (Phase B3): пиры, dial, pause/resume.</p></section></div>
-      <div class="tab-pane" id="pane-storage"><section class="panel"><h2>Хранилище</h2><p class="muted">Панель в работе (Phase B3): чанки, upload/download, PoR.</p></section></div>
-      <div class="tab-pane" id="pane-logs"><section class="panel"><h2>Логи</h2><p class="muted">Панель в работе (Phase B3): tail логов ноды.</p></section></div>
-      <div class="tab-pane" id="pane-tor"><section class="panel"><h2>Tor</h2><p class="muted">Панель в работе (Phase B3): статус, onion, dial.</p></section></div>
-      <div class="tab-pane" id="pane-epoch"><section class="panel"><h2>Эпоха</h2><p class="muted">Панель в работе (Phase B3): merkle root, finalize.</p></section></div>
+      <!-- НОДА -->
+      <div class="tab-pane" id="pane-node">
+        <section class="panel">
+          <h2>Конфигурация ноды</h2>
+          <div class="form-grid">
+            <label>Listen<input id="cfg-listen" placeholder="/ip4/0.0.0.0/tcp/4001"></label>
+            <label>API<input id="cfg-api" placeholder="127.0.0.1:4010"></label>
+            <label>Threshold<input id="cfg-threshold" type="number" placeholder="3"></label>
+            <label>Epoch (сек)<input id="cfg-epoch-secs" type="number" placeholder="86400"></label>
+            <label>Spec version<input id="cfg-spec-version" placeholder="1"></label>
+            <label>Log path<input id="cfg-log-path" placeholder="/home/thomas/.nexxus/nexxusd.log"></label>
+            <label class="wide">Аудиторы (через запятую)<input id="cfg-auditors" placeholder="onion1, onion2"></label>
+            <label class="check"><input id="cfg-tor" type="checkbox"> Tor включён</label>
+          </div>
+          <div class="controls-row">
+            <button class="btn btn-outline" id="btn-cfg-load">📥 Загрузить</button>
+            <button class="btn btn-outline" id="btn-cfg-validate">✅ Проверить</button>
+            <button class="btn btn-primary" id="btn-cfg-save">💾 Сохранить</button>
+          </div>
+
+          <h3>Автозагрузка (systemd user unit)</h3>
+          <div id="install-status" class="data-box">—</div>
+          <div class="controls-row">
+            <button class="btn btn-outline" id="btn-unit-install">🔧 Установить службу</button>
+            <button class="btn btn-outline" id="btn-unit-uninstall">🧹 Удалить службу</button>
+          </div>
+
+          <h3>Аварийное управление</h3>
+          <div class="controls-row">
+            <button class="btn btn-danger" id="btn-full-shutdown">⛔ Полное отключение (нода + монитор)</button>
+          </div>
+        </section>
+      </div>
+
+      <!-- СЕТЬ -->
+      <div class="tab-pane" id="pane-network">
+        <section class="panel">
+          <h2>Сеть и пиры</h2>
+          <div class="controls-row">
+            <button class="btn btn-outline" id="btn-peers-refresh">🔄 Обновить пиры</button>
+            <button class="btn btn-outline" id="btn-pause">⏸ Пауза сети</button>
+            <button class="btn btn-outline" id="btn-resume">▶ Возобновить сеть</button>
+          </div>
+          <div class="row-inline">
+            <input id="input-connect" placeholder="адрес пира (host:port или /ip4/…/tcp/4001)">
+            <button class="btn btn-primary" id="btn-connect">🔌 Подключиться</button>
+          </div>
+          <div id="peers-list" class="data-box">—</div>
+        </section>
+      </div>
+
+      <!-- ХРАНИЛИЩЕ -->
+      <div class="tab-pane" id="pane-storage">
+        <section class="panel">
+          <h2>Хранилище</h2>
+          <div class="controls-row">
+            <button class="btn btn-outline" id="btn-chunks-refresh">📦 Чанки</button>
+            <button class="btn btn-outline" id="btn-smp-refresh">🧩 SMP-состояние</button>
+            <button class="btn btn-outline" id="btn-por">🔍 PoR-проверка</button>
+            <button class="btn btn-outline" id="btn-store-info">🗄 Инфо о сторе</button>
+          </div>
+          <div id="storage-data" class="data-box">—</div>
+        </section>
+      </div>
+
+      <!-- ЛОГИ -->
+      <div class="tab-pane" id="pane-logs">
+        <section class="panel">
+          <h2>Логи ноды</h2>
+          <div class="controls-row">
+            <button class="btn btn-outline" id="btn-logs-refresh">🔄 Обновить</button>
+            <button class="btn btn-outline" id="btn-logs-live">📡 Авто: ВЫКЛ</button>
+            <button class="btn btn-outline" id="btn-logs-clear">🧽 Очистить вид</button>
+          </div>
+          <pre id="logs-box" class="log-box">—</pre>
+        </section>
+      </div>
+
+      <!-- TOR -->
+      <div class="tab-pane" id="pane-tor">
+        <section class="panel">
+          <h2>Tor</h2>
+          <div class="controls-row">
+            <button class="btn btn-outline" id="btn-tor-refresh">🔄 Обновить статус</button>
+          </div>
+          <div id="tor-data" class="data-box">—</div>
+          <div class="row-inline">
+            <input id="input-onion" placeholder="xxxx….onion:9735">
+            <button class="btn btn-primary" id="btn-dial-onion">🧅 Dial onion</button>
+          </div>
+        </section>
+      </div>
+
+      <!-- ЭПОХА -->
+      <div class="tab-pane" id="pane-epoch">
+        <section class="panel">
+          <h2>Эпоха и расчёты</h2>
+          <div class="controls-row">
+            <button class="btn btn-outline" id="btn-epoch-refresh">🔄 Обновить</button>
+          </div>
+          <div id="epoch-data" class="data-box">—</div>
+        </section>
+      </div>
     </main>
   </div>
 

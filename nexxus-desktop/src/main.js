@@ -1,5 +1,6 @@
 import { invoke } from '@tauri-apps/api/core';
 import { render as renderOverview } from './views/overview.js';
+import { formatUptime, formatBytes } from './format.js';
 
 // Состояние (flat, чтобы view-модули читали одно и то же)
 let state = {
@@ -10,7 +11,9 @@ let state = {
   chunks: '—',
   epoch: '—',
   tor: '—',
+  apiReachable: false,
   monitorEnabled: false,
+  tgConfigured: false,
 };
 
 // Элементы DOM
@@ -26,15 +29,20 @@ const els = {
 
 // --- Роутер вкладок ---
 const TABS = ['overview', 'node', 'network', 'storage', 'logs', 'tor', 'epoch'];
+let activeTab = 'overview';
+let logsLive = false;
+let logsTimer = null;
 
 function activateTab(name) {
   if (!TABS.includes(name)) name = 'overview';
+  activeTab = name;
   document.querySelectorAll('.tab-btn').forEach((b) => {
     b.classList.toggle('active', b.dataset.tab === name);
   });
   document.querySelectorAll('.tab-pane').forEach((p) => {
     p.classList.toggle('active', p.id === `pane-${name}`);
   });
+  refreshActivePane();
 }
 
 document.querySelectorAll('.tab-btn').forEach((btn) => {
@@ -48,9 +56,51 @@ function addStageLog(message, type = 'info') {
   const now = new Date().toLocaleTimeString('ru-RU');
   div.textContent = `[${now}] ${message}`;
   els.stageLog.prepend(div);
-  // Ограничиваем количество записей
   while (els.stageLog.children.length > 100) {
     els.stageLog.lastChild.remove();
+  }
+}
+
+// --- Общие помощники ---
+const $ = (id) => document.getElementById(id);
+
+function setBox(id, text, cls = '') {
+  const el = $(id);
+  if (!el) return;
+  el.innerHTML = '';
+  if (typeof text === 'string') {
+    el.textContent = text;
+    if (cls) el.className = cls;
+    return;
+  }
+  for (const [k, v] of Object.entries(text)) {
+    const row = document.createElement('div');
+    const key = document.createElement('span');
+    key.className = 'k';
+    key.textContent = `${k}: `;
+    const val = document.createElement('span');
+    val.className = 'v';
+    val.textContent = typeof v === 'object' ? JSON.stringify(v) : String(v);
+    row.appendChild(key);
+    row.appendChild(val);
+    el.appendChild(row);
+  }
+}
+
+/// Прокси к локальному API ноды (авторизация токеном — внутри монитора).
+async function api(method, params = null) {
+  return invoke('node_api_cmd', { method, params });
+}
+
+/// Выполнить действие с записью результата в лог этапов.
+async function action(label, fn) {
+  try {
+    const r = await fn();
+    addStageLog(`${label}: ок`, 'success');
+    return r;
+  } catch (e) {
+    addStageLog(`${label}: ошибка — ${e}`, 'error');
+    return null;
   }
 }
 
@@ -60,39 +110,51 @@ function updateUI() {
 }
 
 // Запрос статуса
-let lastOk = null; // null=нет данных, true=связь есть, false=была потеряна
+let lastOk = null;
 async function fetchStatus() {
   try {
     const result = await invoke('guardian_status_cmd');
     state.guardianState = result.state || 'unknown';
     state.monitorEnabled = result.monitor_enabled || false;
+    state.tgConfigured = !!result.tg_configured;
 
     const nodeStatus = result.node_status;
     if (nodeStatus) {
       state.nodeId = nodeStatus.node_id || '—';
       state.uptimeMs = nodeStatus.uptime_ms || 0;
-      state.peers = String(nodeStatus.peers || 0);
-      state.chunks = String(nodeStatus.chunks || 0);
-      state.epoch = String(nodeStatus.epoch || 0);
-      state.tor = nodeStatus.tor || '—';
+      state.peers = String(nodeStatus.peer_count ?? nodeStatus.peers ?? 0);
+      state.apiReachable = !!nodeStatus.api_reachable;
+      state.tor = nodeStatus.tor_enabled ? 'включён' : 'выключен';
     }
-
     updateUI();
     if (lastOk !== true) {
-      if (lastOk === false) {
-        addStageLog('✅ Связь с нодой восстановлена', 'success');
-      }
+      if (lastOk === false) addStageLog('✅ Связь с нодой восстановлена', 'success');
       lastOk = true;
     }
+    // Дополнительные метрики хранилища/эпохи — отдельными вызовами API.
+    api('node_chunks').then((c) => {
+      if (c && c.total_chunks !== undefined) {
+        state.chunks = `${c.total_chunks} (${formatBytes(c.used_bytes || 0)})`;
+        updateUI();
+      }
+    }).catch(() => {});
+    api('node_epoch').then((e) => {
+      if (e && e.epoch !== undefined) {
+        state.epoch = String(e.epoch);
+        updateUI();
+      }
+    }).catch(() => {});
   } catch (e) {
     if (lastOk !== false) {
       lastOk = false;
+      state.apiReachable = false;
+      updateUI();
     }
     addStageLog(`Ошибка получения статуса: ${e}`, 'error');
   }
 }
 
-// Запуск ноды
+// --- Обзор: кнопки гардиана ---
 async function startNode() {
   addStageLog('Запуск nexxusd...', 'info');
   try {
@@ -104,7 +166,6 @@ async function startNode() {
   }
 }
 
-// Перезапуск ноды
 async function restartNode() {
   addStageLog('Перезапуск nexxusd...', 'info');
   try {
@@ -116,7 +177,6 @@ async function restartNode() {
   }
 }
 
-// Остановить ноду
 async function stopNode() {
   addStageLog('Остановка ноды...', 'info');
   try {
@@ -128,19 +188,17 @@ async function stopNode() {
   }
 }
 
-// Переключить мониторинг
 async function toggleMonitor() {
   addStageLog(state.monitorEnabled ? 'Выключение мониторинга...' : 'Включение мониторинга...', 'info');
   try {
     await invoke('guardian_toggle_monitor_cmd');
-    addStageLog(`Мониторинг ${state.monitorEnabled ? 'выключен' : 'включен'}`, 'success');
+    addStageLog('Режим мониторинга переключён', 'success');
     await fetchStatus();
   } catch (e) {
     addStageLog(`Ошибка переключения: ${e}`, 'error');
   }
 }
 
-// Проверить здоровье
 async function checkHealth() {
   addStageLog('Проверка здоровья ноды...', 'info');
   try {
@@ -152,7 +210,6 @@ async function checkHealth() {
   }
 }
 
-// Тест Telegram
 async function testTelegram() {
   addStageLog('Отправка тестового сообщения в Telegram...', 'info');
   try {
@@ -163,12 +220,299 @@ async function testTelegram() {
   }
 }
 
-// Инициализация
+async function copyNodeId() {
+  try {
+    await navigator.clipboard.writeText(state.nodeId);
+    addStageLog('Node ID скопирован в буфер обмена', 'success');
+  } catch (e) {
+    addStageLog(`Не удалось скопировать: ${e}`, 'error');
+  }
+}
+
+// --- Панель «Нода»: конфиг ---
+function readConfigForm() {
+  const auditors = ($('cfg-auditors').value || '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+  return {
+    listen: $('cfg-listen').value.trim(),
+    api: $('cfg-api').value.trim(),
+    auditors,
+    threshold: Number($('cfg-threshold').value || 0),
+    epoch_secs: Number($('cfg-epoch-secs').value || 300),
+    tor: $('cfg-tor').checked,
+    spec_version: $('cfg-spec-version').value.trim(),
+    log_path: $('cfg-log-path').value.trim(),
+  };
+}
+
+function fillConfigForm(cfg) {
+  $('cfg-listen').value = cfg.listen ?? '';
+  $('cfg-api').value = cfg.api ?? '';
+  $('cfg-threshold').value = cfg.threshold ?? 0;
+  $('cfg-epoch-secs').value = cfg.epoch_secs ?? 300;
+  $('cfg-spec-version').value = cfg.spec_version ?? '';
+  $('cfg-log-path').value = cfg.log_path ?? '';
+  $('cfg-auditors').value = (cfg.auditors || []).join(', ');
+  $('cfg-tor').checked = !!cfg.tor;
+}
+
+async function loadConfig() {
+  const cfg = await action('Загрузка конфига', () => invoke('node_config_get_cmd'));
+  if (cfg) {
+    fillConfigForm(cfg);
+    setBox('install-status', '');
+  }
+}
+
+async function validateConfig() {
+  const cfg = readConfigForm();
+  const r = await action('Проверка конфига', () => invoke('node_config_validate_cmd', { cfg }));
+  if (r) setBox('install-status', { 'валидность': 'ок', 'конфиг': cfg });
+}
+
+async function saveConfig() {
+  const cfg = readConfigForm();
+  const r = await action('Сохранение конфига', () => invoke('node_config_set_cmd', { cfg }));
+  if (r) setBox('install-status', { 'статус': 'сохранено', 'требуется': 'перезапуск ноды' });
+}
+
+async function refreshInstallStatus() {
+  try {
+    const s = await invoke('node_install_status_cmd');
+    setBox('install-status', {
+      'юнит ноды установлен': s.installed ? 'да' : 'нет',
+      'путь юнита': s.unit_path,
+      'состояние юнита ноды': s.unit_state,
+      'состояние юнита монитора': s.monitor_unit_state,
+    });
+  } catch (e) {
+    setBox('install-status', `не удалось прочитать статус: ${e}`);
+  }
+}
+
+async function installUnit() {
+  const r = await action('Установка systemd-юнита ноды', () => invoke('node_install_cmd'));
+  if (r) await refreshInstallStatus();
+}
+
+async function uninstallUnit() {
+  const r = await action('Удаление systemd-юнита ноды', () => invoke('node_uninstall_cmd'));
+  if (r) await refreshInstallStatus();
+}
+
+async function fullShutdown() {
+  addStageLog('Полное отключение: нода останавливается, отчёт уходит в Telegram...', 'info');
+  try {
+    await invoke('guardian_shutdown_cmd');
+    addStageLog('Полное отключение выполнено, монитор завершается', 'success');
+  } catch (e) {
+    addStageLog(`Ошибка полного отключения: ${e}`, 'error');
+  }
+}
+
+// --- Панель «Сеть» ---
+async function refreshPeers() {
+  try {
+    const p = await api('node_peers');
+    const list = Array.isArray(p) ? p : (p.peers || []);
+    if (!list.length) {
+      setBox('peers-list', 'Пиров нет (пустой routing table)');
+      return;
+    }
+    setBox('peers-list', list.map((x) => ({
+      addr: x.addr || x.address || '—',
+      node_id: (x.node_id || '').slice(0, 16) || '—',
+      connected: x.connected ?? '—',
+    })));
+  } catch (e) {
+    setBox('peers-list', `ошибка: ${e}`);
+  }
+}
+
+async function pauseNode() {
+  const r = await action('Пауза сети', () => api('node_pause'));
+  if (r) refreshPeers();
+}
+
+async function resumeNode() {
+  const r = await action('Возобновление сети', () => api('node_resume'));
+  if (r) refreshPeers();
+}
+
+async function connectPeer() {
+  const addr = ($('input-connect').value || '').trim();
+  if (!addr) {
+    addStageLog('Укажите адрес пира', 'error');
+    return;
+  }
+  const r = await action(`Подключение к ${addr}`, () => api('node_connect', { addr }));
+  if (r) {
+    setBox('peers-list', r);
+    refreshPeers();
+  }
+}
+
+// --- Панель «Хранилище» ---
+async function refreshChunks() {
+  try {
+    const c = await api('node_chunks');
+    setBox('storage-data', {
+      'всего чанков': c.total_chunks ?? '—',
+      'размер чанка': c.chunk_size_bytes ? formatBytes(c.chunk_size_bytes) : '—',
+      'занято': formatBytes(c.used_bytes || 0),
+      'свободно': c.free_gb !== undefined ? `${c.free_gb} ГБ` : '—',
+    });
+  } catch (e) {
+    setBox('storage-data', `ошибка: ${e}`);
+  }
+}
+
+async function refreshSmp() {
+  try {
+    const s = await api('node_smp');
+    const msgs = s.messages || [];
+    if (!msgs.length) {
+      setBox('storage-data', 'SMP-сообщений пока нет');
+      return;
+    }
+    setBox('storage-data', msgs.slice(-20));
+  } catch (e) {
+    setBox('storage-data', `ошибка: ${e}`);
+  }
+}
+
+async function runPor() {
+  try {
+    const r = await api('node_por');
+    setBox('storage-data', r);
+    addStageLog('PoR-проверка завершена', 'success');
+  } catch (e) {
+    setBox('storage-data', `ошибка: ${e}`);
+    addStageLog(`PoR-проверка: ${e}`, 'error');
+  }
+}
+
+async function storeInfo() {
+  try {
+    const s = await api('node_status');
+    const cfg = await invoke('node_config_get_cmd');
+    setBox('storage-data', {
+      'node_id': s.node_id,
+      'версия': s.version,
+      'listen': s.listen_addr,
+      'bound': s.bound_addr || '—',
+      'аптайм': formatUptime(s.uptime_ms || 0),
+      'paused': s.paused ? 'да' : 'нет',
+      'store': '/home/thomas/.nexxus/store.redb',
+      'log': cfg.log_path,
+    });
+  } catch (e) {
+    setBox('storage-data', `ошибка: ${e}`);
+  }
+}
+
+// --- Панель «Логи» ---
+async function refreshLogs() {
+  try {
+    const r = await invoke('node_log_tail_cmd', { lines: 200 });
+    $('logs-box').textContent = (r.lines || []).join('\n') || 'лог пуст';
+    $('logs-box').scrollTop = $('logs-box').scrollHeight;
+  } catch (e) {
+    $('logs-box').textContent = `ошибка чтения лога: ${e}`;
+  }
+}
+
+function toggleLogsLive() {
+  logsLive = !logsLive;
+  const btn = $('btn-logs-live');
+  if (btn) btn.textContent = logsLive ? '📡 Авто: ВКЛ' : '📡 Авто: ВЫКЛ';
+  if (logsTimer) {
+    clearInterval(logsTimer);
+    logsTimer = null;
+  }
+  if (logsLive) {
+    refreshLogs();
+    logsTimer = setInterval(refreshLogs, 5000);
+  }
+}
+
+// --- Панель «Tor» ---
+async function refreshTor() {
+  try {
+    const t = await api('node_tor');
+    setBox('tor-data', {
+      'включён': t.enabled ? 'да' : 'нет',
+      'подключён': t.connected ? 'да' : 'нет',
+      'onion': t.onion_address || '—',
+      'socks': t.socks_port || t.socks_proxy || '—',
+      'путь': t.path || '—',
+    });
+  } catch (e) {
+    setBox('tor-data', `ошибка: ${e}`);
+  }
+}
+
+async function dialOnion() {
+  const addr = ($('input-onion').value || '').trim();
+  if (!addr) {
+    addStageLog('Укажите onion-адрес', 'error');
+    return;
+  }
+  const r = await action(`Dial ${addr}`, () => api('node_dial_onion', { addr }));
+  if (r) setBox('tor-data', r);
+}
+
+// --- Панель «Эпоха» ---
+async function refreshEpoch() {
+  try {
+    const e = await api('node_epoch');
+    setBox('epoch-data', {
+      'эпоха': e.epoch ?? '—',
+      'начало': e.started_at ?? e.start ?? '—',
+      'конец': e.ends_at ?? e.end ?? '—',
+      'merkle root': e.merkle_root || e.root || '—',
+      'осталось сек': e.remaining_secs ?? e.remaining ?? '—',
+    });
+  } catch (err) {
+    setBox('epoch-data', `ошибка: ${err}`);
+  }
+}
+
+// --- Автообновление активной панели ---
+function refreshActivePane() {
+  switch (activeTab) {
+    case 'node':
+      loadConfig();
+      refreshInstallStatus();
+      break;
+    case 'network':
+      refreshPeers();
+      break;
+    case 'storage':
+      refreshChunks();
+      break;
+    case 'logs':
+      refreshLogs();
+      break;
+    case 'tor':
+      refreshTor();
+      break;
+    case 'epoch':
+      refreshEpoch();
+      break;
+    default:
+      break;
+  }
+}
+
+// --- Инициализация ---
 async function init() {
   activateTab('overview');
-  addStageLog('Гардиан инициализирован. Окно скрыто в трей.', 'info');
+  addStageLog('Гардиан инициализирован.', 'info');
   await fetchStatus();
-  setInterval(fetchStatus, 5000); // авто-обновление 5 с
+  setInterval(fetchStatus, 5000);
 }
 
 // Обработчики кнопок
@@ -178,5 +522,32 @@ els.btnStop.addEventListener('click', stopNode);
 els.btnToggle.addEventListener('click', toggleMonitor);
 els.btnHealth.addEventListener('click', checkHealth);
 els.btnTgTest.addEventListener('click', testTelegram);
+$('btn-copy-node-id').addEventListener('click', copyNodeId);
+
+$('btn-cfg-load').addEventListener('click', loadConfig);
+$('btn-cfg-validate').addEventListener('click', validateConfig);
+$('btn-cfg-save').addEventListener('click', saveConfig);
+$('btn-unit-install').addEventListener('click', installUnit);
+$('btn-unit-uninstall').addEventListener('click', uninstallUnit);
+$('btn-full-shutdown').addEventListener('click', fullShutdown);
+
+$('btn-peers-refresh').addEventListener('click', refreshPeers);
+$('btn-pause').addEventListener('click', pauseNode);
+$('btn-resume').addEventListener('click', resumeNode);
+$('btn-connect').addEventListener('click', connectPeer);
+
+$('btn-chunks-refresh').addEventListener('click', refreshChunks);
+$('btn-smp-refresh').addEventListener('click', refreshSmp);
+$('btn-por').addEventListener('click', runPor);
+$('btn-store-info').addEventListener('click', storeInfo);
+
+$('btn-logs-refresh').addEventListener('click', refreshLogs);
+$('btn-logs-live').addEventListener('click', toggleLogsLive);
+$('btn-logs-clear').addEventListener('click', () => { $('logs-box').textContent = ''; });
+
+$('btn-tor-refresh').addEventListener('click', refreshTor);
+$('btn-dial-onion').addEventListener('click', dialOnion);
+
+$('btn-epoch-refresh').addEventListener('click', refreshEpoch);
 
 init();

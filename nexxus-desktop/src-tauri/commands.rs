@@ -64,6 +64,28 @@ pub async fn tg_send_test_cmd() -> Result<Value, String> {
     tg_send_test().await
 }
 
+// --- Универсальный прокси к локальному API ноды (для панелей дашборда) ---
+
+/// Выполняет произвольный метод локального WS API ноды (с auth по токену):
+/// node_peers, node_chunks, node_smp, node_epoch, node_tor, node_pause,
+/// node_resume, node_connect, node_dial_onion, node_upload, node_download,
+/// node_por, panic_status и т.д. — все панели дашборда ходят через неё.
+#[command]
+pub async fn node_api_cmd(method: String, params: Option<Value>) -> Result<Value, String> {
+    crate::guardian::api_call(&method, params).await
+}
+
+/// Хвост лог-файла ноды (~/.nexxus/nexxusd.log) для панели «Логи».
+#[command]
+pub fn node_log_tail_cmd(lines: Option<u32>) -> Result<Value, String> {
+    let path = std::path::PathBuf::from(crate::guardian::nexxusd_log_path());
+    let n = lines.unwrap_or(200).max(1) as usize;
+    let content = std::fs::read_to_string(&path)
+        .map_err(|e| format!("Не удалось прочитать {}: {e}", path.display()))?;
+    let tail: Vec<&str> = content.lines().rev().take(n).collect::<Vec<_>>().into_iter().rev().collect();
+    Ok(json!({ "path": path.to_string_lossy(), "lines": tail, "total_lines": content.lines().count() }))
+}
+
 // --- Конфигурация ноды ---
 
 /// Возвращает текущую конфигурацию ноды (из `~/.nexxus/node.conf`).

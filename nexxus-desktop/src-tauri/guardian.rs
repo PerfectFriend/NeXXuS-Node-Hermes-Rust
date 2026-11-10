@@ -20,6 +20,11 @@ const NEXXUSD_BIN: &str = "/home/thomas/build/cache/cargo-target-nexxus/release/
 const NEXXUSD_STORE: &str = "/home/thomas/.nexxus/store.redb";
 /// Файл лога ноды — его же читает команда `nexxusd logs`.
 const NEXXUSD_LOG: &str = "/home/thomas/.nexxus/nexxusd.log";
+
+/// Путь к лог-файлу ноды (используется командой `node_log_tail_cmd`).
+pub fn nexxusd_log_path() -> &'static str {
+    NEXXUSD_LOG
+}
 /// Шаблон командной строки процесса ноды.
 ///
 /// По одному только имени `nexxusd` искать нельзя: под этим именем
@@ -532,7 +537,17 @@ pub async fn guardian_toggle_monitor(state: Arc<GuardianState>) -> Result<Value,
 /// Отправляет тестовое сообщение в Telegram.
 pub async fn tg_send_test() -> Result<Value, String> {
     let bot = get_bot().await;
-    bot.send_message("🧪 <b>Тест от NeXXus Guardian</b>\n\nПодключение к Telegram работает.").await?;
+    eprintln!(
+        "[tg] is_configured={} token_from_env={} chat_from_env={}",
+        bot.is_configured(),
+        std::env::var("NEXXUS_TG_BOT_TOKEN").is_ok(),
+        std::env::var("NEXXUS_TG_CHAT_ID").is_ok()
+    );
+    let r = bot
+        .send_message("🧪 <b>Тест от NeXXus Guardian</b>\n\nПодключение к Telegram работает.")
+        .await;
+    eprintln!("[tg] send_message result: {r:?}");
+    r?;
     Ok(json!({"status": "sent"}))
 }
 
@@ -560,5 +575,17 @@ mod start_flow_tests {
 
         let _ = stop_nexxusd();
         eprintln!("[t+{:.1?}] done", t0.elapsed());
+    }
+}
+
+#[cfg(test)]
+mod tg_tests {
+    /// Диагностика: что реально возвращает tg_send_test() в этом окружении.
+    #[tokio::test]
+    async fn tg_send_test_diag() {
+        let bot = crate::telegram::get_bot().await;
+        eprintln!("is_configured = {}", bot.is_configured());
+        let r = super::tg_send_test().await;
+        eprintln!("tg_send_test() = {r:?}");
     }
 }

@@ -3,8 +3,8 @@
 use crate::commands::{
     guardian_check_health_cmd, guardian_restart_node_cmd, guardian_shutdown_cmd,
     guardian_start_node_cmd, guardian_status_cmd, guardian_stop_node_cmd,
-    guardian_toggle_monitor_cmd, node_config_get_cmd, node_config_set_cmd,
-    node_config_validate_cmd, node_install_cmd, node_install_status_cmd,
+    guardian_toggle_monitor_cmd, node_api_cmd, node_config_get_cmd, node_config_set_cmd,
+    node_config_validate_cmd, node_install_cmd, node_install_status_cmd, node_log_tail_cmd,
     node_uninstall_cmd, run_health_loop, tg_send_test_cmd, AppState,
 };
 use crate::guardian::{
@@ -210,6 +210,8 @@ fn main() {
             guardian_toggle_monitor_cmd,
             guardian_shutdown_cmd,
             tg_send_test_cmd,
+            node_api_cmd,
+            node_log_tail_cmd,
             node_config_get_cmd,
             node_config_set_cmd,
             node_config_validate_cmd,
