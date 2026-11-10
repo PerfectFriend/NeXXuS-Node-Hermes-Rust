@@ -52,7 +52,7 @@
 
 ## Phase B — Дашборд монитора v2 (оживляет 8 мёртвых команд + панели)
 
-### Task B1: Каркас вкладок и роутер панелей
+### Task B1: Каркас вкладок и роутер панелей — ✅ DONE
 - **Files:** Modify `nexxus-desktop/src/index.html`, `main.js`, `style.css`; Create `src/views/*.js`, `src/format.js`; Create `nexxus-desktop/tests/format.test.mjs` (`node --test`).
 - **Interfaces:** чистые функции в `format.js` (formatUptime/formatBytes/statusClass), каждая панель — модуль с `render(el, state)`; авто-обновление 5 с; тест-соответствие: `grep invoke` из всех view == команды в `generate_handler!` (скрипт-проверка в тесте).
 - **Steps:** JS-тесты format → FAIL → PASS; панель Overview (статус, аптайм, тор, пиры) поверх `guardian_status_cmd`; `npm run build` = 0; commit `feat(ui): tab shell + overview panel`.
