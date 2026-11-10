@@ -28,9 +28,19 @@ const NEXXUSD_LOG: &str = "/home/thomas/.nexxus/nexxusd.log";
 /// у монитора путь оканчивается на `nexxus-desktop`, поэтому совпадения
 /// с ним не происходит.
 const NEXXUSD_MATCH: &str = "cargo-target-nexxus/release/nexxusd";
-const API_HOST: &str = "127.0.0.1";
-const API_PORT: u16 = 4010;
-pub const API_URL: &str = "ws://127.0.0.1:4010";
+
+/// Адрес локального WS API ноды — из конфига монитора (node.conf, поле `api`),
+/// по умолчанию 127.0.0.1:4010. Раньше здесь был зашитый порт 4010, из-за чего
+/// при `api=127.0.0.1:5010` в node.conf монитор не находил API и падал
+/// «ошибка запуска nexxusd» после wait_for_api_ready.
+pub fn api_addr() -> String {
+    crate::node_config::load().api
+}
+
+/// ws:// URL локального API ноды.
+pub fn api_url() -> String {
+    format!("ws://{}", api_addr())
+}
 const HEALTH_INTERVAL_SEC: u64 = 10;
 const MAX_HEALTH_FAILURES: u32 = 3;
 const HEARTBEAT_INTERVAL_SEC: u64 = 3600;
@@ -216,12 +226,13 @@ pub async fn wait_for_api_ready(timeout_sec: u64) -> bool {
 pub async fn api_is_reachable() -> bool {
     use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
-    let Ok(mut stream) = TcpStream::connect(format!("{API_HOST}:{API_PORT}")).await else {
+    let addr = api_addr();
+    let Ok(mut stream) = TcpStream::connect(&addr).await else {
         return false;
     };
 
     let request = format!(
-        "GET / HTTP/1.1\r\nHost: {API_HOST}:{API_PORT}\r\n\
+        "GET / HTTP/1.1\r\nHost: {addr}\r\n\
          Upgrade: websocket\r\nConnection: Upgrade\r\n\
          Sec-WebSocket-Version: 13\r\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\n\r\n"
     );
@@ -436,7 +447,7 @@ pub async fn guardian_start_node(state: Arc<GuardianState>) -> Result<Value, Str
             *state.node_status.lock().await = Some(status.clone());
             let mut state_lock = state.state.lock().await;
             *state_lock = MonitorState::Running;
-            let _ = bot.notify_node_started(&status.node_id, API_URL).await;
+            let _ = bot.notify_node_started(&status.node_id, &api_url()).await;
             Ok(json!({"status": "started", "node_id": status.node_id}))
         }
         Err(e) => {

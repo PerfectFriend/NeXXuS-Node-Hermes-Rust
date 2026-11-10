@@ -32,9 +32,11 @@ pub fn read_api_token() -> Option<String> {
     }
 }
 
-/// Проверяет, доступен ли TCP порт API.
+/// Проверяет, доступен ли TCP порт API (адрес из node.conf).
 pub async fn api_port_open() -> bool {
-    tokio::net::TcpStream::connect("127.0.0.1:4010").await.is_ok()
+    tokio::net::TcpStream::connect(crate::guardian::api_addr())
+        .await
+        .is_ok()
 }
 
 /// Отправляет один JSON-RPC фрейм и читает один ответ (с таймаутом).
@@ -66,7 +68,7 @@ async fn send_and_recv(
 /// Выполняет JSON-RPC запрос к локальному API: сначала `auth`, затем метод.
 /// Возвращает ответ метода (объект с `result` или `error`) — как раньше.
 pub async fn api_call(method: &str, params: Option<Value>) -> Result<Value, String> {
-    let url = Url::parse(crate::guardian::API_URL).map_err(|e| format!("Неверный URL API: {e}"))?;
+    let url = Url::parse(&crate::guardian::api_url()).map_err(|e| format!("Неверный URL API: {e}"))?;
     let (ws_stream, _) = connect_async(url).await.map_err(|e| format!("WebSocket connect failed: {e}"))?;
     let (mut sender, mut receiver) = ws_stream.split();
 

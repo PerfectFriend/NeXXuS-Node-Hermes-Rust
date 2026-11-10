@@ -111,7 +111,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("=== Тест NexxusApiClient ===");
     println!("Подключение к ws://127.0.0.1:4010 ...");
 
-    let client = NexxusApiClient::new("ws://127.0.0.1:4010");
+    let client = NexxusApiClient::new(
+        &std::env::var("NEXXUS_API_ADDR").unwrap_or_else(|_| "ws://127.0.0.1:4010".to_string()),
+    );
 
     // Тест 1: node_status
     println!("\n1. node_status...");
