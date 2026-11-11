@@ -52,6 +52,11 @@ body {
   color: var(--muted);
   font-style: italic;
 }
+.header-right {
+  display: flex;
+  gap: 16px;
+  align-items: baseline;
+}
 
 .content {
   flex: 1;

@@ -57,18 +57,16 @@
 - **Interfaces:** чистые функции в `format.js` (formatUptime/formatBytes/statusClass), каждая панель — модуль с `render(el, state)`; авто-обновление 5 с; тест-соответствие: `grep invoke` из всех view == команды в `generate_handler!` (скрипт-проверка в тесте).
 - **Steps:** JS-тесты format → FAIL → PASS; панель Overview (статус, аптайм, тор, пиры) поверх `guardian_status_cmd`; `npm run build` = 0; commit `feat(ui): tab shell + overview panel`.
 
-### Task B2: Панель «Нода и конфиг» — оживляет node_config_* и node_install_*
-- Панели: форма конфига (listen/api/tor/auditors/threshold/epoch) с валидацией через `node_config_validate_cmd` и сохранением `node_config_set_cmd` + рестарт ноды; статус установки юнита (`node_install_status_cmd`) и кнопки install/uninstall (`node_install_cmd`/`node_uninstall_cmd`); кнопка «Полное отключение» в UI дублирует `guardian_shutdown_cmd`.
-- Тест: мок `window.__TAURI__.invoke` — рендер вызывает ожидаемые команды; commit `feat(ui): node config + install panel (wires dead commands)`.
+### Task B2: Панель «Нода и конфиг» — ✅ DONE (commit 392d83a)
+- Панели: форма конфига (listen/api/tor/auditors/threshold/epoch_secs/spec_version/log_path) с валидацией через `node_config_validate_cmd` и сохранением `node_config_set_cmd`; статус установки юнита (`node_install_status_cmd`) и кнопки install/uninstall; кнопка «Полное отключение» вызывает `guardian_shutdown_cmd`. Node ID вынесен в большое поле во всю ширину над вкладками (с копированием).
 
-### Task B3: Панели Network / Storage / Logs / Tor / Epoch
-- Network: пиры (`node_peers`), dial onion, connect, pause/resume (`node_pause`/`node_resume`); Storage: chunks, upload/download с прогрессом, PoR (`node_por`), benchmark; Logs: tail `~/.nexxus/nexxusd.log` (новая команда `node_log_tail` в local_api); Tor: статус/onion (`node_tor`, `node_dial_onion`); Epoch: текущая эпоха, merkle root, `node_epoch`, история finalize.
-- Каждая панель: свой view + команда; тесты валидации ввода (адрес пира, onion) как в старом плане; commit по панели.
+### Task B3: Панели Network / Storage / Logs / Tor / Epoch — ✅ DONE (commit 392d83a)
+- Все панели ходят через универсальную команду `node_api_cmd` (прокси к WS API ноды с токеном внутри монитора): Network — пиры, connect, pause/resume; Storage — chunks, SMP, PoR, инфо о сторе; Logs — `node_log_tail_cmd` + автообновление; Tor — статус + dial onion; Epoch — `node_epoch`.
 
 ## Phase C — Онбординг и идентичность
 
-### Task C1: Машина состояний онбординга (персистентная)
-- `nexxus-desktop/src-tauri/onboarding.rs`: `StepId` (Welcome → Identity → Store → Network → Notifications → Done), состояние в `~/.nexxus/onboarding.json`, `advance` идемпотентен и отклоняет пропуски; тесты как в старом плане Task 3. Commit `feat(desktop): onboarding state machine`.
+### Task C1: Машина состояний онбординга (персистентная) — ✅ DONE
+- `nexxus-desktop/src-tauri/onboarding.rs`: `StepId` (Welcome → Identity → Store → Network → Notifications → Done), состояние в `~/.nexxus/onboarding.json` (атомарная запись tmp+rename, 0600, `NEXXUS_CONFIG_DIR` для тестов), `advance` идемпотентен и отклоняет пропуски, `reset`. 6 unit-тестов (сериализованы через ENV_LOCK, уникальные temp-dir). Команды `onboarding_get_cmd` / `onboarding_advance_cmd` / `onboarding_reset_cmd` + индикатор шага в шапке UI.
 
 ### Task C2: BIP39 регистрация/восстановление/экспорт в UI
 - В `identity_store.rs`: `export_mnemonic(confirm: bool)`, `import_mnemonic` (отказ на чужую фразу поверх существующего стора); проброс в API (`node_identity_export` с подтверждением, сид — только в ответе один раз, не в лог); UI: генерация 12/24 слов, ввод при восстановлении, QR-код сида (qrcode в dev-deps фронта), чекбокс «я записал».

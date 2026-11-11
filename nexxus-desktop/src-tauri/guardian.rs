@@ -578,14 +578,3 @@ mod start_flow_tests {
     }
 }
 
-#[cfg(test)]
-mod tg_tests {
-    /// Диагностика: что реально возвращает tg_send_test() в этом окружении.
-    #[tokio::test]
-    async fn tg_send_test_diag() {
-        let bot = crate::telegram::get_bot().await;
-        eprintln!("is_configured = {}", bot.is_configured());
-        let r = super::tg_send_test().await;
-        eprintln!("tg_send_test() = {r:?}");
-    }
-}

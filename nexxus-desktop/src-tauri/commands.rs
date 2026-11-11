@@ -155,6 +155,33 @@ pub fn node_install_status_cmd() -> Result<Value, String> {
     }))
 }
 
+// --- Онбординг (Phase C1): персистентная машина состояний ---
+
+/// Текущее состояние онбординга (шаг + пройденные).
+#[command]
+pub fn onboarding_get_cmd() -> Result<Value, String> {
+    let s = crate::onboarding::load()?;
+    serde_json::to_value(&s).map_err(|e| format!("сериализация: {e}"))
+}
+
+/// Закрывает шаг онбординга (идемпотентно, без пропусков). step: snake_case id.
+#[command]
+pub fn onboarding_advance_cmd(step: String) -> Result<Value, String> {
+    let step_id = crate::onboarding::StepId::from_str(&step)
+        .ok_or_else(|| format!("неизвестный шаг онбординга: {step}"))?;
+    let state = crate::onboarding::load()?;
+    let state = crate::onboarding::advance(state, step_id)?;
+    crate::onboarding::save(&state)?;
+    serde_json::to_value(&state).map_err(|e| format!("сериализация: {e}"))
+}
+
+/// Сброс онбординга (повторное прохождение).
+#[command]
+pub fn onboarding_reset_cmd() -> Result<Value, String> {
+    let s = crate::onboarding::reset()?;
+    serde_json::to_value(&s).map_err(|e| format!("сериализация: {e}"))
+}
+
 /// Запускает фоновый цикл мониторинга (используется в setup main.rs).
 pub async fn run_health_loop(state: Arc<crate::guardian::GuardianState>) {
     health_loop(state).await;

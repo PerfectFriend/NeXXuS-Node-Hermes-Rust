@@ -507,12 +507,40 @@ function refreshActivePane() {
   }
 }
 
+// --- Онбординг (Phase C1): индикатор текущего шага в шапке ---
+const STEP_LABELS = {
+  welcome: 'Приветствие',
+  identity: 'Идентичность',
+  store: 'Хранилище',
+  network: 'Сеть',
+  notifications: 'Уведомления',
+  done: 'Готово',
+};
+
+async function fetchOnboarding() {
+  try {
+    const ob = await invoke('onboarding_get_cmd');
+    const el = $('onboarding-hint');
+    if (el && ob) {
+      const cur = STEP_LABELS[ob.current] || ob.current;
+      el.textContent = ob.current === 'done'
+        ? 'Онбординг: пройден ✅'
+        : `Онбординг: шаг «${cur}» (${(ob.completed || []).length}/5)`;
+    }
+  } catch (e) {
+    const el = $('onboarding-hint');
+    if (el) el.textContent = `Онбординг: ошибка — ${e}`;
+  }
+}
+
 // --- Инициализация ---
 async function init() {
   activateTab('overview');
   addStageLog('Гардиан инициализирован.', 'info');
   await fetchStatus();
+  await fetchOnboarding();
   setInterval(fetchStatus, 5000);
+  setInterval(fetchOnboarding, 30000);
 }
 
 // Обработчики кнопок
