@@ -9,6 +9,7 @@
 //!   - Сервер отвечает JSON-RPC 2.0 ответом и закрывает соединение
 //!   - Каждый запрос = новое соединение (простая модель для MVP)
 
+use crate::identity_store::{identity_status, import_mnemonic, read_mnemonic};
 use crate::net::network::{InboundSmp, P2pNetwork};
 use crate::storage::ChunkStore;
 use curve25519_dalek::MontgomeryPoint;
@@ -394,12 +395,65 @@ impl LocalApi {
             "panic_status" => self.handle_panic_status(),
             "panic_arm" => self.handle_panic_arm(req.params),
             "panic_enter" => self.handle_panic_enter(req.params),
+            "node_identity_status" => self.handle_node_identity_status(),
+            "node_identity_export" => self.handle_node_identity_export(req.params),
+            "node_identity_import" => self.handle_node_identity_import(req.params),
             _ => return error_response(id, ERR_METHOD_NOT_FOUND, format!("method '{}' not found", req.method)),
         };
         match result {
             Ok(v) => ok_response(id, v),
             Err(e) => error_response(id, ERR_INTERNAL_ERROR, e.to_string()),
         }
+    }
+
+    /// Identity status for the monitor UI: is a BIP-39 identity persisted,
+    /// how many words it has, and the resulting node_id.
+    fn handle_node_identity_status(&self) -> Result<Value, NexxusError> {
+        let (initialized, word_count) = identity_status(&self.store)?;
+        Ok(serde_json::json!({
+            "initialized": initialized,
+            "word_count": word_count,
+            "node_id": hex::encode(self.network.node_id().0),
+        }))
+    }
+
+    /// One-time export of the mnemonic. Requires params.confirm == true.
+    /// The mnemonic is returned in the RPC response only — it is never
+    /// written to logs by this handler.
+    fn handle_node_identity_export(&self, params: Option<Value>) -> Result<Value, NexxusError> {
+        let confirm = params
+            .as_ref()
+            .and_then(|p| p.get("confirm"))
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false);
+        if !confirm {
+            return Err(NexxusError::Vault(
+                "param 'confirm' must be true to export the mnemonic".into(),
+            ));
+        }
+        match read_mnemonic(&self.store)? {
+            Some(phrase) => Ok(serde_json::json!({
+                "mnemonic": phrase,
+                "word_count": phrase.split_whitespace().count(),
+            })),
+            None => Err(NexxusError::Io("identity not initialized".into())),
+        }
+    }
+
+    /// Import a mnemonic. Refuses on a store already initialized with a
+    /// different seed (store key is derived from the seed). On a live daemon
+    /// the identity is already loaded, so a matching phrase returns "already".
+    fn handle_node_identity_import(&self, params: Option<Value>) -> Result<Value, NexxusError> {
+        let phrase = params
+            .as_ref()
+            .and_then(|p| p.get("mnemonic"))
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| NexxusError::Vault("param 'mnemonic' required".into()))?;
+        let (node_id, status) = import_mnemonic(&self.store, phrase)?;
+        Ok(serde_json::json!({
+            "status": status,
+            "node_id": hex::encode(node_id.0),
+        }))
     }
 
     fn handle_panic_status(&self) -> Result<Value, NexxusError> {

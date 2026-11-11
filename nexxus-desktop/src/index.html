@@ -215,6 +215,26 @@
           </div>
           <p class="muted">Токен хранится только локально в <code>~/.nexxus/telegram.json</code> (права 0600) и никогда не попадает в логи и git. Приоритет: env → этот файл → secrets.</p>
         </section>
+        <section class="panel">
+          <h2>Идентичность — BIP39 сид-фраза</h2>
+          <div id="id-status" class="data-box">—</div>
+          <div class="controls-row">
+            <button class="btn btn-outline" id="btn-id-refresh">🔄 Обновить статус</button>
+            <button class="btn btn-danger" id="btn-id-export">👁 Показать сид-фразу</button>
+            <button class="btn btn-outline" id="btn-id-copy" disabled>📋 Копировать</button>
+          </div>
+          <div id="id-export-box" class="data-box hidden" style="word-break:break-word; font-family:monospace;"></div>
+          <p class="muted">Сид-фраза показывается один раз по запросу и <b>никогда не пишется в логи</b>. Запишите 12 слов в надёжном месте — без них узел не восстановить.</p>
+          <div class="form-grid">
+            <label class="wide">Восстановление: вставьте сид-фразу (12/24 слова)
+              <textarea id="id-import" rows="3" placeholder="слово1 слово2 … слово12" autocomplete="off"></textarea>
+            </label>
+          </div>
+          <div class="controls-row">
+            <button class="btn btn-primary" id="btn-id-import">♻️ Восстановить из сид-фразы</button>
+          </div>
+          <div id="id-import-result" class="muted"></div>
+        </section>
       </div>
     </main>
   </div>

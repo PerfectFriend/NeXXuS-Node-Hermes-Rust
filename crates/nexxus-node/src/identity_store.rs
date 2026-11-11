@@ -75,6 +75,49 @@ pub fn x25519_pub(secret: &[u8; 32]) -> [u8; 32] {
         .to_bytes()
 }
 
+/// Read the persisted BIP-39 mnemonic. Used ONLY by the one-time
+/// `node_identity_export` API call (with explicit confirmation) — the caller
+/// must never log it. Returns None if the store has no identity yet.
+pub fn read_mnemonic(store: &ChunkStore) -> Result<Option<String>, NexxusError> {
+    match store.get_meta(META_IDENTITY_MNEMONIC)? {
+        Some(bytes) => String::from_utf8(bytes)
+            .map(Some)
+            .map_err(|_| NexxusError::Io("identity mnemonic is not valid utf-8".into())),
+        None => Ok(None),
+    }
+}
+
+/// Status of the persisted identity for the local API.
+pub fn identity_status(store: &ChunkStore) -> Result<(bool, Option<usize>), NexxusError> {
+    match read_mnemonic(store)? {
+        Some(phrase) => Ok((true, Some(phrase.split_whitespace().count()))),
+        None => Ok((false, None)),
+    }
+}
+
+/// Import a mnemonic into a store that has NO identity yet.
+/// Refuses if the store is already initialized with a different seed —
+/// the store encryption key is derived from this seed, so swapping the
+/// identity on a live store would make all chunks undecryptable.
+/// Returns (node_id, status): "imported" | "already".
+pub fn import_mnemonic(store: &ChunkStore, phrase: &str) -> Result<(NodeId, &'static str), NexxusError> {
+    let seed = IdentitySeed::validate(phrase)?;
+    if let Some(existing) = store.get_meta(META_IDENTITY_MNEMONIC)? {
+        let existing_seed = IdentitySeed::validate(
+            &String::from_utf8(existing)
+                .map_err(|_| NexxusError::Io("identity mnemonic is not valid utf-8".into()))?,
+        )?;
+        if existing_seed.seed_bytes() != seed.seed_bytes() {
+            return Err(NexxusError::Io(
+                "store already initialized with a different mnemonic".into(),
+            ));
+        }
+        return Ok((derive_identity(&seed).node_id, "already"));
+    }
+    store.put_meta(META_IDENTITY_MNEMONIC, seed.mnemonic.as_bytes())?;
+    Ok((derive_identity(&seed).node_id, "imported"))
+}
+
 fn derive_identity(seed: &IdentitySeed) -> NodeIdentity {
     let derived = DerivedKey::from_seed(seed.seed_bytes()).expect("SLIP-0010 derivation");
     let identity = Identity::from_secret(&derived.private_key).expect("ed25519 from secret");
@@ -153,5 +196,56 @@ mod tests {
                 .as_deref()
         });
         assert_eq!(phrase.split_whitespace().count(), 12);
+    }
+
+    #[test]
+    fn read_mnemonic_and_status_roundtrip() {
+        let dir = tempdir().unwrap();
+        let path = dir.path().join("store.redb");
+        let store = ChunkStore::open(&path).unwrap();
+        // Пустой стор: идентичности нет.
+        assert_eq!(identity_status(&store).unwrap(), (false, None));
+        assert!(read_mnemonic(&store).unwrap().is_none());
+        let (_, created) = load_or_create_identity(&store).unwrap();
+        let phrase = created.unwrap();
+        assert_eq!(read_mnemonic(&store).unwrap().as_deref(), Some(phrase.as_str()));
+        assert_eq!(identity_status(&store).unwrap(), (true, Some(12)));
+    }
+
+    #[test]
+    fn import_mnemonic_into_empty_store_then_same_is_already() {
+        let dir = tempdir().unwrap();
+        let path = dir.path().join("store.redb");
+        let store = ChunkStore::open(&path).unwrap();
+        let seed = IdentitySeed::generate().unwrap();
+        let (node_id, status) = import_mnemonic(&store, &seed.mnemonic).unwrap();
+        assert_eq!(status, "imported");
+        // Тот же сид поверх — "already", тот же node_id.
+        let (node_id2, status2) = import_mnemonic(&store, &seed.mnemonic).unwrap();
+        assert_eq!(status2, "already");
+        assert_eq!(node_id, node_id2);
+        // И node_id совпадает с load_or_create.
+        let (id, created) = load_or_create_identity(&store).unwrap();
+        assert!(created.is_none());
+        assert_eq!(id.node_id, node_id);
+    }
+
+    #[test]
+    fn import_mnemonic_refuses_different_seed_on_initialized_store() {
+        let dir = tempdir().unwrap();
+        let path = dir.path().join("store.redb");
+        let store = ChunkStore::open(&path).unwrap();
+        let _ = load_or_create_identity(&store).unwrap();
+        let other = IdentitySeed::generate().unwrap();
+        let err = import_mnemonic(&store, &other.mnemonic).unwrap_err();
+        assert!(err.to_string().contains("different mnemonic"));
+    }
+
+    #[test]
+    fn import_mnemonic_rejects_invalid_bip39() {
+        let dir = tempdir().unwrap();
+        let store = ChunkStore::open(dir.path().join("s.redb")).unwrap();
+        let err = import_mnemonic(&store, "not a valid phrase at all really no").unwrap_err();
+        assert!(!err.to_string().is_empty());
     }
 }

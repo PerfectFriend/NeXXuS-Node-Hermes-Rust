@@ -550,6 +550,7 @@ function refreshActivePane() {
       break;
     case 'settings':
       refreshTgStatus();
+      refreshIdentity();
       break;
     default:
       break;
@@ -630,5 +631,62 @@ $('btn-epoch-refresh').addEventListener('click', refreshEpoch);
 $('btn-tg-check').addEventListener('click', tgCheck);
 $('btn-tg-save').addEventListener('click', tgSave);
 $('btn-tg-test2').addEventListener('click', testTelegram);
+
+// --- Идентичность (BIP39): статус / экспорт / импорт сид-фразы ---
+async function refreshIdentity() {
+  try {
+    const st = await api('node_identity_status');
+    $('id-status').textContent = st.initialized
+      ? `Идентичность создана: ${st.word_count} слов, node_id ${st.node_id.slice(0, 16)}…`
+      : 'Идентичность ещё не создана';
+  } catch (e) {
+    $('id-status').textContent = `Ошибка: ${e}`;
+  }
+}
+
+async function exportSeed() {
+  if (!confirm('Показать сид-фразу на экране? Убедитесь, что никто не подглядывает. Фраза не попадёт в логи.')) return;
+  try {
+    const r = await api('node_identity_export', { confirm: true });
+    const box = $('id-export-box');
+    box.textContent = r.mnemonic;
+    box.classList.remove('hidden');
+    $('btn-id-copy').disabled = false;
+    addStageLog(`Сид-фраза показана (${r.word_count} слов)`, 'success');
+  } catch (e) {
+    addStageLog(`Экспорт сида отклонён: ${e}`, 'error');
+  }
+}
+
+async function copySeed() {
+  const box = $('id-export-box');
+  if (!box.textContent) return;
+  try {
+    await navigator.clipboard.writeText(box.textContent);
+    addStageLog('Сид-фраза скопирована в буфер обмена', 'success');
+  } catch (e) {
+    addStageLog(`Буфер обмена недоступен: ${e}`, 'error');
+  }
+}
+
+async function importSeed() {
+  const phrase = ($('id-import').value || '').trim();
+  if (!phrase) { $('id-import-result').textContent = 'Введите сид-фразу.'; return; }
+  if (!confirm('Восстановить идентичность из этой сид-фразы? На уже инициализированном узле с другим сидом операция будет отклонена.')) return;
+  try {
+    const r = await api('node_identity_import', { mnemonic: phrase });
+    $('id-import-result').textContent = `Статус: ${r.status}, node_id: ${r.node_id.slice(0, 16)}…`;
+    addStageLog(`Импорт сида: ${r.status}`, r.status === 'already' ? 'success' : 'success');
+    await refreshIdentity();
+  } catch (e) {
+    $('id-import-result').textContent = `Отклонено: ${e}`;
+    addStageLog(`Импорт сида отклонён: ${e}`, 'error');
+  }
+}
+
+$('btn-id-refresh').addEventListener('click', refreshIdentity);
+$('btn-id-export').addEventListener('click', exportSeed);
+$('btn-id-copy').addEventListener('click', copySeed);
+$('btn-id-import').addEventListener('click', importSeed);
 
 init();
