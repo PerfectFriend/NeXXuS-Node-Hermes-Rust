@@ -235,6 +235,32 @@
           </div>
           <div id="id-import-result" class="muted"></div>
         </section>
+        <section class="panel">
+          <h2>Зашифрованный бэкап сида (seed.vault)</h2>
+          <div id="vault-status" class="data-box">—</div>
+          <div class="form-grid">
+            <label>PIN для бэкапа (мин. 4 символа)
+              <input id="vault-pin" type="password" autocomplete="new-password" placeholder="PIN">
+            </label>
+            <label>Duress-PIN (опционально — при вводе алерт вместо восстановления)
+              <input id="vault-duress" type="password" autocomplete="new-password" placeholder="оставьте пустым, если не нужен">
+            </label>
+          </div>
+          <div class="controls-row">
+            <button class="btn btn-outline" id="btn-vault-refresh">🔄 Статус</button>
+            <button class="btn btn-primary" id="btn-vault-backup">🔐 Создать бэкап сида</button>
+          </div>
+          <div class="form-grid">
+            <label class="wide">PIN для восстановления из seed.vault
+              <input id="vault-restore-pin" type="password" autocomplete="off" placeholder="PIN">
+            </label>
+          </div>
+          <div class="controls-row">
+            <button class="btn btn-danger" id="btn-vault-restore">♻️ Восстановить сид из бэкапа</button>
+          </div>
+          <div id="vault-result" class="muted"></div>
+          <p class="muted">Бэкап — AES-256-GCM (PBKDF2 600k), файл <code>*.seed.vault</code> рядом со стором, права 0600, формат совместим с SDK. Сид в открытом виде — только внутри зашифрованного файла.</p>
+        </section>
       </div>
     </main>
   </div>

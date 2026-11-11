@@ -7,7 +7,7 @@ use crate::commands::{
     node_config_validate_cmd, node_install_cmd, node_install_status_cmd, node_log_tail_cmd,
     node_uninstall_cmd, onboarding_advance_cmd, onboarding_get_cmd, onboarding_reset_cmd,
     run_health_loop, tg_config_check_cmd, tg_config_save_cmd, tg_config_status_cmd,
-    tg_send_test_cmd, AppState,
+    tg_send_alert_cmd, tg_send_test_cmd, AppState,
 };
 use crate::guardian::{
     guardian_check_health, guardian_restart_node, guardian_shutdown_everything,
@@ -213,6 +213,7 @@ fn main() {
             guardian_toggle_monitor_cmd,
             guardian_shutdown_cmd,
             tg_send_test_cmd,
+            tg_send_alert_cmd,
             tg_config_status_cmd,
             tg_config_save_cmd,
             tg_config_check_cmd,

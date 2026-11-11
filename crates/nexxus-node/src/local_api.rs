@@ -398,6 +398,9 @@ impl LocalApi {
             "node_identity_status" => self.handle_node_identity_status(),
             "node_identity_export" => self.handle_node_identity_export(req.params),
             "node_identity_import" => self.handle_node_identity_import(req.params),
+            "node_seed_vault_status" => self.handle_seed_vault_status(),
+            "node_seed_backup" => self.handle_seed_backup(req.params),
+            "node_seed_restore" => self.handle_seed_restore(req.params),
             _ => return error_response(id, ERR_METHOD_NOT_FOUND, format!("method '{}' not found", req.method)),
         };
         match result {
@@ -454,6 +457,59 @@ impl LocalApi {
             "status": status,
             "node_id": hex::encode(node_id.0),
         }))
+    }
+
+    /// Seed vault (encrypted BIP39 backup) metadata — no secrets, no decryption.
+    fn handle_seed_vault_status(&self) -> Result<Value, NexxusError> {
+        match crate::seed_vault::seed_vault_status(&self.store)? {
+            Some(st) => Ok(serde_json::json!({
+                "exists": true,
+                "path": st.path.to_string_lossy(),
+                "created_at": st.created_at,
+                "has_duress_pin": st.has_duress_pin,
+                "kdf_rounds": st.kdf_rounds,
+            })),
+            None => Ok(serde_json::json!({"exists": false})),
+        }
+    }
+
+    /// Create/overwrite the encrypted seed vault. Params: pin (required, >=4),
+    /// duress_pin (optional). The mnemonic never leaves the process in plaintext
+    /// except into the encrypted vault file (0600).
+    fn handle_seed_backup(&self, params: Option<Value>) -> Result<Value, NexxusError> {
+        let pin = params
+            .as_ref()
+            .and_then(|p| p.get("pin"))
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| NexxusError::Vault("param 'pin' required".into()))?;
+        let duress = params
+            .as_ref()
+            .and_then(|p| p.get("duress_pin"))
+            .and_then(|v| v.as_str());
+        let path = crate::seed_vault::backup_seed(&self.store, pin, duress)?;
+        Ok(serde_json::json!({
+            "ok": true,
+            "path": path.to_string_lossy(),
+        }))
+    }
+
+    /// Restore the seed from the vault with a PIN. Returns one of:
+    /// "imported" | "already" | "duress" | "wrong_pin" (+ node_id when applicable).
+    /// On "duress" the real seed is NOT imported — the monitor must alert, not celebrate.
+    fn handle_seed_restore(&self, params: Option<Value>) -> Result<Value, NexxusError> {
+        let pin = params
+            .as_ref()
+            .and_then(|p| p.get("pin"))
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| NexxusError::Vault("param 'pin' required".into()))?;
+        use crate::seed_vault::RestoreOutcome;
+        let r = match crate::seed_vault::restore_seed(&self.store, pin)? {
+            RestoreOutcome::Imported(id) => serde_json::json!({"status": "imported", "node_id": hex::encode(id.0)}),
+            RestoreOutcome::Already(id) => serde_json::json!({"status": "already", "node_id": hex::encode(id.0)}),
+            RestoreOutcome::Duress => serde_json::json!({"status": "duress"}),
+            RestoreOutcome::WrongPin => serde_json::json!({"status": "wrong_pin"}),
+        };
+        Ok(r)
     }
 
     fn handle_panic_status(&self) -> Result<Value, NexxusError> {

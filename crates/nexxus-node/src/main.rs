@@ -26,6 +26,7 @@ mod panic;
 mod identity_store;
 mod cli;
 mod vault;
+mod seed_vault;
 
 use crate::net::P2pNetwork;
 use crate::storage::ChunkStore;

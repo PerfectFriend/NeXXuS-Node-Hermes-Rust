@@ -551,6 +551,7 @@ function refreshActivePane() {
     case 'settings':
       refreshTgStatus();
       refreshIdentity();
+      refreshVault();
       break;
     default:
       break;
@@ -688,5 +689,57 @@ $('btn-id-refresh').addEventListener('click', refreshIdentity);
 $('btn-id-export').addEventListener('click', exportSeed);
 $('btn-id-copy').addEventListener('click', copySeed);
 $('btn-id-import').addEventListener('click', importSeed);
+
+// --- Бэкап сида (R2): seed.vault ---
+async function refreshVault() {
+  try {
+    const st = await api('node_seed_vault_status');
+    $('vault-status').textContent = st.exists
+      ? `Бэкап есть: ${st.path} (создан ${new Date(st.created_at * 1000).toLocaleString('ru-RU')}, duress-PIN: ${st.has_duress_pin ? 'да' : 'нет'}, kdf ${st.kdf_rounds})`
+      : 'Бэкап ещё не создан';
+  } catch (e) {
+    $('vault-status').textContent = `Ошибка: ${e}`;
+  }
+}
+
+async function vaultBackup() {
+  const pin = ($('vault-pin').value || '').trim();
+  if (pin.length < 4) { $('vault-result').textContent = 'PIN минимум 4 символа.'; return; }
+  const duress = ($('vault-duress').value || '').trim() || null;
+  try {
+    const r = await api('node_seed_backup', { pin, duress_pin: duress });
+    $('vault-result').textContent = `Бэкап создан: ${r.path}`;
+    addStageLog('seed.vault создан (зашифрован)', 'success');
+    $('vault-pin').value = ''; $('vault-duress').value = '';
+    await refreshVault();
+  } catch (e) {
+    $('vault-result').textContent = `Ошибка: ${e}`;
+    addStageLog(`Бэкап сида отклонён: ${e}`, 'error');
+  }
+}
+
+async function vaultRestore() {
+  const pin = ($('vault-restore-pin').value || '').trim();
+  if (!pin) { $('vault-result').textContent = 'Введите PIN.'; return; }
+  try {
+    const r = await api('node_seed_restore', { pin });
+    if (r.status === 'duress') {
+      $('vault-result').textContent = '⚠️ Введён duress-PIN: алерт отправлен, сид НЕ восстановлен.';
+      addStageLog('⚠️ DURESS-PIN в seed.vault — алерт!', 'error');
+      try { await invoke('tg_send_alert_cmd', { text: '⚠️ NeXXus: введён duress-PIN seed.vault — возможное принуждение!' }); } catch (_) {}
+    } else {
+      $('vault-result').textContent = `Статус: ${r.status}${r.node_id ? `, node_id ${r.node_id.slice(0, 16)}…` : ''}`;
+      addStageLog(`Восстановление seed.vault: ${r.status}`, r.status === 'wrong_pin' ? 'error' : 'success');
+    }
+    $('vault-restore-pin').value = '';
+  } catch (e) {
+    $('vault-result').textContent = `Ошибка: ${e}`;
+    addStageLog(`Восстановление отклонено: ${e}`, 'error');
+  }
+}
+
+$('btn-vault-refresh').addEventListener('click', refreshVault);
+$('btn-vault-backup').addEventListener('click', vaultBackup);
+$('btn-vault-restore').addEventListener('click', vaultRestore);
 
 init();

@@ -6,7 +6,7 @@
 use crate::guardian::{
     guardian_check_health, guardian_restart_node, guardian_shutdown_everything,
     guardian_start_node, guardian_status, guardian_stop_node, guardian_toggle_monitor,
-    health_loop, tg_send_test,
+    health_loop, tg_send_alert, tg_send_test,
 };
 use crate::node_config::{self, NodeConfig};
 use serde_json::{json, Value};
@@ -62,6 +62,12 @@ pub async fn guardian_shutdown_cmd(state: State<'_, AppState>) -> Result<Value, 
 #[command]
 pub async fn tg_send_test_cmd() -> Result<Value, String> {
     tg_send_test().await
+}
+
+/// Отправить произвольный алерт в Telegram (duress-PIN и т.п.). Текст не логируется.
+#[command]
+pub async fn tg_send_alert_cmd(text: String) -> Result<Value, String> {
+    tg_send_alert(&text).await
 }
 
 // --- Настройки Telegram из UI ---

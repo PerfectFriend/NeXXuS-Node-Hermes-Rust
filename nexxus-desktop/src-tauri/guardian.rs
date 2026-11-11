@@ -553,6 +553,16 @@ pub async fn tg_send_test() -> Result<Value, String> {
     Ok(json!({"status": "sent"}))
 }
 
+/// Отправляет произвольный алерт в Telegram (например, duress-PIN).
+pub async fn tg_send_alert(text: &str) -> Result<Value, String> {
+    let bot = get_bot().await;
+    if !bot.is_configured() {
+        return Ok(json!({"status": "not_configured"}));
+    }
+    bot.send_message(text).await?;
+    Ok(json!({"status": "sent"}))
+}
+
 #[cfg(test)]
 mod start_flow_tests {
     use super::*;
