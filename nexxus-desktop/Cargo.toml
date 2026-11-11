@@ -41,3 +41,7 @@ path = "src-tauri/main.rs"
 [[bin]]
 name = "test-api-client"
 path = "test_api_client.rs"
+
+[[bin]]
+name = "api_probe"
+path = "api_probe.rs"
