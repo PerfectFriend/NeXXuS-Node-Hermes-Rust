@@ -287,14 +287,20 @@ mod tests {
     use super::*;
     use crate::identity_store::load_or_create_identity;
     use nexxus_core::types::ChunkHash;
+    use sha2::Digest;
     use tempfile::tempdir;
+
+    /// Real SHA-256 of the payload — put_chunk now verifies hash == SHA-256(data).
+    fn h(data: &[u8]) -> ChunkHash {
+        ChunkHash(sha2::Sha256::digest(data).into())
+    }
 
     fn store_with_data() -> (tempfile::TempDir, ChunkStore) {
         let dir = tempdir().unwrap();
         let store = ChunkStore::open(dir.path().join("store.redb")).unwrap();
         let _ = load_or_create_identity(&store).unwrap();
-        store.put_chunk(&ChunkHash([7u8; 32]), b"hello").unwrap();
-        store.put_chunk(&ChunkHash([9u8; 32]), b"world").unwrap();
+        store.put_chunk(&h(b"hello"), b"hello").unwrap();
+        store.put_chunk(&h(b"world"), b"world").unwrap();
         (dir, store)
     }
 
@@ -371,12 +377,12 @@ mod tests {
         let path = dir.path().join("store.redb");
         let store = ChunkStore::open(&path).unwrap();
         let _ = load_or_create_identity(&store).unwrap();
-        store.put_chunk(&ChunkHash([1u8; 32]), b"v1").unwrap();
+        store.put_chunk(&h(b"v1"), b"v1").unwrap();
         drop(store);
         let m = backup_store(&ChunkStore::open(&path).unwrap()).unwrap();
         // «Повреждаем» живой стор после бэкапа.
         let store = ChunkStore::open(&path).unwrap();
-        store.put_chunk(&ChunkHash([2u8; 32]), b"v2-extra").unwrap();
+        store.put_chunk(&h(b"v2-extra"), b"v2-extra").unwrap();
         drop(store);
         swap_backup(&path, &m.name).unwrap();
         let store = ChunkStore::open(&path).unwrap();

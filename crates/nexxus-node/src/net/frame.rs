@@ -46,6 +46,12 @@ pub async fn recv_frame<S: AsyncRead + AsyncWrite + Unpin + Send>(
         .await
         .map_err(|e| NexxusError::Io(e.to_string()))?;
     let len = u32::from_be_bytes(len_buf) as usize;
+    // Bound memory BEFORE allocating: a peer must not make us vec![0; 4GiB].
+    if len > MAX_FRAME_LEN {
+        return Err(NexxusError::Io(format!(
+            "frame too large: {len} > {MAX_FRAME_LEN}"
+        )));
+    }
     let mut frame = vec![0u8; len];
     stream
         .read_exact(&mut frame)
@@ -87,6 +93,23 @@ mod tests {
         assert_eq!(op, Opcode::Pong);
         assert_eq!(rid, 0xdeadbeef);
         let _ = Pong::decode(&payload).unwrap();
+        handle.await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn oversized_length_prefix_is_rejected_before_allocation() {
+        // A peer claiming len = u32::MAX must get an immediate error, not a
+        // 4 GiB vec![0; len] allocation (remote memory-exhaustion DoS).
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        let handle = tokio::spawn(async move {
+            let (mut stream, _) = listener.accept().await.unwrap();
+            let err = recv_frame(&mut stream).await.unwrap_err();
+            assert!(err.to_string().contains("frame too large"), "got: {err}");
+        });
+        let mut stream = tokio::net::TcpStream::connect(addr).await.unwrap();
+        stream.write_all(&u32::MAX.to_be_bytes()).await.unwrap();
+        stream.write_all(&[0u8; 16]).await.unwrap(); // a few bytes only
         handle.await.unwrap();
     }
 }

@@ -155,6 +155,19 @@ impl ChunkStore {
     }
 
     pub fn put_chunk(&self, hash: &ChunkHash, data: &[u8]) -> Result<(), NexxusError> {
+        // Integrity: the claimed hash MUST be SHA-256(data). Without this a peer
+        // could store arbitrary bytes under someone else's hash — and with the
+        // at-rest nonce derived from the hash that would be a nonce reuse with a
+        // different plaintext (fatal for XChaCha20-Poly1305).
+        use sha2::Digest;
+        let actual = sha2::Sha256::digest(data);
+        if actual.as_slice() != hash.0 {
+            return Err(NexxusError::Io(format!(
+                "chunk hash mismatch: claimed {}, actual {}",
+                hex::encode(hash.0),
+                hex::encode(actual)
+            )));
+        }
         // При включённом at-rest ключе в redb уходит только ciphertext+tag.
         let stored: Vec<u8> = match &*self.crypto.lock().unwrap() {
             Some(key) => crate::at_rest::encrypt_chunk(key, hash, data),
@@ -168,6 +181,14 @@ impl ChunkStore {
             let mut table = wtx
                 .open_table(CHUNKS)
                 .map_err(|e| NexxusError::Io(format!("redb table: {e}")))?;
+            // Dedup: never overwrite an existing hash. The at-rest nonce is
+            // hash-derived, so a second write under the same hash with different
+            // bytes would reuse the nonce. (Hash is verified above, so the same
+            // hash implies the same plaintext — overwriting would be a no-op
+            // anyway; refusing it makes the invariant explicit.)
+            if table.get(hash.0).map_err(|e| NexxusError::Io(format!("redb get: {e}")))?.is_some() {
+                return Ok(());
+            }
             table
                 .insert(hash.0, stored.as_slice())
                 .map_err(|e| NexxusError::Io(format!("redb insert: {e}")))?;
@@ -258,13 +279,20 @@ impl ChunkStore {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use sha2::Digest;
+
+    /// Real SHA-256 of the payload — put_chunk verifies hash == SHA-256(data).
+    fn h(data: &[u8]) -> ChunkHash {
+        ChunkHash(sha2::Sha256::digest(data).into())
+    }
 
     #[test]
     fn put_get_roundtrip() {
+        use sha2::Digest;
         let dir = tempfile::tempdir().unwrap();
         let store = ChunkStore::open(dir.path().join("store.redb")).unwrap();
         let chunk: Vec<u8> = (0..1000).map(|i| (i % 251) as u8).collect();
-        let hash = ChunkHash([0x42u8; 32]);
+        let hash = ChunkHash(sha2::Sha256::digest(&chunk).into());
         store.put_chunk(&hash, &chunk).unwrap();
         let got = store.get_chunk(&hash).unwrap().unwrap();
         assert_eq!(got, chunk);
@@ -272,13 +300,29 @@ mod tests {
     }
 
     #[test]
-    fn overwrite_chunk() {
+    fn put_chunk_rejects_hash_mismatch() {
+        // A peer claiming a hash that is not SHA-256(data) must be refused:
+        // with the at-rest nonce derived from the hash this would be a nonce
+        // reuse with a different plaintext (fatal for XChaCha20-Poly1305).
         let dir = tempfile::tempdir().unwrap();
         let store = ChunkStore::open(dir.path().join("store.redb")).unwrap();
-        let hash = ChunkHash([0x43u8; 32]);
-        store.put_chunk(&hash, b"first").unwrap();
-        store.put_chunk(&hash, b"second").unwrap();
-        assert_eq!(store.get_chunk(&hash).unwrap().unwrap(), b"second");
+        let fake = ChunkHash([0x42u8; 32]);
+        let err = store.put_chunk(&fake, b"not matching the hash").unwrap_err();
+        assert!(err.to_string().contains("hash mismatch"), "got: {err}");
+        assert!(store.get_chunk(&fake).unwrap().is_none());
+    }
+
+    #[test]
+    fn put_chunk_never_overwrites_existing_hash() {
+        use sha2::Digest;
+        let dir = tempfile::tempdir().unwrap();
+        let store = ChunkStore::open(dir.path().join("store.redb")).unwrap();
+        let first = b"first".to_vec();
+        let hash = ChunkHash(sha2::Sha256::digest(&first).into());
+        store.put_chunk(&hash, &first).unwrap();
+        // Same hash, same bytes (hash verified) -> dedup no-op, still first.
+        store.put_chunk(&hash, &first).unwrap();
+        assert_eq!(store.get_chunk(&hash).unwrap().unwrap(), first);
     }
 
     #[test]
@@ -302,7 +346,7 @@ mod tests {
         assert!(store.list_chunk_hashes().unwrap().is_empty());
         assert!(store.get_chunk(&ChunkHash([0x09u8; 32])).unwrap().is_none());
         // writes still work on the legacy file
-        store.put_chunk(&ChunkHash([0x09u8; 32]), b"data").unwrap();
+        store.put_chunk(&h(b"data"), b"data").unwrap();
         assert_eq!(store.list_chunk_hashes().unwrap().len(), 1);
     }
 
@@ -319,7 +363,7 @@ mod tests {
         assert_eq!(store.enable_encryption(key.clone()).unwrap(), 0);
 
         let chunk: Vec<u8> = (0..5000).map(|i| (i % 253) as u8).collect();
-        let hash = ChunkHash([0x77u8; 32]);
+        let hash = h(&chunk);
         store.put_chunk(&hash, &chunk).unwrap();
         drop(store);
 
@@ -346,8 +390,8 @@ mod tests {
         // "Старый" стор: plaintext-чанки, без флага шифрования.
         {
             let store = ChunkStore::open(&path).unwrap();
-            store.put_chunk(&ChunkHash([1u8; 32]), b"plain-one").unwrap();
-            store.put_chunk(&ChunkHash([2u8; 32]), b"plain-two").unwrap();
+            store.put_chunk(&h(b"plain-one"), b"plain-one").unwrap();
+            store.put_chunk(&h(b"plain-two"), b"plain-two").unwrap();
         }
         let raw_before = disk_bytes(&path);
         assert!(raw_before.windows(9).any(|w| w == b"plain-one"), "precondition: plaintext on disk before migration");
@@ -355,7 +399,7 @@ mod tests {
         // Открываем и включаем шифрование — миграция.
         let store = ChunkStore::open(&path).unwrap();
         assert_eq!(store.enable_encryption(key.clone()).unwrap(), 2);
-        assert_eq!(store.get_chunk(&ChunkHash([1u8; 32])).unwrap().unwrap(), b"plain-one");
+        assert_eq!(store.get_chunk(&h(b"plain-one")).unwrap().unwrap(), b"plain-one");
         drop(store);
 
         let raw_after = disk_bytes(&path);
@@ -365,7 +409,7 @@ mod tests {
         // Повторное открытие: флаг уже есть, миграции нет, ключ валидируется.
         let store = ChunkStore::open(&path).unwrap();
         assert_eq!(store.enable_encryption(key).unwrap(), 0);
-        assert_eq!(store.get_chunk(&ChunkHash([2u8; 32])).unwrap().unwrap(), b"plain-two");
+        assert_eq!(store.get_chunk(&h(b"plain-two")).unwrap().unwrap(), b"plain-two");
     }
 
     #[test]
@@ -376,7 +420,7 @@ mod tests {
         store
             .enable_encryption(crate::at_rest::StoreKey::derive(&[0x01u8; 64]))
             .unwrap();
-        store.put_chunk(&ChunkHash([9u8; 32]), b"secret").unwrap();
+        store.put_chunk(&h(b"secret"), b"secret").unwrap();
         drop(store);
 
         let store = ChunkStore::open(&path).unwrap();

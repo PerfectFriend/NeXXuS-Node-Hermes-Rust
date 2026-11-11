@@ -32,7 +32,9 @@ pub fn nexxusd_log_path() -> &'static str {
 /// есть не у всех способов запуска. Привязываемся к пути бинаря —
 /// у монитора путь оканчивается на `nexxus-desktop`, поэтому совпадения
 /// с ним не происходит.
-const NEXXUSD_MATCH: &str = "cargo-target-nexxus/release/nexxusd";
+/// Паттерн процесса ноды для pgrep/pkill: матчит любой путь к бинарнику
+/// nexxusd (`/usr/bin/nexxusd`, `…/release/nexxusd`), но не nexxus-desktop.
+const NEXXUSD_MATCH: &str = "(^|/)nexxusd( |$)";
 
 /// Адрес локального WS API ноды — из конфига монитора (node.conf, поле `api`),
 /// по умолчанию 127.0.0.1:4010. Раньше здесь был зашитый порт 4010, из-за чего

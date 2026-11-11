@@ -217,7 +217,18 @@ fn auth_gate(
                 .and_then(|t| t.as_str())
                 .unwrap_or("");
             match expected {
-                Some(expected) if !supplied.is_empty() && supplied == expected => {
+                // Constant-time compare: token is a 256-bit secret, do not leak
+                // prefix length via an early-exit == on strings.
+                Some(expected)
+                    if !supplied.is_empty()
+                        && supplied.len() == expected.len()
+                        && bool::from(
+                            subtle::ConstantTimeEq::ct_eq(
+                                supplied.as_bytes(),
+                                expected.as_bytes(),
+                            ),
+                        ) =>
+                {
                     *authenticated = true;
                     Some((
                         ok_response(req.id.clone(), serde_json::json!({"authenticated": true})),

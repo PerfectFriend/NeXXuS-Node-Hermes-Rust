@@ -885,9 +885,16 @@ mod tests {
     use nexxus_core::epoch::epoch_signing_bytes;
     use nexxus_core::types::ChunkHash;
     use nexxus_core::wire::payloads::{CommitteeSig, EpochFinalize};
+    use sha2::Digest;
     use std::net::Ipv4Addr;
     use tempfile::tempdir;
     use crate::net::routing::Peer;
+
+    /// Real SHA-256 of the payload — put_chunk verifies hash == SHA-256(data).
+    fn h(data: &[u8]) -> ChunkHash {
+        ChunkHash(sha2::Sha256::digest(data).into())
+    }
+
 
     #[tokio::test]
     async fn store_then_fetch_over_network() {
@@ -913,8 +920,8 @@ mod tests {
         // connect a client, announce, then StoreChunk -> FetchChunk
         let mut stream = TcpStream::connect(listener_addr).await.unwrap();
         net.announce_on(&mut stream, 0x0009).await.unwrap();
-        let hash = ChunkHash([0x24u8; 32]);
         let data: Vec<u8> = (0..500).map(|i| (i % 251) as u8).collect();
+        let hash = h(&data);
         let chunk = StoreChunk {
             chunk_hash: hash,
             file_id: 1,
@@ -1035,8 +1042,8 @@ mod tests {
         let listener_addr = bound.expect("listener failed to bind");
 
         // server stores a chunk first
-        let hash = ChunkHash([0x25u8; 32]);
         let data: Vec<u8> = (0..256).map(|i| i as u8).collect();
+        let hash = h(&data);
         net.store
             .put_chunk(&hash, &data)
             .expect("store chunk");
@@ -1278,8 +1285,8 @@ mod tests {
         assert_eq!(learned_b, id_b);
 
         // B stores a chunk
-        let hash = ChunkHash([0x77u8; 32]);
         let data: Vec<u8> = (0..100).map(|i| i as u8).collect();
+        let hash = h(&data);
         net_b.store.put_chunk(&hash, &data).expect("store chunk");
 
         // A fetches the chunk from B
