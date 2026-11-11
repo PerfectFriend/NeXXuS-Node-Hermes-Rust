@@ -28,7 +28,7 @@ const els = {
 };
 
 // --- Роутер вкладок ---
-const TABS = ['overview', 'node', 'network', 'storage', 'logs', 'tor', 'epoch'];
+const TABS = ['overview', 'node', 'network', 'storage', 'logs', 'tor', 'epoch', 'settings'];
 let activeTab = 'overview';
 let logsLive = false;
 let logsTimer = null;
@@ -480,6 +480,52 @@ async function refreshEpoch() {
   }
 }
 
+// --- Панель «Настройки»: Telegram ---
+async function refreshTgStatus() {
+  try {
+    const st = await invoke('tg_config_status_cmd');
+    setBox('tg-status', {
+      'настроен': st.configured ? 'да ✅' : 'нет',
+      'токен': `${st.token_set ? 'задан' : 'нет'} (источник: ${st.token_source})`,
+      'chat_id': `${st.chat_set ? 'задан' : 'нет'} (источник: ${st.chat_source})`,
+      'файл конфига': st.config_path,
+    });
+  } catch (e) {
+    setBox('tg-status', `ошибка статуса: ${e}`);
+  }
+}
+
+async function tgCheck() {
+  const token = ($('tg-token').value || '').trim();
+  if (!token) {
+    addStageLog('Сначала вставьте токен', 'error');
+    return;
+  }
+  const r = await action('Проверка токена (getMe)', () => invoke('tg_config_check_cmd', { botToken: token }));
+  if (r) setBox('tg-status', { 'getMe': r.username ? `@${r.username} (id ${r.id})` : JSON.stringify(r) });
+}
+
+async function tgSave() {
+  const token = ($('tg-token').value || '').trim();
+  const chat = ($('tg-chat').value || '').trim();
+  if (!token || !chat) {
+    addStageLog('Нужны и токен, и chat_id', 'error');
+    return;
+  }
+  const r = await action('Сохранение конфига Telegram', () =>
+    invoke('tg_config_save_cmd', { botToken: token, chatId: chat }));
+  if (r) {
+    $('tg-token').value = '';
+    $('tg-chat').value = '';
+    setBox('tg-status', {
+      'сохранено': 'да ✅',
+      'бот': r.bot && r.bot.username ? `@${r.bot.username}` : '—',
+      'источник': r.token_source,
+    });
+    await fetchStatus();
+  }
+}
+
 // --- Автообновление активной панели ---
 function refreshActivePane() {
   switch (activeTab) {
@@ -501,6 +547,9 @@ function refreshActivePane() {
       break;
     case 'epoch':
       refreshEpoch();
+      break;
+    case 'settings':
+      refreshTgStatus();
       break;
     default:
       break;
@@ -577,5 +626,9 @@ $('btn-tor-refresh').addEventListener('click', refreshTor);
 $('btn-dial-onion').addEventListener('click', dialOnion);
 
 $('btn-epoch-refresh').addEventListener('click', refreshEpoch);
+
+$('btn-tg-check').addEventListener('click', tgCheck);
+$('btn-tg-save').addEventListener('click', tgSave);
+$('btn-tg-test2').addEventListener('click', testTelegram);
 
 init();

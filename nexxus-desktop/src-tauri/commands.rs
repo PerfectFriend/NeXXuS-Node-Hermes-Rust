@@ -64,6 +64,33 @@ pub async fn tg_send_test_cmd() -> Result<Value, String> {
     tg_send_test().await
 }
 
+// --- Настройки Telegram из UI ---
+
+/// Статус конфига Telegram (флаги + источники, без значений токена).
+#[command]
+pub fn tg_config_status_cmd() -> Result<Value, String> {
+    Ok(crate::telegram::telegram_config_status())
+}
+
+/// Сохраняет bot token + chat id в ~/.nexxus/telegram.json (0600), валидирует
+/// токен через getMe и перезагружает бота. Значения не логируются.
+#[command]
+pub async fn tg_config_save_cmd(bot_token: String, chat_id: String) -> Result<Value, String> {
+    crate::telegram::check_bot_token(&bot_token).await?;
+    crate::telegram::save_telegram_config(&bot_token, &chat_id)?;
+    crate::telegram::reload_bot().await;
+    let mut st = crate::telegram::telegram_config_status();
+    st["bot"] = crate::telegram::check_bot_token(&bot_token).await.unwrap_or(Value::Null);
+    st["saved"] = json!(true);
+    Ok(st)
+}
+
+/// Проверка токена без сохранения (getMe).
+#[command]
+pub async fn tg_config_check_cmd(bot_token: String) -> Result<Value, String> {
+    crate::telegram::check_bot_token(&bot_token).await
+}
+
 // --- Универсальный прокси к локальному API ноды (для панелей дашборда) ---
 
 /// Выполняет произвольный метод локального WS API ноды (с auth по токену):

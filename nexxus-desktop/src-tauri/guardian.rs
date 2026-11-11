@@ -523,6 +523,8 @@ pub async fn guardian_status(state: Arc<GuardianState>) -> Result<Value, String>
         "monitor_enabled": enabled,
         "node_status": node_status,
         "api_reachable": api_is_reachable().await,
+        "tg_configured": crate::telegram::get_bot().await.is_configured(),
+        "tg_status": crate::telegram::telegram_config_status(),
     }))
 }
 

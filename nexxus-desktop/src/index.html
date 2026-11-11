@@ -31,6 +31,7 @@
         <button class="tab-btn" data-tab="logs">📜 Логи</button>
         <button class="tab-btn" data-tab="tor">🧅 Tor</button>
         <button class="tab-btn" data-tab="epoch">⏳ Эпоха</button>
+        <button class="tab-btn" data-tab="settings">⚙️ Настройки</button>
       </nav>
 
       <!-- ОБЗОР -->
@@ -192,6 +193,27 @@
             <button class="btn btn-outline" id="btn-epoch-refresh">🔄 Обновить</button>
           </div>
           <div id="epoch-data" class="data-box">—</div>
+        </section>
+      </div>
+      <!-- НАСТРОЙКИ -->
+      <div class="tab-pane" id="pane-settings">
+        <section class="panel">
+          <h2>Настройки уведомлений — Telegram</h2>
+          <div id="tg-status" class="data-box">—</div>
+          <div class="form-grid">
+            <label class="wide">Bot token (у @BotFather)
+              <input id="tg-token" type="password" autocomplete="off" placeholder="вставьте токен — сохранится локально, 0600">
+            </label>
+            <label class="wide">Chat ID (куда слать уведомления)
+              <input id="tg-chat" type="password" autocomplete="off" placeholder="например, ваш личный чат с ботом">
+            </label>
+          </div>
+          <div class="controls-row">
+            <button class="btn btn-outline" id="btn-tg-check">🔍 Проверить токен (getMe)</button>
+            <button class="btn btn-primary" id="btn-tg-save">💾 Сохранить</button>
+            <button class="btn btn-outline" id="btn-tg-test2">📱 Отправить тест</button>
+          </div>
+          <p class="muted">Токен хранится только локально в <code>~/.nexxus/telegram.json</code> (права 0600) и никогда не попадает в логи и git. Приоритет: env → этот файл → secrets.</p>
         </section>
       </div>
     </main>
