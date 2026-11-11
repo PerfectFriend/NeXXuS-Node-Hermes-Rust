@@ -3,7 +3,6 @@
 //! API требует токен-аутентификации: первый запрос на соединении —
 //! `auth` с токеном из `~/.nexxus/api.token` (или `NEXXUS_API_TOKEN_FILE`),
 //! затем на том же соединении — сам метод. Без токена доступен только `ping`.
-#![allow(dead_code)]
 
 use futures_util::{SinkExt, StreamExt};
 use serde_json::{json, Value};
@@ -30,13 +29,6 @@ pub fn read_api_token() -> Option<String> {
     } else {
         Some(token)
     }
-}
-
-/// Проверяет, доступен ли TCP порт API (адрес из node.conf).
-pub async fn api_port_open() -> bool {
-    tokio::net::TcpStream::connect(crate::guardian::api_addr())
-        .await
-        .is_ok()
 }
 
 /// Отправляет один JSON-RPC фрейм и читает один ответ (с таймаутом).

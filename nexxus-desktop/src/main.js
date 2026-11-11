@@ -842,4 +842,21 @@ async function refreshEcon() {
 }
 $('btn-econ-refresh').addEventListener('click', refreshEcon);
 
+// --- Selftest API (R6) ---
+async function runSelftest() {
+  const box = $('selftest-box');
+  box.classList.remove('hidden');
+  box.textContent = 'Прогон…';
+  try {
+    const r = await invoke('selftest_cmd');
+    box.textContent = [`Selftest: ${r.ok}/${r.total} ok, ${r.failed} failed`]
+      .concat(r.results.map(x => `${x.ok ? '✅' : '❌'} ${x.method}${x.ok ? '' : ' — ' + x.error}`))
+      .join('\n');
+    addStageLog(`Selftest: ${r.ok}/${r.total} ok`, r.failed ? 'error' : 'success');
+  } catch (e) {
+    box.textContent = `Ошибка: ${e}`;
+  }
+}
+$('btn-selftest').addEventListener('click', runSelftest);
+
 init();

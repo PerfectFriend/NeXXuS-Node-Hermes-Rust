@@ -108,6 +108,43 @@ pub async fn node_api_cmd(method: String, params: Option<Value>) -> Result<Value
     crate::guardian::api_call(&method, params).await
 }
 
+/// Selftest (R6): прогоняет все WS-методы ноды и возвращает отчёт ok/err.
+#[command]
+pub async fn selftest_cmd() -> Result<Value, String> {
+    let methods: &[(&str, Option<Value>)] = &[
+        ("ping", None),
+        ("node_status", None),
+        ("node_peers", None),
+        ("node_chunks", None),
+        ("node_smp", None),
+        ("node_epoch", None),
+        ("node_tor", None),
+        ("node_identity_status", None),
+        ("node_seed_vault_status", None),
+        ("node_backup_list", None),
+        ("node_doctor", None),
+        ("node_econ", None),
+        ("panic_status", None),
+    ];
+    let mut results = Vec::new();
+    let mut ok = 0usize;
+    let mut failed = 0usize;
+    for (m, p) in methods {
+        match crate::guardian::api_call(m, p.clone()).await {
+            Ok(v) => {
+                ok += 1;
+                let keys = v.as_object().map(|o| o.keys().cloned().collect::<Vec<_>>()).unwrap_or_default();
+                results.push(json!({"method": m, "ok": true, "keys": keys}));
+            }
+            Err(e) => {
+                failed += 1;
+                results.push(json!({"method": m, "ok": false, "error": e}));
+            }
+        }
+    }
+    Ok(json!({"ok": ok, "failed": failed, "total": methods.len(), "results": results}))
+}
+
 /// Хвост лог-файла ноды (~/.nexxus/nexxusd.log) для панели «Логи».
 #[command]
 pub fn node_log_tail_cmd(lines: Option<u32>) -> Result<Value, String> {

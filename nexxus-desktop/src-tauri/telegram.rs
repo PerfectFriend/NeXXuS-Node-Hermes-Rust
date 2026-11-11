@@ -157,12 +157,6 @@ impl TelegramBot {
             node_id, peers, uptime_min
         )).await
     }
-
-    #[allow(dead_code)]
-    pub async fn notify_monitor_stopped(&self) -> Result<(), String> {
-        if !self.is_configured() { return Ok(()); }
-        self.send_message("🛑 <b>NeXXus Guardian остановлен</b>").await
-    }
 }
 
 static TELEGRAM_BOT: Mutex<Option<TelegramBot>> = Mutex::const_new(None);

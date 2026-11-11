@@ -82,8 +82,7 @@ pub struct GuardianState {
     pub node_status: Mutex<Option<NodeStatus>>,
     pub start_time: Mutex<Option<SystemTime>>,
     pub health_failures: Mutex<u32>,
-    /// PID запущенной ноды (заполняется при старте).
-    #[allow(dead_code)]
+    /// PID запущенной ноды (заполняется при старте; показывается в статусе).
     pub nexxusd_pid: Mutex<Option<u32>>,
     pub monitor_enabled: Mutex<bool>,
 }
@@ -280,30 +279,6 @@ pub async fn get_node_status() -> Result<NodeStatus, String> {
         tor: result.get("tor").and_then(|v| v.as_str()).unwrap_or("unknown").to_string(),
         api_reachable: true,
     })
-}
-
-/// Получает информацию о пирах (для дашборда/расширений).
-#[allow(dead_code)]
-pub async fn get_node_peers() -> Result<Value, String> {
-    api_call("node_peers", None).await
-}
-
-/// Получает информацию о чанках.
-#[allow(dead_code)]
-pub async fn get_node_chunks() -> Result<Value, String> {
-    api_call("node_chunks", None).await
-}
-
-/// Получает информацию об эпохе.
-#[allow(dead_code)]
-pub async fn get_node_epoch() -> Result<Value, String> {
-    api_call("node_epoch", None).await
-}
-
-/// Получает информацию о Tor.
-#[allow(dead_code)]
-pub async fn get_node_tor() -> Result<Value, String> {
-    api_call("node_tor", None).await
 }
 
 /// Путь к файлу-запросу на полное отключение.
@@ -517,11 +492,13 @@ pub async fn guardian_status(state: Arc<GuardianState>) -> Result<Value, String>
     let state_val = { state.state.lock().await.clone() };
     let node_status = { state.node_status.lock().await.clone() };
     let enabled = { *state.monitor_enabled.lock().await };
+    let nexxusd_pid = { *state.nexxusd_pid.lock().await };
 
     Ok(json!({
         "state": format!("{:?}", state_val),
         "monitor_enabled": enabled,
         "node_status": node_status,
+        "nexxusd_pid": nexxusd_pid,
         "api_reachable": api_is_reachable().await,
         "tg_configured": crate::telegram::get_bot().await.is_configured(),
         "tg_status": crate::telegram::telegram_config_status(),
