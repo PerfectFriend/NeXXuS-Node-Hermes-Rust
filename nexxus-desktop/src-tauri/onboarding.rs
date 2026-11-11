@@ -158,15 +158,14 @@ mod tests {
     use super::*;
 
     use std::sync::atomic::{AtomicU64, Ordering};
-    use std::sync::Mutex;
 
-    static ENV_LOCK: Mutex<()> = Mutex::new(());
     static DIR_COUNTER: AtomicU64 = AtomicU64::new(0);
 
     fn with_temp_dir(f: impl FnOnce()) {
-        // Env-global: сериализуем тесты и даём каждому уникальный каталог,
-        // чтобы параллельный запуск не дрался за NEXXUS_CONFIG_DIR.
-        let _guard = ENV_LOCK.lock().unwrap();
+        // Env-global: сериализуем ВСЕ env-тесты крейта через общий lock
+        // (иначе onboarding и telegram::config_tests дерутся за NEXXUS_CONFIG_DIR),
+        // и даём каждому уникальный каталог.
+        let _guard = crate::node_config::TEST_ENV_LOCK.lock().unwrap();
         let dir = std::env::temp_dir().join(format!(
             "nexxus-onboarding-test-{}-{}",
             std::process::id(),

@@ -208,6 +208,9 @@ pub fn to_env(cfg: &NodeConfig) -> Vec<(String, String)> {
 }
 
 #[cfg(test)]
+pub(crate) static TEST_ENV_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+#[cfg(test)]
 mod tests {
     use super::*;
 

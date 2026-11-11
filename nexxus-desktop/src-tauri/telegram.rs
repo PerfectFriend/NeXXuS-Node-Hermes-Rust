@@ -280,12 +280,9 @@ pub async fn check_bot_token(bot_token: &str) -> Result<serde_json::Value, Strin
 #[cfg(test)]
 mod config_tests {
     use super::*;
-    use std::sync::Mutex;
-
-    static ENV_LOCK: Mutex<()> = Mutex::new(());
 
     fn with_temp_dir(f: impl FnOnce()) {
-        let _g = ENV_LOCK.lock().unwrap();
+        let _g = crate::node_config::TEST_ENV_LOCK.lock().unwrap();
         let dir = std::env::temp_dir().join(format!("nexxus-tg-test-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&dir);
         std::env::set_var("NEXXUS_CONFIG_DIR", &dir);
