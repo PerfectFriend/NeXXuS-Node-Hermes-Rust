@@ -552,6 +552,7 @@ function refreshActivePane() {
       refreshTgStatus();
       refreshIdentity();
       refreshVault();
+      refreshBackups();
       break;
     default:
       break;
@@ -741,5 +742,78 @@ async function vaultRestore() {
 $('btn-vault-refresh').addEventListener('click', refreshVault);
 $('btn-vault-backup').addEventListener('click', vaultBackup);
 $('btn-vault-restore').addEventListener('click', vaultRestore);
+
+// --- Бэкапы стора + doctor (R3) ---
+async function refreshBackups() {
+  try {
+    const list = await api('node_backup_list');
+    $('backup-list').textContent = list.length
+      ? list.map(b => `${b.name} — ${b.chunk_count} чанков, ${Math.round(b.size_bytes / 1024)} КБ, ${new Date(b.created_at * 1000).toLocaleString('ru-RU')}`).join('\n')
+      : 'Бэкапов нет';
+  } catch (e) {
+    $('backup-list').textContent = `Ошибка: ${e}`;
+  }
+}
+
+async function createBackup() {
+  try {
+    const m = await api('node_backup');
+    $('backup-result').textContent = `Создан ${m.name}: ${m.chunk_count} чанков, sha256 ${m.sha256.slice(0, 16)}…`;
+    addStageLog(`Бэкап стора: ${m.name}`, 'success');
+    await refreshBackups();
+  } catch (e) {
+    $('backup-result').textContent = `Ошибка: ${e}`;
+    addStageLog(`Бэкап стора отклонён: ${e}`, 'error');
+  }
+}
+
+async function verifyBackup() {
+  const name = ($('backup-restore-name').value || '').trim();
+  if (!name) { $('backup-result').textContent = 'Введите имя бэкапа.'; return; }
+  try {
+    const r = await api('node_backup_verify', { name });
+    $('backup-result').textContent = `${r.name}: verified=${r.ok} (${r.detail})`;
+    addStageLog(`Проверка бэкапа ${r.name}: ${r.ok ? 'OK' : r.detail}`, r.ok ? 'success' : 'error');
+  } catch (e) {
+    $('backup-result').textContent = `Ошибка: ${e}`;
+  }
+}
+
+async function restoreBackup() {
+  const name = ($('backup-restore-name').value || '').trim();
+  if (!name) { $('backup-result').textContent = 'Введите имя бэкапа.'; return; }
+  if (!confirm(`Подготовить восстановление из ${name}? Живой стор НЕ будет затронут — создастся restore-candidate файл. Подмена — nexxusd restore при остановленном демоне.`)) return;
+  try {
+    const r = await api('node_backup_restore', { name, confirm: true });
+    $('backup-result').textContent = `Готово: ${r.candidate} (${r.note})`;
+    addStageLog(`Restore staged: ${name}`, 'success');
+  } catch (e) {
+    $('backup-result').textContent = `Отклонено: ${e}`;
+    addStageLog(`Restore отклонён: ${e}`, 'error');
+  }
+}
+
+async function runDoctor() {
+  try {
+    const r = await api('node_doctor');
+    const lines = [
+      `стор: ${r.store_path} (perms ok: ${r.store_perms_ok})`,
+      `чанков: ${r.chunk_count}, merkle: ${r.merkle_root.slice(0, 16)}…`,
+      `шифрование at rest: ${r.encrypted_at_rest}, идентичность: ${r.identity_initialized}`,
+      `seed.vault: ${r.seed_vault_exists}, бэкапов: ${r.backups}`,
+      r.problems.length ? `⚠️ проблем: ${r.problems.join('; ')}` : '✅ проблем нет',
+    ];
+    $('doctor-box').textContent = lines.join('\n');
+    addStageLog(`doctor: ${r.problems.length} проблем`, r.problems.length ? 'error' : 'success');
+  } catch (e) {
+    $('doctor-box').textContent = `Ошибка: ${e}`;
+  }
+}
+
+$('btn-backup-list').addEventListener('click', refreshBackups);
+$('btn-backup-create').addEventListener('click', createBackup);
+$('btn-backup-verify').addEventListener('click', verifyBackup);
+$('btn-backup-restore').addEventListener('click', restoreBackup);
+$('btn-doctor').addEventListener('click', runDoctor);
 
 init();

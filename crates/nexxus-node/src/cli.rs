@@ -166,6 +166,10 @@ async fn async_main(args: Vec<String>) -> i32 {
         },
         "logs" => cmd_logs(&rest),
         "benchmark" => cmd_benchmark(),
+        "doctor" => cmd_doctor(&rest),
+        "backup" => cmd_backup(&rest),
+        "backups" => cmd_backups(&rest),
+        "restore" => cmd_restore(&rest),
         other => {
             eprintln!("unknown command: {other}");
             2
@@ -184,6 +188,83 @@ fn open_store(rest: &[String]) -> Result<(PathBuf, crate::storage::ChunkStore), 
     }
     let db = crate::storage::ChunkStore::open(&path).map_err(|e| e.to_string())?;
     Ok((path, db))
+}
+
+/// `nexxusd doctor [store]` — health report: perms, chunks, merkle root,
+/// encryption flag, identity, seed vault, backup count, problems.
+fn cmd_doctor(rest: &[String]) -> i32 {
+    let positional: Vec<String> = rest.iter().filter(|a| !a.starts_with('-')).cloned().collect();
+    let (_path, db) = match open_store(&positional) {
+        Ok(x) => x,
+        Err(e) => return fail(&e),
+    };
+    let report = crate::backup::doctor(&db);
+    println!("{}", serde_json::to_string_pretty(&report).unwrap_or_default());
+    if report.problems.is_empty() {
+        0
+    } else {
+        eprintln!("problems: {}", report.problems.len());
+        1
+    }
+}
+
+/// `nexxusd backup [store]` — snapshot the store into <dir>/backups/<ts>/.
+fn cmd_backup(rest: &[String]) -> i32 {
+    let positional: Vec<String> = rest.iter().filter(|a| !a.starts_with('-')).cloned().collect();
+    let (_path, db) = match open_store(&positional) {
+        Ok(x) => x,
+        Err(e) => return fail(&e),
+    };
+    match crate::backup::backup_store(&db) {
+        Ok(m) => {
+            println!("{}", serde_json::to_string_pretty(&m).unwrap_or_default());
+            0
+        }
+        Err(e) => fail(&e.to_string()),
+    }
+}
+
+/// `nexxusd backups [store]` — list backups with verification status.
+fn cmd_backups(rest: &[String]) -> i32 {
+    let positional: Vec<String> = rest.iter().filter(|a| !a.starts_with('-')).cloned().collect();
+    let (_path, db) = match open_store(&positional) {
+        Ok(x) => x,
+        Err(e) => return fail(&e),
+    };
+    match crate::backup::list_backups(&db) {
+        Ok(list) => {
+            for m in &list {
+                let (_, ok, detail) = crate::backup::verify_backup(&db, &m.name).unwrap_or((m.clone(), false, "err".into()));
+                println!("{}  chunks={}  sha256={}  verified={}  {}", m.name, m.chunk_count, &m.sha256[..12], ok, detail);
+            }
+            0
+        }
+        Err(e) => fail(&e.to_string()),
+    }
+}
+
+/// `nexxusd restore <name> [store]` — VERIFIED swap of a backup over the store.
+/// Only safe with the daemon stopped (the API never overwrites a live store).
+fn cmd_restore(rest: &[String]) -> i32 {
+    let positional: Vec<String> = rest.iter().filter(|a| !a.starts_with('-')).cloned().collect();
+    let Some(name) = positional.first() else {
+        eprintln!("usage: nexxusd restore <backup-name> [store-path]");
+        eprintln!("warning: stop the daemon first — this overwrites the live store file");
+        return 2;
+    };
+    let store_pos: Vec<String> = positional[1..].to_vec();
+    let (path, _db) = match open_store(&store_pos) {
+        Ok(x) => x,
+        Err(e) => return fail(&e),
+    };
+    drop(_db);
+    match crate::backup::swap_backup(&path, name) {
+        Ok(p) => {
+            println!("restored {name} -> {}", p.display());
+            0
+        }
+        Err(e) => fail(&e.to_string()),
+    }
 }
 
 fn cmd_init(rest: &[String]) -> i32 {

@@ -261,6 +261,32 @@
           <div id="vault-result" class="muted"></div>
           <p class="muted">Бэкап — AES-256-GCM (PBKDF2 600k), файл <code>*.seed.vault</code> рядом со стором, права 0600, формат совместим с SDK. Сид в открытом виде — только внутри зашифрованного файла.</p>
         </section>
+        <section class="panel">
+          <h2>Бэкапы хранилища (R3)</h2>
+          <div id="backup-list" class="data-box">—</div>
+          <div class="controls-row">
+            <button class="btn btn-outline" id="btn-backup-list">🔄 Список бэкапов</button>
+            <button class="btn btn-primary" id="btn-backup-create">💾 Создать бэкап стора</button>
+          </div>
+          <div class="form-grid">
+            <label class="wide">Восстановление: имя бэкапа (например, backup-1763000000)
+              <input id="backup-restore-name" type="text" autocomplete="off" placeholder="backup-…">
+            </label>
+          </div>
+          <div class="controls-row">
+            <button class="btn btn-outline" id="btn-backup-verify">🔍 Проверить целостность</button>
+            <button class="btn btn-danger" id="btn-backup-restore">♻️ Подготовить восстановление</button>
+          </div>
+          <div id="backup-result" class="muted"></div>
+          <p class="muted">Бэкап — копия файла стора (redb CoW, безопасно на живой ноде) + манифест sha256/merkle. API никогда не затирает живой стор: восстановление готовит <code>*.restore-candidate.redb</code>, подмена — <code>nexxusd restore &lt;name&gt;</code> при остановленном демоне.</p>
+        </section>
+        <section class="panel">
+          <h2>Здоровье узла — doctor</h2>
+          <div class="controls-row">
+            <button class="btn btn-outline" id="btn-doctor">🩺 Запустить doctor</button>
+          </div>
+          <div id="doctor-box" class="data-box">—</div>
+        </section>
       </div>
     </main>
   </div>

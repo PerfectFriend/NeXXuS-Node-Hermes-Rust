@@ -401,6 +401,11 @@ impl LocalApi {
             "node_seed_vault_status" => self.handle_seed_vault_status(),
             "node_seed_backup" => self.handle_seed_backup(req.params),
             "node_seed_restore" => self.handle_seed_restore(req.params),
+            "node_backup" => self.handle_node_backup(),
+            "node_backup_list" => self.handle_node_backup_list(),
+            "node_backup_verify" => self.handle_node_backup_verify(req.params),
+            "node_backup_restore" => self.handle_node_backup_restore(req.params),
+            "node_doctor" => self.handle_node_doctor(),
             _ => return error_response(id, ERR_METHOD_NOT_FOUND, format!("method '{}' not found", req.method)),
         };
         match result {
@@ -510,6 +515,67 @@ impl LocalApi {
             RestoreOutcome::WrongPin => serde_json::json!({"status": "wrong_pin"}),
         };
         Ok(r)
+    }
+
+    /// Store backup (R3): file-level copy + manifest. Safe on a running node.
+    fn handle_node_backup(&self) -> Result<Value, NexxusError> {
+        let m = crate::backup::backup_store(&self.store)?;
+        serde_json::to_value(m).map_err(|e| NexxusError::Io(e.to_string()))
+    }
+
+    fn handle_node_backup_list(&self) -> Result<Value, NexxusError> {
+        let list = crate::backup::list_backups(&self.store)?;
+        serde_json::to_value(list).map_err(|e| NexxusError::Io(e.to_string()))
+    }
+
+    fn handle_node_backup_verify(&self, params: Option<Value>) -> Result<Value, NexxusError> {
+        let name = params
+            .as_ref()
+            .and_then(|p| p.get("name"))
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| NexxusError::Io("param 'name' required".into()))?;
+        let (m, ok, detail) = crate::backup::verify_backup(&self.store, name)?;
+        Ok(serde_json::json!({
+            "name": m.name,
+            "ok": ok,
+            "detail": detail,
+            "sha256": m.sha256,
+            "chunk_count": m.chunk_count,
+            "created_at": m.created_at,
+        }))
+    }
+
+    /// Restore = verify + write a *.restore-candidate.redb next to the live
+    /// store. The live store is never overwritten via API; swap happens via
+    /// `nexxusd restore <name>` with the daemon stopped.
+    fn handle_node_backup_restore(&self, params: Option<Value>) -> Result<Value, NexxusError> {
+        let name = params
+            .as_ref()
+            .and_then(|p| p.get("name"))
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| NexxusError::Io("param 'name' required".into()))?;
+        let confirm = params
+            .as_ref()
+            .and_then(|p| p.get("confirm"))
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false);
+        if !confirm {
+            return Err(NexxusError::Vault(
+                "param 'confirm' must be true to stage a restore candidate".into(),
+            ));
+        }
+        let cand = crate::backup::restore_candidate(&self.store, name)?;
+        Ok(serde_json::json!({
+            "status": "staged",
+            "candidate": cand.to_string_lossy(),
+            "note": "live store untouched; swap with `nexxusd restore <name>` while stopped",
+        }))
+    }
+
+    /// Health report (R3 doctor) as JSON.
+    fn handle_node_doctor(&self) -> Result<Value, NexxusError> {
+        let r = crate::backup::doctor(&self.store);
+        serde_json::to_value(r).map_err(|e| NexxusError::Io(e.to_string()))
     }
 
     fn handle_panic_status(&self) -> Result<Value, NexxusError> {
