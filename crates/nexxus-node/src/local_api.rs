@@ -406,6 +406,7 @@ impl LocalApi {
             "node_backup_verify" => self.handle_node_backup_verify(req.params),
             "node_backup_restore" => self.handle_node_backup_restore(req.params),
             "node_doctor" => self.handle_node_doctor(),
+            "node_econ" => self.handle_node_econ(),
             _ => return error_response(id, ERR_METHOD_NOT_FOUND, format!("method '{}' not found", req.method)),
         };
         match result {
@@ -576,6 +577,81 @@ impl LocalApi {
     fn handle_node_doctor(&self) -> Result<Value, NexxusError> {
         let r = crate::backup::doctor(&self.store);
         serde_json::to_value(r).map_err(|e| NexxusError::Io(e.to_string()))
+    }
+
+    /// Economics panel (R4): storage GB, section split, daily reward/cost,
+    /// anti-loop invariant, 56-day vesting progress, health.
+    fn handle_node_econ(&self) -> Result<Value, NexxusError> {
+        use nexxus_econ::degradation::{health_from_offline, Health};
+        use nexxus_econ::sections::{
+            anti_loop_invariant_holds, daily_storer_reward, daily_subscription_cost,
+            split_into_sections,
+        };
+        use nexxus_econ::vesting::VestingSchedule;
+        use nexxus_econ::{VESTING_LOCK_DAYS, DAILY_NEXX_RATE_PER_GB, SUBSCRIPTION_DAILY_COST_PER_GB};
+
+        const META_VESTING_START: &str = "econ_vesting_start_ts";
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map(|d| d.as_secs())
+            .unwrap_or(0);
+        // Vesting start: зафиксировать при первом вызове.
+        let start_ts = match self.store.get_meta(META_VESTING_START)? {
+            Some(b) => String::from_utf8_lossy(&b).parse::<u64>().unwrap_or(now),
+            None => {
+                self.store.put_meta(META_VESTING_START, now.to_string().as_bytes())?;
+                now
+            }
+        };
+        let hashes = self.store.list_chunk_hashes()?;
+        let used_bytes: u64 = hashes
+            .iter()
+            .filter_map(|h| self.store.get_chunk(h).ok().flatten())
+            .map(|d| d.len() as u64)
+            .sum();
+        let free_gb = fs2::available_space(self.store.path())
+            .map(|b| b / (1u64 << 30))
+            .unwrap_or(0);
+        let used_gb = used_bytes / 1_000_000_000;
+        let split = split_into_sections(free_gb);
+        let daily_reward = daily_storer_reward(used_gb);
+        let daily_cost = daily_subscription_cost(used_gb);
+        let days_elapsed = now.saturating_sub(start_ts) / 86_400;
+        let mut vest = VestingSchedule::new(nexxus_core::types::Money(daily_reward.0 * VESTING_LOCK_DAYS as i64));
+        vest.advance(days_elapsed.min(VESTING_LOCK_DAYS));
+        let health = health_from_offline(0); // нода online, пока API отвечает
+        let health_str = match health {
+            Health::Online => "online",
+            Health::RewardsFrozen => "rewards_frozen",
+            Health::Warning14d => "warning_14d",
+            Health::Degraded28d => "degraded_28d",
+        };
+        Ok(serde_json::json!({
+            "used_gb": used_gb,
+            "free_gb": free_gb,
+            "sections": {
+                "sections_16gb": split.sections_16gb,
+                "remainder_gb": split.remainder_gb,
+                "vault_quota_gb": split.vault_quota_gb,
+            },
+            "daily": {
+                "reward_per_gb_micro": DAILY_NEXX_RATE_PER_GB,
+                "cost_per_gb_micro": SUBSCRIPTION_DAILY_COST_PER_GB,
+                "reward_total_micro": daily_reward.0,
+                "cost_total_micro": daily_cost.0,
+                "anti_loop_ok": anti_loop_invariant_holds(),
+            },
+            "vesting": {
+                "lock_days": VESTING_LOCK_DAYS,
+                "start_ts": start_ts,
+                "days_elapsed": days_elapsed.min(VESTING_LOCK_DAYS),
+                "total_micro": vest.total.0,
+                "vested_micro": vest.vested().0,
+                "unvested_micro": vest.unvested().0,
+                "fully_vested": vest.is_fully_vested(),
+            },
+            "health": health_str,
+        }))
     }
 
     fn handle_panic_status(&self) -> Result<Value, NexxusError> {

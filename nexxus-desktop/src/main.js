@@ -28,7 +28,7 @@ const els = {
 };
 
 // --- Роутер вкладок ---
-const TABS = ['overview', 'node', 'network', 'storage', 'logs', 'tor', 'epoch', 'settings'];
+const TABS = ['overview', 'node', 'network', 'storage', 'logs', 'tor', 'epoch', 'econ', 'settings'];
 let activeTab = 'overview';
 let logsLive = false;
 let logsTimer = null;
@@ -548,6 +548,9 @@ function refreshActivePane() {
     case 'epoch':
       refreshEpoch();
       break;
+    case 'econ':
+      refreshEcon();
+      break;
     case 'settings':
       refreshTgStatus();
       refreshIdentity();
@@ -815,5 +818,28 @@ $('btn-backup-create').addEventListener('click', createBackup);
 $('btn-backup-verify').addEventListener('click', verifyBackup);
 $('btn-backup-restore').addEventListener('click', restoreBackup);
 $('btn-doctor').addEventListener('click', runDoctor);
+
+// --- Экономика (R4) ---
+const fmtNexx = (micro) => (micro / 1_000_000).toFixed(3) + ' NEXX';
+async function refreshEcon() {
+  try {
+    const e = await api('node_econ');
+    $('econ-data').textContent = [
+      `Занято: ${e.used_gb} ГБ, свободно на диске: ${e.free_gb} ГБ`,
+      `Секции 16 ГБ: ${e.sections.sections_16gb} (+${e.sections.remainder_gb} ГБ остаток), квота волта: ${e.sections.vault_quota_gb} ГБ`,
+      `Доход/день: ${fmtNexx(e.daily.reward_total_micro)} (${fmtNexx(e.daily.reward_per_gb_micro)}/ГБ), расход/день: ${fmtNexx(e.daily.cost_total_micro)}`,
+      `Анти-луп инвариант (1.30 > 1.25): ${e.daily.anti_loop_ok ? '✅ выполняется' : '❌ НАРУШЕН'}`,
+      `Здоровье: ${e.health}`,
+    ].join('\n');
+    const v = e.vesting;
+    const pct = v.lock_days ? Math.min(100, (v.days_elapsed / v.lock_days) * 100) : 0;
+    $('vesting-fill').style.width = pct + '%';
+    $('vesting-label').textContent = `${v.days_elapsed}/${v.lock_days} дн — ${pct.toFixed(1)}%`;
+    $('econ-detail').textContent = `Вестировано: ${fmtNexx(v.vested_micro)} из ${fmtNexx(v.total_micro)} (заблокировано: ${fmtNexx(v.unvested_micro)})${v.fully_vested ? ' — полностью разблокировано ✅' : ''}`;
+  } catch (err) {
+    $('econ-data').textContent = `Ошибка: ${err}`;
+  }
+}
+$('btn-econ-refresh').addEventListener('click', refreshEcon);
 
 init();
