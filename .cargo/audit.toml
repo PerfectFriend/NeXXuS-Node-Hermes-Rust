@@ -1,0 +1,28 @@
+# cargo-audit config — DEP-01 (post-audit plan, 2026-11-12)
+#
+# Прогнано: `cargo audit` (cargo-audit 0.23.0, база RustSec, 555 крейтов).
+# Все 3 уязвимости — ТРАНЗИТИВНЫЕ, только в Tor-ветке зависимостей
+# (arti-client 0.48 / tor-* 0.48), отключаемой через NEXXUS_TOR=0.
+# Наш код эти крейты напрямую не вызывает (Ed25519/X25519 — через
+# ed25519-dalek / curve25519-dalek; без RSA, без sqlite).
+# Точечный апгрейд заблокирован semver-пинами arti (ssh-key-fork-arti 0.6.7 —
+# форк без апдейтов; tor-llcrypto 0.48 требует crypto-bigint 0.5.x).
+# Обоснования по каждому ID — в docs/DEP-01-dependency-audit.md.
+# Перепроверять при каждом `cargo update -p arti-client`.
+
+[advisories]
+ignore = [
+    # rsa 0.9.10 — Marvin Attack (timing key recovery); транзитивно через
+    # ssh-key-fork-arti (конвертация OpenSSH-ключей в arti, Tor-only).
+    "RUSTSEC-2023-0071",
+    # crypto-bigint 0.5.5 — timing variability; через elliptic-curve 0.13
+    # (tor-llcrypto, Tor-only), пинится arti semver'ом.
+    "RUSTSEC-2026-0387",
+    # libsqlite3-sys 0.38.2 — CVE в bundled SQLite; через rusqlite 0.40
+    # (tor-dirmgr, Tor-only); с NEXXUS_TOR=0 не наш рантайм-путь.
+    "RUSTSEC-2026-0459",
+]
+
+# Unmaintained-warnings (не уязвимости): bincode 2.0.1 (RUSTSEC-2025-0141)
+# и paste 1.0.15 (RUSTSEC-2024-0436) — оба транзитивны от arti, без фикса
+# upstream, наш код не использует. Принимаем, см. docs/DEP-01-dependency-audit.md.
