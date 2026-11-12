@@ -104,3 +104,12 @@
 - Сетевой слой прогнан живьём: 17/17 net::network::tests (two_daemon_end_to_end, per-connection nonce replay → 0x0008, ip rate-limit 20/мин, handshake timeout 4s, peer cap 0x0009).
 - Полная верификация: workspace 172/172, desktop 19/19, clippy -D warnings = 0 (оба workspace), cargo audit = 0 vulns (игноры обоснованы), WS smoke OK.
 - DEP-03: risk accepted владельцем (2026-11-12) — токены не ревокются, в docs/DEP-03-secret-rotation.md. Аудитору выдаём только squash-копию (чистая).
+
+## СТАТУС 2026-11-12 (e8c8d38, f154a64) — подготовка к внешнему аудиту + развитие после re-audit
+- G3: golden vectors на все 14 опкодов (`nexxus-vectors/06_wire_frames_v2_v3.json`, генератор `examples/gen_wire_vectors.rs`, тест `tests/wire_vectors.rs`) — общий источник для Rust/TS
+- G1: `.github/workflows/rust-ci.yml` — test/clippy -D warnings/release build/cargo audit/wire fuzz на каждый PR + desktop job
+- AUDITOR.md обновлён: актуальные цифры (173 теста), access rule (squash-mirror only), focus order с RES-05
+- D2: автобэкап в guardian (каждые 24 ч, ротация 5, копия на /run/media, Telegram-отчёт), node_backup_delete API
+- workspace 173/173, desktop 19/19, clippy 0 везде, cargo audit 0 vulns
+
+Пакет для аудитора: AUDITOR.md + SECURITY.md + docs/THREAT_MODEL.md + docs/DEP-01/DEP-03 + docs/plans + squash-mirror (чистый скан).
