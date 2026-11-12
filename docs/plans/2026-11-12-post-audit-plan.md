@@ -103,4 +103,4 @@
 - Squash-копия для аудитора собрана и просканирована: `/tmp/nexxus-auditor-squash` (1 коммит, 0 секретов по скану; рецепт в docs/DEP-03-secret-rotation.md).
 - Сетевой слой прогнан живьём: 17/17 net::network::tests (two_daemon_end_to_end, per-connection nonce replay → 0x0008, ip rate-limit 20/мин, handshake timeout 4s, peer cap 0x0009).
 - Полная верификация: workspace 172/172, desktop 19/19, clippy -D warnings = 0 (оба workspace), cargo audit = 0 vulns (игноры обоснованы), WS smoke OK.
-- Единственный открытый пункт: DEP-03 ручной — ревокация 3 bot-токенов (8853927147 / 8883516682 / 8896772547) через @BotFather + filter-repo истории. До этого аудитору выдаём только squash-копию.
+- DEP-03: risk accepted владельцем (2026-11-12) — токены не ревокются, в docs/DEP-03-secret-rotation.md. Аудитору выдаём только squash-копию (чистая).
