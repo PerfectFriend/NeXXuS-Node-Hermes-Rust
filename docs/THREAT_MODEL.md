@@ -48,8 +48,18 @@ Source: external audit `AUDIT_REPORT_NeXXuS_Node_Hermes_Rust.md` §6 (2026-11-12
 ## Out of scope / accepted residual risk
 
 - `cargo audit` / `cargo deny` run in CI, not in the dev sandbox (DEP-01).
-- Git history contains old secrets: owner rotates tokens and rewrites
-  history (filter-repo/squash) **before** granting auditor access (DEP-03).
+- Git history contains old secrets (3 Telegram bot tokens, см.
+  `docs/DEP-03-secret-rotation.md`): **risk accepted владельцем 2026-11-12** —
+  токены не ревокаются. Поэтому канонический источник для раздачи/аудита —
+  squash-mirror (один коммит, скан чистый), а не полная история main.
+  Если репо станет публичным — ревокация обязательна.
+- Peer table eviction (RES-05 re-audit): при полном столе (MAX_PEERS=64)
+  новый пир отклоняется (0x0009), честные пиры **не вытесняются** — refresh
+  только двигает существующего в front bucket'а (Kademlia K=20, LRU).
+  Теоретически атакующий может занять все 64 слота своими валидными
+  идентичностями и не пускать новых честных пиров (eclipse-частичное
+  ограничение); существующие соединения при этом не рвутся. Принято как
+  residual Low — mitigations: мониторинг доли пиров, в будущем reputation/eviction.
 - Economic model (16 GB sections, 56-day vesting, anti-loop invariant
   1.30 > 1.25 NEXX/GB/day) is not formally verified — design-level only.
 - Tor layer (arti) reviewed at design level only; disabled via `NEXXUS_TOR=0`.
