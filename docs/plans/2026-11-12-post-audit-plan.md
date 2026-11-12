@@ -78,4 +78,17 @@
 
 Проверено: workspace 162/162 green, clippy `-D warnings` чист, WS live-smoke (ping ok / no-auth -32001 / 2MiB frame закрыт).
 
-Осталось: фаза B (VLT-02 re-encrypt 100k→600k, fuzz wire-парсера, econ overflow-тесты, DEP-02 единый rand, guardian TOCTOU) + ручные DEP-01 (cargo audit в CI) и DEP-03 (ротация секретов владельцем).
+Осталось: ручные DEP-01 (cargo audit в CI) и DEP-03 (ротация секретов владельцем).
+
+## СТАТУС 2026-11-12 (коммит 2d4818f) — фаза B ЗАКРЫТА
+12. **VLT-02** ✅ — `restore_seed` при успешном unlock vault с KDF<600k и без duress-PIN автоматически перешифровывает на 600k (tmp+rename, 0600). С duress-PIN — skip + eprintln (duress_hash зависит от salt). Тест `legacy_100k_vault_is_auto_reencrypted_to_600k_on_unlock`.
+13. **Fuzz wire** ✅ — proptest `crates/nexxus-core/tests/wire_fuzz.rs` (512 cases/тест): parse v2/v3 never-panic, v2/v3 roundtrip, decode всех 15 payload-типов, tamper. **Находка fuzz'а:** `ErrorResponse.message_len` был u8 — сообщение >255 байт заворачивалось (`as u8` wrap) → теперь u16 + strict UTF-8.
+14. **Econ overflow** ✅ — `daily_storer_reward`/`daily_subscription_cost`/`split_into_sections`/`VestingSchedule` переведены на saturating arithmetic; тесты на u64::MAX / i64::MAX micro-NEXX. Анти-луп инвариант 1.30>1.25 подтверждён тестом.
+15. **DEP-02** ✅ Принято: rand 0.10 в lockfile — только транзитивная arti/tor; наш код един на workspace rand 0.8.
+16. **Guardian TOCTOU** ✅ — `InstanceLock` переведён с `create_new`+`remove_file` (гонка двух процессов на stale lock) на `flock` (`try_lock_exclusive`, fs2) — атомарный захват. Тесты: второй acquire падает пока lock держат, stale-файл без держателя захватывается.
+
+Бонус-фикс: флап backup-тестов — tmp-имя verify получило random суффикс (два параллельных verify с одинаковым именем бэкапа бились в один файл redb); 5 прогонов подряд 80/80.
+
+Верификация: workspace 172/172 green (core 69 + fuzz 6 + econ 15 + node 80 + fixtures 2), desktop 19/19, clippy `--workspace --all-targets -D warnings` = 0, clippy desktop = 0.
+
+Осталось вне кода: DEP-01 (cargo audit/deny в CI — ручной, в sandbox нет), DEP-03 (ротация секретов из истории git — только владелец, до раздачи аудитору).
