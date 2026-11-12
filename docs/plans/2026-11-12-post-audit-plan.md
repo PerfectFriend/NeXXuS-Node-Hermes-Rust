@@ -58,3 +58,13 @@
 - Каждая фаза: тесты + clippy 0 + живой смоук + коммит+пуш в `PerfectFriend/NeXXuS-Node-Hermes-Rust` (main).
 - Не регрессировать positive findings аудита.
 - DEP-03 — единственное, что не в коде: владелец ротирует и чистит историю до раздачи аудитору/наружу.
+
+## СТАТУС 2026-11-12 (коммит 532575e) — фаза A1 ЗАКРЫТА в коде
+1. **NET-01** ✅ — accept-gate: semaphore 128 глобально, per-IP active≤8, new≤20/мин (дроп молча), HANDSHAKE_TIMEOUT=4s на первый фрейм. Тесты: `ip_rate_limit_drops_after_20_new_connections_per_minute`, `incomplete_handshake_is_dropped_after_timeout`.
+2. **NET-02** ✅ — `session_nonce[32]` (OsRng) на соединение в NodeAnnounce (wire 102 байта), включается в `v3_signing_bytes` обеими сторонами; клиент верифицирует ответы через `recv_verified_frame`. Тест: `session_nonce_is_per_connection_and_replay_is_rejected` (replay чужим nonce → 0x0008).
+3. **API-01** ✅ — WS `max_message_size=max_frame_size=1 MiB`, `MAX_WS_CONNECTIONS=16` (semaphore), `accept_unmasked_frames=false`. Live-smoke: ping ok, no-auth → -32001, 2 MiB фрейм → соединение закрыто.
+4. **BKP-01/02** ✅ — flock через fs2: `.backup.lock` (EX при backup/swap, SH при verify), `.store.lock` при swap; `validate_backup_name` + проверка `store_file` из manifest (plain file name only).
+5. **DEP-01** ⏳ — `cargo audit` в песочнице нет (`no such command`); нужен локальный прогон + CI job — ручной шаг.
+6. **DEP-03** ⚠️ — владелец: ротация PAT/bot-токенов + filter-repo/squash ДО раздачи репо аудитору.
+
+Проверено: `cargo test --workspace` 158/158 green, `cargo clippy --workspace --all-targets -- -D warnings` чист, live-smoke nexxusd (WS + P2P порты).
