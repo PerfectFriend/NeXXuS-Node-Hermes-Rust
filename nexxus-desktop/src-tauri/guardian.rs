@@ -158,7 +158,7 @@ pub async fn run_auto_backup(keep: usize) -> Result<(String, usize, Option<Strin
                 .filter_map(|b| b.get("name").and_then(|v| v.as_str()).map(|s| s.to_string()))
                 .collect();
             for old in backups_to_delete(&names, keep) {
-                if api_call("node_backup_delete", Some(json!({ "name": old }))).await.is_ok() {
+                if api_call("node_backup_delete", Some(json!({ "name": old, "confirm": true }))).await.is_ok() {
                     deleted += 1;
                 }
             }

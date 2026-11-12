@@ -569,12 +569,23 @@ impl LocalApi {
     }
 
     /// D2: delete one backup by name (rotation from the guardian scheduler).
+    /// AB-02: требует явный confirm=true — симметрия с node_backup_restore.
     fn handle_node_backup_delete(&self, params: Option<Value>) -> Result<Value, NexxusError> {
         let name = params
             .as_ref()
             .and_then(|p| p.get("name"))
             .and_then(|v| v.as_str())
             .ok_or_else(|| NexxusError::Io("param 'name' required".into()))?;
+        let confirm = params
+            .as_ref()
+            .and_then(|p| p.get("confirm"))
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false);
+        if !confirm {
+            return Err(NexxusError::Vault(
+                "param 'confirm' must be true to delete a backup".into(),
+            ));
+        }
         crate::backup::delete_backup(&self.store, name)?;
         Ok(serde_json::json!({ "deleted": name }))
     }

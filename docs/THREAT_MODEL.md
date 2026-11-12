@@ -63,3 +63,8 @@ Source: external audit `AUDIT_REPORT_NeXXuS_Node_Hermes_Rust.md` §6 (2026-11-12
 - Economic model (16 GB sections, 56-day vesting, anti-loop invariant
   1.30 > 1.25 NEXX/GB/day) is not formally verified — design-level only.
 - Tor layer (arti) reviewed at design level only; disabled via `NEXXUS_TOR=0`.
+- D2 external backup copy (AB-01, re-audit #2): the first mount under
+  `/run/media/<user>/` is treated as the 3-2-1 target. It receives a copy of
+  the **encrypted** store backup — confidentiality is that of the at-rest
+  encryption, but the host mount policy must be trusted (anything mounted
+  there gets a copy). Documented as Info; optional allow-list later.
