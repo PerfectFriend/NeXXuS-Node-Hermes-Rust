@@ -106,6 +106,8 @@ pub struct P2pNetwork {
     conn_sem: Arc<tokio::sync::Semaphore>,
     /// Per-IP rate limiting of new connections (NET-01).
     ip_limits: Arc<std::sync::Mutex<HashMap<IpAddr, IpBucket>>>,
+    /// NET-03: cap on announced peers kept in the routing table.
+    max_peers: std::sync::atomic::AtomicUsize,
 }
 
 /// Per-IP connection bucket: active connections + timestamps of recent accepts.
@@ -121,6 +123,10 @@ pub const MAX_GLOBAL_CONNS: usize = 128;
 pub const MAX_ACTIVE_PER_IP: usize = 8;
 pub const MAX_NEW_PER_IP_PER_MIN: u64 = 20;
 pub const HANDSHAKE_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(4);
+/// NET-03 limits: cap on announced peers kept in the routing table, and how
+/// long an established connection may stay silent before we drop it.
+pub const MAX_PEERS: usize = 64;
+pub const IDLE_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(20 * 60);
 
 impl P2pNetwork {
     /// Create a new node with a fresh Ed25519 identity and X25519 key pair.
@@ -159,6 +165,7 @@ impl P2pNetwork {
             smp_inbox: Arc::new(Mutex::new(None)),
             conn_sem: Arc::new(tokio::sync::Semaphore::new(MAX_GLOBAL_CONNS)),
             ip_limits: Arc::new(std::sync::Mutex::new(HashMap::new())),
+            max_peers: std::sync::atomic::AtomicUsize::new(MAX_PEERS),
         }
     }
 
@@ -200,6 +207,7 @@ impl P2pNetwork {
             smp_inbox: Arc::new(Mutex::new(None)),
             conn_sem: Arc::new(tokio::sync::Semaphore::new(MAX_GLOBAL_CONNS)),
             ip_limits: Arc::new(std::sync::Mutex::new(HashMap::new())),
+            max_peers: std::sync::atomic::AtomicUsize::new(MAX_PEERS),
         }
     }
 
@@ -602,7 +610,11 @@ impl P2pNetwork {
                         .await
                         .unwrap_or_else(|_| Err(NexxusError::Io("handshake timeout".into())))
                 } else {
-                    crate::net::frame::recv_frame(&mut stream).await
+                    // NET-03: idle timeout — an established connection that
+                    // sends nothing for IDLE_TIMEOUT is dropped.
+                    tokio::time::timeout(IDLE_TIMEOUT, crate::net::frame::recv_frame(&mut stream))
+                        .await
+                        .unwrap_or_else(|_| Err(NexxusError::Io("idle timeout".into())))
                 };
                 let (opcode, req_id, payload, sig) = match frame_res {
                     Ok(f) => f,
@@ -633,18 +645,29 @@ impl P2pNetwork {
                     peer_key = Some(vk);
                     peer_nonce = Some(announce.session_nonce);
                     let their_id = NodeId(announce.node_id);
+                    // NET-03: peer cap — do not grow the routing table past
+                    // MAX_PEERS; reject the announce with 0x0009 and close.
+                    {
+                        let mut routing = self.routing.lock().await;
+                        let cap = self.max_peers.load(Ordering::Relaxed);
+                        if !routing.contains(&their_id) && routing.len() >= cap {
+                            drop(routing);
+                            let err = ErrorResponse { code: 0x0009, message: "peer table full".into() };
+                            self.send_signed_frame(&mut stream, &our_nonce, Opcode::ErrorResponse, req_id, &err).await?;
+                            return Err(NexxusError::Io("peer table full".into()));
+                        }
+                        routing.insert(crate::net::routing::Peer {
+                            node_id: their_id,
+                            addr: SocketAddr::new(
+                                IpAddr::V4(std::net::Ipv4Addr::from(announce.ip)),
+                                announce.port,
+                            ),
+                        });
+                    }
                     peer.node_id = Some(their_id);
                     if let Some(api) = api_clone.lock().await.as_ref() {
                         api.register_peer(addr_clone, Some(their_id), "inbound").await;
                     }
-                    let their_addr = SocketAddr::new(
-                        IpAddr::V4(std::net::Ipv4Addr::from(announce.ip)),
-                        announce.port,
-                    );
-                    self.routing.lock().await.insert(crate::net::routing::Peer {
-                        node_id: their_id,
-                        addr: their_addr,
-                    });
                     if let Some(api) = self.local_api.lock().await.as_ref() {
                         api.register_peer(addr, Some(their_id), "inbound").await;
                     }
@@ -1591,6 +1614,30 @@ mod tests {
         let mut s = TcpStream::connect(addr).await.unwrap();
         let res = net.announce_handshake(&mut s, 0x0001).await;
         assert!(res.is_err(), "21st connection in one minute must be dropped");
+        server.abort();
+    }
+
+    #[tokio::test]
+    async fn peer_cap_rejects_announce_when_routing_full() {
+        // NET-03: with the routing table at max_peers, a new peer's announce
+        // is rejected (0x0009) and the handshake fails.
+        let (net, addr, server) = spawn_bound(0x74).await;
+        net.max_peers.store(2, Ordering::Relaxed);
+        {
+            let mut routing = net.routing.lock().await;
+            for i in 0..2u8 {
+                let mut id = [0x11u8; 32];
+                id[31] = i;
+                routing.insert(crate::net::routing::Peer {
+                    node_id: NodeId(id),
+                    addr: SocketAddr::new(IpAddr::V4(std::net::Ipv4Addr::LOCALHOST), 4001),
+                });
+            }
+            assert_eq!(routing.len(), 2);
+        }
+        let mut s = TcpStream::connect(addr).await.unwrap();
+        let res = net.announce_handshake(&mut s, 0x0001).await;
+        assert!(res.is_err(), "announce must be rejected when peer table is full");
         server.abort();
     }
 

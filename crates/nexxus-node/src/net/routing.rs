@@ -68,6 +68,23 @@ impl RoutingTable {
         // bucket full: silently drop (replacement cache in Phase 8)
     }
 
+    /// Total number of known peers across all buckets.
+    pub fn len(&self) -> usize {
+        self.buckets.iter().map(|b| b.len()).sum()
+    }
+
+    /// Required companion of `len` (clippy::len_without_is_empty).
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
+    /// Whether a peer id is already known in any bucket.
+    pub fn contains(&self, id: &NodeId) -> bool {
+        self.buckets
+            .iter()
+            .any(|b| b.iter().any(|p| &p.node_id == id))
+    }
+
     /// `count` closest peers to `target`, ordered by XOR distance (closest first).
     pub fn find_node(&self, target: &NodeId, count: usize) -> Vec<Peer> {
         let mut scored: Vec<(u128, Peer)> = self
