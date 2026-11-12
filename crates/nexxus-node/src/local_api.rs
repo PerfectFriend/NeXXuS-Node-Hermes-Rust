@@ -399,6 +399,7 @@ impl LocalApi {
         let result = match req.method.as_str() {
             "ping" => Ok(serde_json::json!({"pong": true})),
             "node_status" => self.handle_node_status().await,
+            "node_metrics" => self.handle_node_metrics(),
             "node_peers" => self.handle_node_peers().await,
             "node_chunks" => self.handle_node_chunks().await,
             "node_smp" => self.handle_node_smp().await,
@@ -773,11 +774,41 @@ impl LocalApi {
         }).map_err(|e| NexxusError::Io(e.to_string()))
     }
 
+    /// E1: node-level P2P counters (JSON + Prometheus text in `prom`).
+    fn handle_node_metrics(&self) -> Result<Value, NexxusError> {
+        let m = self.network.metrics.snapshot();
+        let mut v = serde_json::json!({ "metrics": m, "peers_scored": self.network.peer_scores_snapshot().len() });
+        v["prom"] = Value::String(self.network.metrics.prom());
+        // E2: storage capacity visibility (cap, used, free).
+        if let Ok(used) = self.network.store().store_size() {
+            v["store_used_bytes"] = Value::from(used);
+        }
+        v["store_cap_bytes"] = Value::from(self.network.store().max_store_bytes());
+        if let Ok(avail) = self.network.store().available_space() {
+            v["disk_free_bytes"] = Value::from(avail);
+        }
+        Ok(v)
+    }
+
     async fn handle_node_peers(&self) -> Result<Value, NexxusError> {
         let peers = self.connected_peers.lock().await.clone();
+        let scores: std::collections::HashMap<String, crate::net::network::PeerScore> = self
+            .network
+            .peer_scores_snapshot()
+            .into_iter()
+            .collect();
         let mut list: Vec<Value> = peers
             .into_values()
-            .map(|p| serde_json::to_value(p).unwrap_or(Value::Null))
+            .map(|p| {
+                let mut v = serde_json::to_value(p).unwrap_or(Value::Null);
+                if let Some(addr) = v.get("addr").and_then(|a| a.as_str()) {
+                    if let Some(s) = scores.get(addr) {
+                        v["score"] = serde_json::json!(s.score());
+                        v["score_detail"] = serde_json::to_value(s).unwrap_or(Value::Null);
+                    }
+                }
+                v
+            })
             .collect();
         // Merge in routing-table peers (known by address even if not
         // holding a live connection right now).

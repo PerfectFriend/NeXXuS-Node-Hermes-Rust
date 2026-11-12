@@ -130,6 +130,17 @@ fn main() {
             }
         };
 
+        // NEXXUS_MAX_STORE_BYTES — user-defined disk cap стора (E2 quick win).
+        // 0 (дефолт) = без лимита; put_chunk всё равно проверяет free space.
+        if let Ok(v) = env::var("NEXXUS_MAX_STORE_BYTES") {
+            if let Ok(bytes) = v.parse::<u64>() {
+                store.set_max_store_bytes(bytes);
+                if bytes > 0 {
+                    eprintln!("nexxusd: store cap set to {bytes} bytes");
+                }
+            }
+        }
+
         // --- Персистентная идентичность узла (фаза 2 плана) ---
         // Seed хранится в redb (таблица meta, ключ identity_mnemonic); Ed25519
         // ключ деривируется по SLIP-0010, X25519 — из seed с domain separator.

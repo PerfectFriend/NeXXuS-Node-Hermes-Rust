@@ -21,6 +21,7 @@ nexxusd            # слушает P2P 127.0.0.1:4001, Local API 127.0.0.1:4010
 | `NEXXUS_DATA_DIR` | `~/.nexxus` | стор, бэкапы, конфиг |
 | `NEXXUS_TOR` | `0` | `1` — публикация onion-сервиса через arti |
 | `NEXXUS_CONFIG_DIR` | — | переопределение каталога конфигов (тесты) |
+| `NEXXUS_MAX_STORE_BYTES` | `0` (без лимита) | user-defined disk cap стора; `put_chunk` отклоняет запись сверх cap и при free space < 2× размер чанка |
 
 ## Что умеет RC1
 

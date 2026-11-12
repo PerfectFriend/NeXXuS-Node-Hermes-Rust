@@ -13,7 +13,7 @@
 
 use std::collections::HashMap;
 use std::net::{IpAddr, SocketAddr};
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::Arc;
 
 use curve25519_dalek::MontgomeryPoint;
@@ -108,6 +108,10 @@ pub struct P2pNetwork {
     ip_limits: Arc<std::sync::Mutex<HashMap<IpAddr, IpBucket>>>,
     /// NET-03: cap on announced peers kept in the routing table.
     max_peers: std::sync::atomic::AtomicUsize,
+    /// E1: observability counters (node_metrics API).
+    pub metrics: Arc<Metrics>,
+    /// E1: soft peer scores keyed by socket address (informational only).
+    peer_scores: Arc<std::sync::Mutex<HashMap<SocketAddr, PeerScore>>>,
 }
 
 /// Per-IP connection bucket: active connections + timestamps of recent accepts.
@@ -115,6 +119,83 @@ pub struct P2pNetwork {
 struct IpBucket {
     active: usize,
     recent: std::collections::VecDeque<std::time::Instant>,
+}
+
+/// E1 observability: process-level counters, exposed via `node_metrics`
+/// (local API only, token-gated, localhost). All AtomicU64 — cheap on hot path.
+#[derive(Default)]
+pub struct Metrics {
+    pub conns_accepted: AtomicU64,
+    pub conns_rejected_ip: AtomicU64,
+    pub handshake_timeouts: AtomicU64,
+    pub idle_timeouts: AtomicU64,
+    pub announce_rejected: AtomicU64,
+    pub peers_rejected_full: AtomicU64,
+    pub pause_rejections: AtomicU64,
+    pub frames_in: AtomicU64,
+    pub frames_out: AtomicU64,
+    pub bytes_in: AtomicU64,
+    pub bytes_out: AtomicU64,
+    pub fetch_hit: AtomicU64,
+    pub fetch_miss: AtomicU64,
+    pub por_ok: AtomicU64,
+    pub por_fail: AtomicU64,
+}
+
+impl Metrics {
+    pub fn snapshot(&self) -> serde_json::Value {
+        serde_json::json!({
+            "conns_accepted": self.conns_accepted.load(Ordering::Relaxed),
+            "conns_rejected_ip": self.conns_rejected_ip.load(Ordering::Relaxed),
+            "handshake_timeouts": self.handshake_timeouts.load(Ordering::Relaxed),
+            "idle_timeouts": self.idle_timeouts.load(Ordering::Relaxed),
+            "announce_rejected": self.announce_rejected.load(Ordering::Relaxed),
+            "peers_rejected_full": self.peers_rejected_full.load(Ordering::Relaxed),
+            "pause_rejections": self.pause_rejections.load(Ordering::Relaxed),
+            "frames_in": self.frames_in.load(Ordering::Relaxed),
+            "frames_out": self.frames_out.load(Ordering::Relaxed),
+            "bytes_in": self.bytes_in.load(Ordering::Relaxed),
+            "bytes_out": self.bytes_out.load(Ordering::Relaxed),
+            "fetch_hit": self.fetch_hit.load(Ordering::Relaxed),
+            "fetch_miss": self.fetch_miss.load(Ordering::Relaxed),
+            "por_ok": self.por_ok.load(Ordering::Relaxed),
+            "por_fail": self.por_fail.load(Ordering::Relaxed),
+        })
+    }
+
+    /// Prometheus text exposition format (for a future localhost /metrics scrape).
+    pub fn prom(&self) -> String {
+        let s = self.snapshot();
+        let mut out = String::from("# HELP nexxus_node Node-level P2P counters.\n# TYPE nexxus_node counter\n");
+        for (k, v) in s.as_object().unwrap() {
+            out.push_str(&format!("nexxus_node_{} {}\n", k, v.as_u64().unwrap_or(0)));
+        }
+        out
+    }
+}
+
+/// E1 peer score MVP: soft score per connected peer (uptime-ish proxy =
+/// successful vs failed served requests). NOT used for eviction yet —
+/// full table still rejects new peers with 0x0009 (documented in THREAT_MODEL,
+/// RES-05). Score is informational for the monitor until the eviction-policy
+/// change gets its own threat-model entry.
+#[derive(Clone, Debug, Default, serde::Serialize)]
+pub struct PeerScore {
+    pub success: u64,
+    pub fail: u64,
+    pub last_seen_unix: u64,
+}
+
+impl PeerScore {
+    /// Score in [0, 100]: share of successful ops, 50 for a fresh peer.
+    pub fn score(&self) -> u64 {
+        let total = self.success + self.fail;
+        if total == 0 {
+            50
+        } else {
+            self.success.checked_mul(100).map(|n| n / total).unwrap_or(100)
+        }
+    }
 }
 
 /// NET-01 limits: global concurrent connections, per-IP active, per-IP new/min,
@@ -166,6 +247,8 @@ impl P2pNetwork {
             conn_sem: Arc::new(tokio::sync::Semaphore::new(MAX_GLOBAL_CONNS)),
             ip_limits: Arc::new(std::sync::Mutex::new(HashMap::new())),
             max_peers: std::sync::atomic::AtomicUsize::new(MAX_PEERS),
+            metrics: Arc::new(Metrics::default()),
+            peer_scores: Arc::new(std::sync::Mutex::new(HashMap::new())),
         }
     }
 
@@ -208,6 +291,8 @@ impl P2pNetwork {
             conn_sem: Arc::new(tokio::sync::Semaphore::new(MAX_GLOBAL_CONNS)),
             ip_limits: Arc::new(std::sync::Mutex::new(HashMap::new())),
             max_peers: std::sync::atomic::AtomicUsize::new(MAX_PEERS),
+            metrics: Arc::new(Metrics::default()),
+            peer_scores: Arc::new(std::sync::Mutex::new(HashMap::new())),
         }
     }
 
@@ -261,6 +346,8 @@ impl P2pNetwork {
     ) -> Result<(), NexxusError> {
         let encoded = payload.encode();
         let signature = self.sign_v3(nonce, opcode, request_id, &encoded);
+        self.metrics.frames_out.fetch_add(1, Ordering::Relaxed);
+        self.metrics.bytes_out.fetch_add(encoded.len() as u64, Ordering::Relaxed);
         send_frame(stream, opcode, request_id, payload, &signature).await
     }
 
@@ -271,6 +358,32 @@ impl P2pNetwork {
 
     pub fn is_paused(&self) -> bool {
         self.paused.load(Ordering::SeqCst)
+    }
+
+    /// E1: record a served-request outcome for a peer (score input).
+    pub fn note_peer_result(&self, addr: SocketAddr, ok: bool) {
+        let mut scores = self.peer_scores.lock().unwrap();
+        let e = scores.entry(addr).or_default();
+        if ok {
+            e.success = e.success.saturating_add(1);
+        } else {
+            e.fail = e.fail.saturating_add(1);
+        }
+        e.last_seen_unix = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_secs())
+            .unwrap_or(0);
+    }
+
+    /// E1: snapshot of peer scores for the monitor (node_peers enrichment).
+    pub fn peer_scores_snapshot(&self) -> Vec<(String, PeerScore)> {
+        let scores = self.peer_scores.lock().unwrap();
+        let mut v: Vec<(String, PeerScore)> = scores
+            .iter()
+            .map(|(a, s)| (a.to_string(), s.clone()))
+            .collect();
+        v.sort_by_key(|(_, s)| std::cmp::Reverse(s.score()));
+        v
     }
 
     /// Attach the inbound SMP channel (LocalApi drains it into smp_history).
@@ -390,6 +503,7 @@ impl P2pNetwork {
                 .accept()
                 .await
                 .map_err(|e| NexxusError::Io(e.to_string()))?;
+            self.metrics.conns_accepted.fetch_add(1, Ordering::Relaxed);
             // NET-01: per-IP limits before spawning any work.
             {
                 let mut limits = self.ip_limits.lock().unwrap();
@@ -399,6 +513,7 @@ impl P2pNetwork {
                 if bucket.active >= MAX_ACTIVE_PER_IP
                     || bucket.recent.len() as u64 >= MAX_NEW_PER_IP_PER_MIN
                 {
+                    self.metrics.conns_rejected_ip.fetch_add(1, Ordering::Relaxed);
                     continue; // drop the connection silently
                 }
                 bucket.active += 1;
@@ -606,18 +721,26 @@ impl P2pNetwork {
             loop {
                 let frame_res = if first {
                     first = false;
-                    tokio::time::timeout(HANDSHAKE_TIMEOUT, crate::net::frame::recv_frame(&mut stream))
-                        .await
-                        .unwrap_or_else(|_| Err(NexxusError::Io("handshake timeout".into())))
+                    let r = tokio::time::timeout(HANDSHAKE_TIMEOUT, crate::net::frame::recv_frame(&mut stream)).await;
+                    if r.is_err() {
+                        self.metrics.handshake_timeouts.fetch_add(1, Ordering::Relaxed);
+                    }
+                    r.unwrap_or_else(|_| Err(NexxusError::Io("handshake timeout".into())))
                 } else {
                     // NET-03: idle timeout — an established connection that
                     // sends nothing for IDLE_TIMEOUT is dropped.
-                    tokio::time::timeout(IDLE_TIMEOUT, crate::net::frame::recv_frame(&mut stream))
-                        .await
-                        .unwrap_or_else(|_| Err(NexxusError::Io("idle timeout".into())))
+                    let r = tokio::time::timeout(IDLE_TIMEOUT, crate::net::frame::recv_frame(&mut stream)).await;
+                    if r.is_err() {
+                        self.metrics.idle_timeouts.fetch_add(1, Ordering::Relaxed);
+                    }
+                    r.unwrap_or_else(|_| Err(NexxusError::Io("idle timeout".into())))
                 };
                 let (opcode, req_id, payload, sig) = match frame_res {
-                    Ok(f) => f,
+                    Ok(f) => {
+                        self.metrics.frames_in.fetch_add(1, Ordering::Relaxed);
+                        self.metrics.bytes_in.fetch_add(f.2.len() as u64, Ordering::Relaxed);
+                        f
+                    }
                     // clean EOF on idle connection
                     Err(NexxusError::Io(e)) if e.to_string().contains("connection reset")
                         || e.to_string().contains("broken pipe") =>
@@ -638,6 +761,7 @@ impl P2pNetwork {
                         .map_err(|e| NexxusError::Io(format!("bad announce pubkey: {e}")))?;
                     let msg = v3_signing_bytes(opcode, req_id, &payload, &announce.session_nonce);
                     if !Identity::verify(&vk, &msg, &sig) {
+                        self.metrics.announce_rejected.fetch_add(1, Ordering::Relaxed);
                         let err = ErrorResponse { code: 0x0008, message: "bad announce signature".into() };
                         self.send_signed_frame(&mut stream, &our_nonce, Opcode::ErrorResponse, req_id, &err).await?;
                         return Err(NexxusError::Io("bad announce signature".into()));
@@ -652,6 +776,7 @@ impl P2pNetwork {
                         let cap = self.max_peers.load(Ordering::Relaxed);
                         if !routing.contains(&their_id) && routing.len() >= cap {
                             drop(routing);
+                            self.metrics.peers_rejected_full.fetch_add(1, Ordering::Relaxed);
                             let err = ErrorResponse { code: 0x0009, message: "peer table full".into() };
                             self.send_signed_frame(&mut stream, &our_nonce, Opcode::ErrorResponse, req_id, &err).await?;
                             return Err(NexxusError::Io("peer table full".into()));
@@ -695,7 +820,7 @@ impl P2pNetwork {
                     self.send_signed_frame(&mut stream, &our_nonce, Opcode::ErrorResponse, req_id, &err).await?;
                     return Err(NexxusError::Io("bad frame signature".into()));
                 }
-                self.handle_opcode(&mut stream, &our_nonce, opcode, req_id, &payload).await?;
+                self.handle_opcode(&mut stream, &our_nonce, opcode, req_id, &payload, addr).await?;
             }
         }).await;
         if let Some(api) = api_clone.lock().await.as_ref() {
@@ -711,10 +836,12 @@ impl P2pNetwork {
         opcode: Opcode,
         request_id: u32,
         payload: &[u8],
+        peer_addr: SocketAddr,
     ) -> Result<(), NexxusError> {
         // Pause gate: while paused every frame gets an immediate 0x0007 error
         // and is not dispatched (makes node_pause/node_resume real).
         if self.is_paused() {
+            self.metrics.pause_rejections.fetch_add(1, Ordering::Relaxed);
             let err = ErrorResponse { code: 0x0007, message: "node paused".into() };
             self.send_signed_frame(stream, our_nonce, Opcode::ErrorResponse, request_id, &err).await?;
             return Ok(());
@@ -745,12 +872,16 @@ impl P2pNetwork {
                 let fetch = FetchChunk::decode(payload)?;
                 let hash = ChunkHash(fetch.hash);
                 if let Some(data) = self.store.get_chunk(&hash)? {
+                    self.metrics.fetch_hit.fetch_add(1, Ordering::Relaxed);
+                    self.note_peer_result(peer_addr, true);
                     let resp = FetchChunkResp {
                         chunk_hash: hash,
                         data,
                     };
                     self.send_signed_frame(stream, our_nonce, Opcode::FetchChunkResp, request_id, &resp).await?;
                 } else {
+                    self.metrics.fetch_miss.fetch_add(1, Ordering::Relaxed);
+                    self.note_peer_result(peer_addr, false);
                     let err = ErrorResponse {
                         code: 0x0002,
                         message: "chunk not found".into(),
@@ -768,6 +899,8 @@ impl P2pNetwork {
                 // на основе seed, чтобы проверка была воспроизводимой.
                 let hashes = self.store.list_chunk_hashes()?;
                 if hashes.is_empty() {
+                    self.metrics.por_fail.fetch_add(1, Ordering::Relaxed);
+                    self.note_peer_result(peer_addr, false);
                     let err = ErrorResponse {
                         code: 0x0003,
                         message: "no chunks stored for PoR".into(),
@@ -781,6 +914,8 @@ impl P2pNetwork {
                         as usize % hashes.len();
                     let hash = hashes[seed_index];
                     if let Some(data) = self.store.get_chunk(&hash)? {
+                        self.metrics.por_ok.fetch_add(1, Ordering::Relaxed);
+                        self.note_peer_result(peer_addr, true);
                         // response = SHA-256(chunk_data || seed)
                         let mut h = sha2::Sha256::new();
                         h.update(&data);
@@ -793,6 +928,8 @@ impl P2pNetwork {
                         self.send_signed_frame(stream, our_nonce, Opcode::PorResponse, request_id, &resp)
                             .await?;
                     } else {
+                        self.metrics.por_fail.fetch_add(1, Ordering::Relaxed);
+                        self.note_peer_result(peer_addr, false);
                         let err = ErrorResponse {
                             code: 0x0003,
                             message: "chunk not found for PoR".into(),
@@ -1054,7 +1191,36 @@ mod tests {
         let resp = FetchChunkResp::decode(&payload2).unwrap();
         assert_eq!(resp.data, data);
 
+        // E1: a second fetch of a missing hash records hit+miss and peer score.
+        let miss = FetchChunk { hash: [0xEEu8; 32] };
+        net.send_signed_frame(&mut stream, &hs.our_nonce, Opcode::FetchChunk, 0x0003, &miss).await.unwrap();
+        let (op3, _, _, _) = crate::net::frame::recv_frame(&mut stream).await.unwrap();
+        assert_eq!(op3, Opcode::ErrorResponse);
+        // let the server task process the frames before asserting counters
+        tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+        let m = net.metrics.snapshot();
+        assert_eq!(m["fetch_hit"].as_u64().unwrap(), 1);
+        assert_eq!(m["fetch_miss"].as_u64().unwrap(), 1);
+        assert!(m["frames_in"].as_u64().unwrap() >= 3);
+        assert!(m["frames_out"].as_u64().unwrap() >= 3);
+        assert!(m["conns_accepted"].as_u64().unwrap() >= 1);
+        let scores = net.peer_scores_snapshot();
+        assert_eq!(scores.len(), 1);
+        assert_eq!(scores[0].1.score(), 50); // 1 success / 1 fail
+        let prom = net.metrics.prom();
+        assert!(prom.contains("nexxus_node_fetch_hit 1"));
+
         server.abort();
+    }
+
+    #[test]
+    fn peer_score_bounds() {
+        let s = crate::net::network::PeerScore::default();
+        assert_eq!(s.score(), 50); // fresh peer
+        let mut s = crate::net::network::PeerScore { success: 3, fail: 1, ..Default::default() };
+        assert_eq!(s.score(), 75);
+        s.fail = 100;
+        assert_eq!(s.score(), 2); // saturating-free u64 math, no overflow
     }
 
     #[tokio::test]

@@ -40,7 +40,7 @@
 - [ ] Тег `v0.1.0-rc1` **только со squash-mirror**
 - [ ] `SECURITY.md` + short USER_GUIDE «что умеет / чего нет»
 - [ ] Метрики в проде: число peers, handshake timeouts, RSS, backup success rate
-- [ ] Опциональный `P2P_BIND` (не только `0.0.0.0`) для не-lab установок
+- [x] Bind-адрес: `NEXXUS_LISTEN` (дефолт `127.0.0.1:4001`), задокументирован в USER_GUIDE
 - [ ] README: явная ссылка на threat model и audit series
 
 **Критерий готовности:** внешний человек поднимает ноду по one-liner и понимает границы доверия.
@@ -171,7 +171,7 @@ Q3+             E6 Ecosystem, formal bits, marketplace only with real settlement
 
 ## 6. Быстрые победы (можно взять сразу после E0)
 
-1. **User-defined disk cap** + проверка free space перед foreign blob  
+1. [x] **User-defined disk cap** (`NEXXUS_MAX_STORE_BYTES`) + free-space guard в `put_chunk` + метрики в `node_metrics`  
 2. **Prometheus metrics** на localhost  
 3. **Signed accounting export** (ещё без денег)  
 4. **Windows service + firewall** из текущего Tauri/CI задела  

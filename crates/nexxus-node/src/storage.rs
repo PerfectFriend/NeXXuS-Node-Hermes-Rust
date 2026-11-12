@@ -13,6 +13,8 @@ pub struct ChunkStore {
     path: std::path::PathBuf,
     /// Ключ шифрования at rest (Phase A2). None = plaintext-режим (legacy/тесты).
     crypto: std::sync::Mutex<Option<crate::at_rest::StoreKey>>,
+    /// E2 quick win: user-defined disk cap for the store, bytes. 0 = unlimited.
+    max_store_bytes: std::sync::atomic::AtomicU64,
 }
 
 impl ChunkStore {
@@ -50,7 +52,63 @@ impl ChunkStore {
             db,
             path,
             crypto: std::sync::Mutex::new(None),
+            max_store_bytes: std::sync::atomic::AtomicU64::new(0),
         })
+    }
+
+    /// E2: лимит размера стора в байтах (0 = без лимита). Задаётся из
+    /// `NEXXUS_MAX_STORE_BYTES` или конфига монитора.
+    pub fn set_max_store_bytes(&self, bytes: u64) {
+        self.max_store_bytes
+            .store(bytes, std::sync::atomic::Ordering::Relaxed);
+    }
+
+    pub fn max_store_bytes(&self) -> u64 {
+        self.max_store_bytes.load(std::sync::atomic::Ordering::Relaxed)
+    }
+
+    /// Свободное место на файловой системе стора (fs2/statvfs), байт.
+    pub fn available_space(&self) -> Result<u64, NexxusError> {
+        // statvfs требует существующий путь: поднимаемся к первому
+        // существующему предку (тесты дропают tempdir, пока redb держит fd).
+        let mut probe = self.path.clone();
+        while !probe.exists() {
+            match probe.parent() {
+                Some(p) if p != probe.as_os_str() => probe = p.to_path_buf(),
+                _ => break,
+            }
+        }
+        fs2::available_space(&probe)
+            .map_err(|e| NexxusError::Io(format!("statvfs {}: {e}", probe.display())))
+    }
+
+    /// Текущий размер файла стора, байт.
+    pub fn store_size(&self) -> Result<u64, NexxusError> {
+        std::fs::metadata(&self.path)
+            .map(|m| m.len())
+            .map_err(|e| NexxusError::Io(format!("stat {}: {e}", self.path.display())))
+    }
+
+    /// E2 guard: вызывается перед записью foreign/own чанка. Ошибка, если
+    /// (a) store size + chunk > max_store_bytes (когда cap > 0), или
+    /// (b) на диске свободно меньше 2x размера чанка (headroom под redb).
+    fn check_capacity(&self, incoming: u64) -> Result<(), NexxusError> {
+        let cap = self.max_store_bytes();
+        if cap > 0 {
+            let used = self.store_size()?;
+            if used.saturating_add(incoming) > cap {
+                return Err(NexxusError::Io(format!(
+                    "store cap exceeded: used {used} + incoming {incoming} > cap {cap} bytes"
+                )));
+            }
+        }
+        let avail = self.available_space()?;
+        if avail < incoming.saturating_mul(2) {
+            return Err(NexxusError::Io(format!(
+                "insufficient disk space: available {avail} < 2x incoming {incoming} bytes"
+            )));
+        }
+        Ok(())
     }
 
     /// Включает шифрование at rest ключом, выведенным из seed (at_rest::StoreKey).
@@ -212,6 +270,8 @@ impl ChunkStore {
                 hex::encode(actual)
             )));
         }
+        // E2: disk cap + free-space guard before any write.
+        self.check_capacity(data.len() as u64)?;
         // При включённом at-rest ключе в redb уходит только ciphertext+tag.
         let stored: Vec<u8> = match &*self.crypto.lock().unwrap() {
             Some(key) => crate::at_rest::encrypt_chunk(key, hash, data),
@@ -341,6 +401,29 @@ mod tests {
         let got = store.get_chunk(&hash).unwrap().unwrap();
         assert_eq!(got, chunk);
         assert!(store.get_chunk(&ChunkHash([1u8; 32])).unwrap().is_none());
+    }
+
+    #[test]
+    fn disk_cap_rejects_oversized_write_and_reports_capacity() {
+        // E2 quick win: user-defined cap + free-space guard in put_chunk.
+        let dir = tempfile::tempdir().unwrap();
+        let store = ChunkStore::open(dir.path().join("store.redb")).unwrap();
+        assert_eq!(store.max_store_bytes(), 0, "default = unlimited");
+        let chunk: Vec<u8> = vec![7u8; 4096];
+        let hash = h(&chunk);
+
+        store.set_max_store_bytes(1024);
+        let err = store.put_chunk(&hash, &chunk).unwrap_err();
+        assert!(err.to_string().contains("store cap exceeded"), "got: {err}");
+        assert!(store.get_chunk(&hash).unwrap().is_none(), "rejected write must not persist");
+
+        store.set_max_store_bytes(0);
+        store.put_chunk(&hash, &chunk).unwrap();
+        assert_eq!(store.get_chunk(&hash).unwrap().unwrap(), chunk);
+
+        // visibility for node_metrics
+        assert!(store.store_size().unwrap() > 0);
+        assert!(store.available_space().unwrap() > 0);
     }
 
     #[test]
