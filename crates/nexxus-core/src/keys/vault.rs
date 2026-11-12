@@ -22,9 +22,9 @@ use zeroize::Zeroize;
 use crate::error::NexxusError;
 
 /// Итерации PBKDF2 для НОВЫХ vault (OWASP 2023 для HMAC-SHA256).
-const PBKDF2_ROUNDS: u32 = 600_000;
+pub const PBKDF2_ROUNDS: u32 = 600_000;
 /// Итерации для чтения vault без поля `kdf_rounds` — как в BIP39-ABOARD-SDK.
-const PBKDF2_ROUNDS_SDK_DEFAULT: u32 = 100_000;
+pub const PBKDF2_ROUNDS_SDK_DEFAULT: u32 = 100_000;
 const SALT_LEN: usize = 16;
 const NONCE_LEN: usize = 12;
 
@@ -88,6 +88,18 @@ pub fn encrypt_vault_payload(
     primary_pin: &str,
     duress_pin: Option<&str>,
 ) -> Result<String, NexxusError> {
+    encrypt_vault_payload_rounds(payload, primary_pin, duress_pin, PBKDF2_ROUNDS)
+}
+
+/// VLT-02: то же, что `encrypt_vault_payload`, но с явным числом раундов KDF.
+/// Используется для миграции старых (SDK, 100k) vault на 600k и в тестах —
+/// в обычном коде всегда вызывайте `encrypt_vault_payload`.
+pub fn encrypt_vault_payload_rounds(
+    payload: &[u8],
+    primary_pin: &str,
+    duress_pin: Option<&str>,
+    rounds: u32,
+) -> Result<String, NexxusError> {
     let mut rng = rand::thread_rng();
 
     let mut salt = [0u8; SALT_LEN];
@@ -95,7 +107,7 @@ pub fn encrypt_vault_payload(
     rng.fill(&mut salt[..]);
     rng.fill(&mut nonce_bytes[..]);
 
-    let mut key = derive_key(primary_pin, &salt, PBKDF2_ROUNDS);
+    let mut key = derive_key(primary_pin, &salt, rounds);
     let cipher = Aes256Gcm::new_from_slice(&key)
         .map_err(|e| NexxusError::Vault(format!("инициализация шифра: {e}")))?;
 
@@ -115,7 +127,7 @@ pub fn encrypt_vault_payload(
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap_or_default()
             .as_secs(),
-        kdf_rounds: PBKDF2_ROUNDS,
+        kdf_rounds: rounds,
     };
 
     serde_json::to_string(&vault).map_err(|e| NexxusError::Vault(format!("сериализация: {e}")))

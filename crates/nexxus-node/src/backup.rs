@@ -194,10 +194,13 @@ pub fn verify_backup(store: &ChunkStore, name: &str) -> Result<(BackupManifest, 
     }
     // Chunk count проверяем на ВРЕМЕННОЙ копии: redb при open (read-write)
     // может repair-нуть файл и изменить его — оригинал бэкапа не трогаем.
+    // Имя tmp включает случайный суффикс: параллельные verify в одном
+    // процессе не должны бить в один и тот же файл.
     let tmp = std::env::temp_dir().join(format!(
-        "nexxus-verify-{}-{}.redb",
+        "nexxus-verify-{}-{}-{:016x}.redb",
         std::process::id(),
-        name.replace(['/', '\\'], "_")
+        name.replace(['/', '\\'], "_"),
+        rand::random::<u64>()
     ));
     std::fs::copy(&file, &tmp).map_err(|e| NexxusError::Io(format!("copy for verify: {e}")))?;
     let n = ChunkStore::open(&tmp).and_then(|c| c.list_chunk_hashes()).map(|v| v.len());

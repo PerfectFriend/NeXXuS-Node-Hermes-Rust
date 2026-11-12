@@ -10,7 +10,8 @@ use crate::identity_store::{import_mnemonic, read_mnemonic};
 use crate::storage::ChunkStore;
 use nexxus_core::error::NexxusError;
 use nexxus_core::keys::vault::{
-    check_pin, decrypt_vault_payload, encrypt_vault_payload, EncryptedVault, PinCheck,
+    check_pin, decrypt_vault_payload, encrypt_vault_payload, encrypt_vault_payload_rounds,
+    EncryptedVault, PinCheck, PBKDF2_ROUNDS,
 };
 use nexxus_core::types::NodeId;
 use std::path::PathBuf;
@@ -118,6 +119,37 @@ pub fn restore_seed(store: &ChunkStore, pin: &str) -> Result<RestoreOutcome, Nex
         String::from_utf8(dec.decrypted_bytes)
             .map_err(|_| NexxusError::Vault("decrypted seed is not valid utf-8".into()))?,
     );
+    // VLT-02: успешное открытие legacy vault (KDF < 600k) автоматически
+    // перешифровывает его на 600k. Vault с duress-PIN так не мигрирует —
+    // duress_hash зависит от salt, а сам duress-PIN нам неизвестен; такие
+    // vault'ы остаются на старом KDF до ручного пересоздания.
+    let vault: EncryptedVault = serde_json::from_str(&json)
+        .map_err(|e| NexxusError::Vault(format!("невалидный JSON vault: {e}")))?;
+    if vault.kdf_rounds < PBKDF2_ROUNDS {
+        if vault.duress_hash_hex.is_none() {
+            let re = encrypt_vault_payload_rounds(phrase.as_bytes(), pin, None, PBKDF2_ROUNDS)?;
+            let tmp = path.with_extension("vault.tmp");
+            std::fs::write(&tmp, re.as_bytes())
+                .map_err(|e| NexxusError::Io(format!("write re-encrypted vault tmp: {e}")))?;
+            #[cfg(unix)]
+            {
+                use std::os::unix::fs::PermissionsExt;
+                std::fs::set_permissions(&tmp, std::fs::Permissions::from_mode(0o600))
+                    .map_err(|e| NexxusError::Io(format!("chmod vault: {e}")))?;
+            }
+            std::fs::rename(&tmp, &path)
+                .map_err(|e| NexxusError::Io(format!("rename vault: {e}")))?;
+            eprintln!(
+                "nexxusd: seed vault auto re-encrypted KDF {} -> {PBKDF2_ROUNDS}",
+                vault.kdf_rounds
+            );
+        } else {
+            eprintln!(
+                "nexxusd: seed vault has duress-PIN and legacy KDF {} — re-encrypt skipped (recreate backup to upgrade)",
+                vault.kdf_rounds
+            );
+        }
+    }
     let (node_id, status) = import_mnemonic(store, &phrase)?;
     Ok(if status == "imported" {
         RestoreOutcome::Imported(node_id)
@@ -210,6 +242,42 @@ mod tests {
         let (_d, store) = store_with_identity();
         assert!(backup_seed(&store, "12", None).is_err());
         assert!(backup_seed(&store, "1234", Some("1234")).is_err());
+    }
+
+    #[test]
+    fn legacy_100k_vault_is_auto_reencrypted_to_600k_on_unlock() {
+        // VLT-02: vault, созданный со 100k раундов (старый SDK), после
+        // успешного restore перешифровывается на 600k автоматически.
+        use nexxus_core::keys::vault::{encrypt_vault_payload_rounds, PBKDF2_ROUNDS, PBKDF2_ROUNDS_SDK_DEFAULT};
+        let (_d, store) = store_with_identity();
+        let phrase = read_mnemonic(&store).unwrap().unwrap();
+        let legacy = encrypt_vault_payload_rounds(
+            phrase.as_bytes(),
+            "1234",
+            None,
+            PBKDF2_ROUNDS_SDK_DEFAULT,
+        )
+        .unwrap();
+        let path = seed_vault_path(&store);
+        std::fs::write(&path, legacy).unwrap();
+        assert_eq!(
+            seed_vault_status(&store).unwrap().unwrap().kdf_rounds,
+            PBKDF2_ROUNDS_SDK_DEFAULT
+        );
+        // Успешный unlock...
+        assert!(matches!(
+            restore_seed(&store, "1234").unwrap(),
+            RestoreOutcome::Already(_)
+        ));
+        // ...и vault на диске уже на 600k, повторное открытие работает.
+        assert_eq!(
+            seed_vault_status(&store).unwrap().unwrap().kdf_rounds,
+            PBKDF2_ROUNDS
+        );
+        assert!(matches!(
+            restore_seed(&store, "1234").unwrap(),
+            RestoreOutcome::Already(_)
+        ));
     }
 
     #[test]
