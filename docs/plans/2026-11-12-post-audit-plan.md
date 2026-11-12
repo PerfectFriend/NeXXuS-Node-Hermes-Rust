@@ -92,3 +92,9 @@
 Верификация: workspace 172/172 green (core 69 + fuzz 6 + econ 15 + node 80 + fixtures 2), desktop 19/19, clippy `--workspace --all-targets -D warnings` = 0, clippy desktop = 0.
 
 Осталось вне кода: DEP-01 (cargo audit/deny в CI — ручной, в sandbox нет), DEP-03 (ротация секретов из истории git — только владелец, до раздачи аудитору).
+
+## СТАТУС 2026-11-12 (коммит 3eaaab2) — DEP-01 выполнен, DEP-03 проинвентаризирован
+- **DEP-01** ✅ — cargo-audit 0.23.0 прогнан (555 крейтов): arti/tor подняты 0.47→0.48, осталось 3 vulns, все транзитивны от arti и заблокированы её semver-пинами (rsa 0.9.10, crypto-bigint 0.5.5, libsqlite3-sys 0.38.2) → игноры с обоснованием в `.cargo/audit.toml`, разбор в `docs/DEP-01-dependency-audit.md`, CI-шаг `cargo audit` описан. Итог: 0 не-игнорированных уязвимостей, 2 задокументированных unmaintained warning.
+- **DEP-03** 📋 — `docs/DEP-03-secret-rotation.md`: скан истории нашёл 3 Telegram bot-токена (bot-ID 8853927147 / 8883516682 / 8896772547, 5 pre-squash коммитов), реальных ghp_ нет. Ревокация через @BotFather + filter-repo/squash — **владелец, ручной шаг**.
+
+Все пункты плана A1/A2/B + DEP-01 закрыты в коде. Открыто только DEP-03 (владелец).
