@@ -426,6 +426,7 @@ impl LocalApi {
             "node_backup_list" => self.handle_node_backup_list(),
             "node_backup_verify" => self.handle_node_backup_verify(req.params),
             "node_backup_restore" => self.handle_node_backup_restore(req.params),
+            "node_backup_delete" => self.handle_node_backup_delete(req.params),
             "node_doctor" => self.handle_node_doctor(),
             "node_econ" => self.handle_node_econ(),
             _ => return error_response(id, ERR_METHOD_NOT_FOUND, format!("method '{}' not found", req.method)),
@@ -565,6 +566,17 @@ impl LocalApi {
             "chunk_count": m.chunk_count,
             "created_at": m.created_at,
         }))
+    }
+
+    /// D2: delete one backup by name (rotation from the guardian scheduler).
+    fn handle_node_backup_delete(&self, params: Option<Value>) -> Result<Value, NexxusError> {
+        let name = params
+            .as_ref()
+            .and_then(|p| p.get("name"))
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| NexxusError::Io("param 'name' required".into()))?;
+        crate::backup::delete_backup(&self.store, name)?;
+        Ok(serde_json::json!({ "deleted": name }))
     }
 
     /// Restore = verify + write a *.restore-candidate.redb next to the live

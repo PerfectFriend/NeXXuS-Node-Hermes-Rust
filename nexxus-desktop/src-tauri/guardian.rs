@@ -87,6 +87,8 @@ pub struct GuardianState {
     /// PID запущенной ноды (заполняется при старте; показывается в статусе).
     pub nexxusd_pid: Mutex<Option<u32>>,
     pub monitor_enabled: Mutex<bool>,
+    /// D2: время последнего успешного автобэкапа (unix secs).
+    pub last_auto_backup: Mutex<Option<u64>>,
 }
 
 impl GuardianState {
@@ -98,8 +100,100 @@ impl GuardianState {
             health_failures: Mutex::new(0),
             nexxusd_pid: Mutex::new(None),
             monitor_enabled: Mutex::new(true),
+            last_auto_backup: Mutex::new(None),
         }
     }
+}
+
+/// D2: пора ли делать автобэкап (hours=0 — выключено; None last — пора сразу).
+pub fn auto_backup_due(now_secs: u64, last: Option<u64>, hours: u64) -> bool {
+    if hours == 0 {
+        return false;
+    }
+    match last {
+        None => true,
+        Some(l) => now_secs >= l.saturating_add(hours.saturating_mul(3600)),
+    }
+}
+
+/// D2: ротация — список имён (newest-first), которые надо удалить, чтобы
+/// осталось не больше `keep` последних.
+pub fn backups_to_delete(newest_first: &[String], keep: usize) -> Vec<String> {
+    newest_first.iter().skip(keep).cloned().collect()
+}
+
+/// D2: первый примонтированный внешний носитель под /run/media (или None).
+pub fn external_media_dir() -> Option<std::path::PathBuf> {
+    let rd = std::fs::read_dir("/run/media").ok()?;
+    for entry in rd.flatten() {
+        let user_dir = entry.path();
+        if let Ok(users) = std::fs::read_dir(&user_dir) {
+            for u in users.flatten() {
+                let mount = u.path();
+                if mount.is_dir() {
+                    return Some(mount);
+                }
+            }
+        }
+    }
+    None
+}
+
+/// D2: один цикл автобэкапа — создать бэкап, ротация, копия на внешний носитель.
+/// Возвращает (имя бэкапа, сколько удалено, путь внешней копии).
+pub async fn run_auto_backup(keep: usize) -> Result<(String, usize, Option<String>), String> {
+    let created = api_call("node_backup", None).await?;
+    let name = created
+        .get("name")
+        .and_then(|v| v.as_str())
+        .ok_or_else(|| "node_backup: no name in response".to_string())?
+        .to_string();
+
+    // Ротация: список newest-first, удаляем хвост сверх keep.
+    let mut deleted = 0usize;
+    if let Ok(list) = api_call("node_backup_list", None).await {
+        if let Some(arr) = list.as_array() {
+            let names: Vec<String> = arr
+                .iter()
+                .filter_map(|b| b.get("name").and_then(|v| v.as_str()).map(|s| s.to_string()))
+                .collect();
+            for old in backups_to_delete(&names, keep) {
+                if api_call("node_backup_delete", Some(json!({ "name": old }))).await.is_ok() {
+                    deleted += 1;
+                }
+            }
+        }
+    }
+
+    // 3-2-1: копия на внешний носитель, если примонтирован.
+    let mut external = None;
+    if let Some(mount) = external_media_dir() {
+        let dst_dir = mount.join("nexxus-backups");
+        if std::fs::create_dir_all(&dst_dir).is_ok() {
+            let src = crate::node_config::config_dir().join("backups").join(&name);
+            let dst = dst_dir.join(&name);
+            if src.is_dir() && copy_dir_recursive(&src, &dst).is_ok() {
+                external = Some(dst.to_string_lossy().into_owned());
+            }
+        }
+    }
+
+    Ok((name, deleted, external))
+}
+
+fn copy_dir_recursive(src: &std::path::Path, dst: &std::path::Path) -> std::io::Result<()> {
+    std::fs::create_dir_all(dst)?;
+    for entry in std::fs::read_dir(src)? {
+        let entry = entry?;
+        let ty = entry.file_type()?;
+        let to = dst.join(entry.file_name());
+        if ty.is_dir() {
+            copy_dir_recursive(&entry.path(), &to)?;
+        } else {
+            std::fs::copy(entry.path(), &to)?;
+        }
+    }
+    Ok(())
 }
 
 /// Является ли процесс nexxusd запущенным.
@@ -353,6 +447,28 @@ pub async fn health_loop(state: Arc<GuardianState>) {
                 if heartbeat_ticks * HEALTH_INTERVAL_SEC >= HEARTBEAT_INTERVAL_SEC {
                     heartbeat_ticks = 0;
                     let _ = bot.notify_heartbeat(&status.node_id, status.peers, status.uptime_ms).await;
+                }
+
+                // D2: автобэкап по расписанию (только когда нода жива и мониторинг включён)
+                let cfg = crate::node_config::load();
+                let now_secs = SystemTime::now()
+                    .duration_since(SystemTime::UNIX_EPOCH)
+                    .map(|d| d.as_secs())
+                    .unwrap_or(0);
+                let due = {
+                    let last = *state.last_auto_backup.lock().await;
+                    auto_backup_due(now_secs, last, cfg.auto_backup_hours)
+                };
+                if due {
+                    match run_auto_backup(cfg.auto_backup_keep).await {
+                        Ok((name, deleted, external)) => {
+                            let _ = bot.notify_backup(&name, deleted, external.as_deref()).await;
+                            *state.last_auto_backup.lock().await = Some(now_secs);
+                        }
+                        Err(e) => {
+                            eprintln!("guardian: auto-backup failed: {e}");
+                        }
+                    }
                 }
             }
             Err(e) => {

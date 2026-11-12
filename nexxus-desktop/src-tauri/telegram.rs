@@ -157,6 +157,19 @@ impl TelegramBot {
             node_id, peers, uptime_min
         )).await
     }
+
+    /// D2: отчёт об автобэкапе (создан + удалено при ротации).
+    pub async fn notify_backup(&self, name: &str, deleted: usize, external: Option<&str>) -> Result<(), String> {
+        if !self.is_configured() { return Ok(()); }
+        let ext = match external {
+            Some(p) => format!("\nВнешний носитель: <code>{}</code>", p),
+            None => "\nВнешний носитель: не примонтирован".to_string(),
+        };
+        self.send_message(&format!(
+            "💾 <b>Автобэкап создан</b>\n\n<code>{}</code>\nУдалено по ротации: {}{}",
+            name, deleted, ext
+        )).await
+    }
 }
 
 static TELEGRAM_BOT: Mutex<Option<TelegramBot>> = Mutex::const_new(None);

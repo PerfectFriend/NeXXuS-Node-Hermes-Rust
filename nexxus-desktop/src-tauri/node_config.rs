@@ -17,6 +17,13 @@ pub const DEFAULT_API: &str = "127.0.0.1:4010";
 pub const DEFAULT_EPOCH_SECS: u64 = 300;
 pub const DEFAULT_SPEC_VERSION: &str = "v2";
 
+fn default_auto_backup_hours() -> u64 {
+    24
+}
+fn default_auto_backup_keep() -> usize {
+    5
+}
+
 /// Конфигурация ноды.
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub struct NodeConfig {
@@ -32,6 +39,12 @@ pub struct NodeConfig {
     pub epoch_secs: u64,
     /// Включён ли Tor (NEXXUS_TOR=0 выключает).
     pub tor: bool,
+    /// Автобэкап: интервал в часах (0 = выключен, по умолчанию 24).
+    #[serde(default = "default_auto_backup_hours")]
+    pub auto_backup_hours: u64,
+    /// Автобэкап: сколько последних бэкапов хранить (ротация, по умолчанию 5).
+    #[serde(default = "default_auto_backup_keep")]
+    pub auto_backup_keep: usize,
     /// Версия спецификации протокола (NEXXUS_SPECIFICATION_V).
     pub spec_version: String,
     /// Путь файла лога ноды (NEXXUS_LOG).
@@ -47,6 +60,8 @@ impl Default for NodeConfig {
             threshold: 0,
             epoch_secs: DEFAULT_EPOCH_SECS,
             tor: true,
+            auto_backup_hours: default_auto_backup_hours(),
+            auto_backup_keep: default_auto_backup_keep(),
             spec_version: DEFAULT_SPEC_VERSION.to_string(),
             log_path: default_log_path().to_string_lossy().into_owned(),
         }
@@ -150,6 +165,8 @@ pub fn load_from(path: &std::path::Path) -> NodeConfig {
             "threshold" => cfg.threshold = value.parse().unwrap_or(cfg.threshold),
             "epoch_secs" => cfg.epoch_secs = value.parse().unwrap_or(cfg.epoch_secs),
             "tor" => cfg.tor = !matches!(value.to_ascii_lowercase().as_str(), "0" | "false" | "no"),
+            "auto_backup_hours" => cfg.auto_backup_hours = value.parse().unwrap_or(cfg.auto_backup_hours),
+            "auto_backup_keep" => cfg.auto_backup_keep = value.parse().unwrap_or(cfg.auto_backup_keep),
             "spec_version" => cfg.spec_version = value.to_string(),
             "log_path" => cfg.log_path = value.to_string(),
             _ => {}
@@ -172,13 +189,15 @@ pub fn save_to(cfg: &NodeConfig, path: &std::path::Path) -> Result<(), String> {
     let tmp = path.with_extension("conf.tmp");
 
     let body = format!(
-        "listen={}\napi={}\nauditors={}\nthreshold={}\nepoch_secs={}\ntor={}\nspec_version={}\nlog_path={}\n",
+        "listen={}\napi={}\nauditors={}\nthreshold={}\nepoch_secs={}\ntor={}\nauto_backup_hours={}\nauto_backup_keep={}\nspec_version={}\nlog_path={}\n",
         cfg.listen,
         cfg.api,
         cfg.auditors.join(","),
         cfg.threshold,
         cfg.epoch_secs,
         if cfg.tor { "1" } else { "0" },
+        cfg.auto_backup_hours,
+        cfg.auto_backup_keep,
         cfg.spec_version,
         cfg.log_path,
     );
@@ -266,6 +285,8 @@ mod tests {
             threshold: 1,
             epoch_secs: 600,
             tor: false,
+            auto_backup_hours: 12,
+            auto_backup_keep: 3,
             spec_version: "v3".into(),
             log_path: "/tmp/custom.log".into(),
         };

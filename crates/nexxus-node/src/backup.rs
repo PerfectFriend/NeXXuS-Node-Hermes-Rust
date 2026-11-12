@@ -148,6 +148,20 @@ pub fn backup_store(store: &ChunkStore) -> Result<BackupManifest, NexxusError> {
     Ok(manifest)
 }
 
+/// D2: delete one backup directory (validated name, exclusive lock).
+pub fn delete_backup(store: &ChunkStore, name: &str) -> Result<(), NexxusError> {
+    validate_backup_name(name)?;
+    let bdir = backups_dir(store);
+    #[cfg(unix)]
+    let _lock = lock_file(&bdir.join(".backup.lock"), true)?;
+    let dir = bdir.join(name);
+    if !dir.is_dir() {
+        return Err(NexxusError::Io(format!("backup not found: {name}")));
+    }
+    std::fs::remove_dir_all(&dir).map_err(|e| NexxusError::Io(format!("rm backup {name}: {e}")))?;
+    Ok(())
+}
+
 pub fn list_backups(store: &ChunkStore) -> Result<Vec<BackupManifest>, NexxusError> {
     let dir = backups_dir(store);
     let mut out = Vec::new();
@@ -372,6 +386,18 @@ mod tests {
         store.put_chunk(&h(b"hello"), b"hello").unwrap();
         store.put_chunk(&h(b"world"), b"world").unwrap();
         (dir, store)
+    }
+
+    #[test]
+    fn delete_backup_removes_dir_and_rejects_bad_name() {
+        let (_d, store) = store_with_data();
+        let m = backup_store(&store).unwrap();
+        assert_eq!(list_backups(&store).unwrap().len(), 1);
+        delete_backup(&store, &m.name).unwrap();
+        assert!(list_backups(&store).unwrap().is_empty());
+        // path traversal / junk отклоняется
+        assert!(delete_backup(&store, "../store.redb").is_err());
+        assert!(delete_backup(&store, "no-such-backup").is_err());
     }
 
     #[test]
