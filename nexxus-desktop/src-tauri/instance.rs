@@ -1,4 +1,4 @@
-//! Однократный запуск монитора.
+//! Однократный запуск монитора (single-instance, без TOCTOU).
 //!
 //! Монитор запускается из ярлыка на рабочем столе, и пользователь может
 //! кликнуть ярлык повторно. Второй экземпляр был источником реальной поломки:
@@ -6,131 +6,117 @@
 //! воскрешал ноду, только что остановленную из трея первого экземпляра —
 //! из-за этого кнопка «Остановить ноду» выглядела как нерабочая.
 //!
-//! Защита — lock-файл с PID: если живой процесс уже держит lock, второй
-//! экземпляр тихо завершается, не трогая ноду.
+//! Защита — flock (advisory lock) на lock-файле: захват атомарный на уровне
+//! ОС, в отличие от прежней схемы create_new + remove_file, где два
+//! процесса одновременно видели «stale» lock и оба создавали файл (TOCTOU).
+//! Если lock уже держит живой процесс — второй экземпляр тихо завершается,
+//! не трогая ноду. PID в файле — только для диагностики.
 
+use fs2::FileExt;
 use std::io::Write;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 /// Путь к lock-файлу монитора.
 pub fn lock_path() -> PathBuf {
     crate::node_config::config_dir().join("monitor.lock")
 }
 
-/// Держит lock-файл; при выходе из процесса файл снимается.
+/// Держит flock на lock-файле; при выходе из процесса lock снимается ОС.
 pub struct InstanceLock {
+    file: std::fs::File,
     path: PathBuf,
 }
 
 impl InstanceLock {
-    /// Захватывает lock. `Err` — монитор уже запущен (или lock занят).
+    /// Захватывает lock. `Err` — монитор уже запущен (lock занят другим процессом).
     pub fn acquire() -> Result<Self, String> {
-        let path = lock_path();
+        Self::acquire_at(&lock_path())
+    }
+
+    fn acquire_at(path: &Path) -> Result<Self, String> {
         if let Some(parent) = path.parent() {
             let _ = std::fs::create_dir_all(parent);
         }
+        let file = std::fs::OpenOptions::new()
+            .read(true)
+            .write(true)
+            .create(true)
+            .truncate(false)
+            .open(path)
+            .map_err(|e| format!("Не удалось открыть lock-файл {}: {e}", path.display()))?;
 
-        for attempt in 0..2 {
-            match std::fs::OpenOptions::new()
-                .write(true)
-                .create_new(true)
-                .open(&path)
-            {
-                Ok(mut file) => {
-                    let _ = writeln!(file, "{}", std::process::id());
-                    let _ = file.flush();
-                    return Ok(InstanceLock { path });
-                }
-                Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => {
-                    if let Some(pid) = read_pid(&path) {
-                        if process_alive(pid) {
-                            return Err(format!(
-                                "Монитор уже запущен (PID {pid}) — второй экземпляр не запускается"
-                            ));
-                        }
-                    }
-                    // Lock остался от упавшего процесса — снимаем и пробуем снова.
-                    let _ = std::fs::remove_file(&path);
-                    if attempt == 1 {
-                        return Err(format!(
-                            "Не удалось захватить lock-файл {}: занят",
-                            path.display()
-                        ));
-                    }
-                }
-                Err(e) => {
-                    return Err(format!(
-                        "Не удалось создать lock-файл {}: {e}",
-                        path.display()
-                    ))
-                }
-            }
+        // Атомарный захват: либо мы держим lock, либо кто-то другой.
+        if file.try_lock_exclusive().is_err() {
+            let pid = read_pid(path).unwrap_or(0);
+            return Err(format!(
+                "Монитор уже запущен (PID {pid}) — второй экземпляр не запускается"
+            ));
         }
 
-        Err(format!("Не удалось захватить lock-файл {}", path.display()))
+        // Lock наш: перезаписываем содержимое своим PID (диагностика).
+        let mut f = &file;
+        let _ = f.set_len(0);
+        let _ = f.write_all(format!("{}\n", std::process::id()).as_bytes());
+        let _ = f.flush();
+
+        Ok(InstanceLock {
+            file,
+            path: path.to_path_buf(),
+        })
     }
 }
 
 impl Drop for InstanceLock {
     fn drop(&mut self) {
+        // flock снимается при закрытии fd; файл удаляем для чистоты каталога.
+        let _ = self.file.unlock();
         let _ = std::fs::remove_file(&self.path);
     }
 }
 
-/// PID из lock-файла.
-fn read_pid(path: &PathBuf) -> Option<u32> {
+/// PID из lock-файла (диагностика; 0 если не прочитан).
+fn read_pid(path: &Path) -> Option<u32> {
     let content = std::fs::read_to_string(path).ok()?;
     content.trim().lines().next()?.trim().parse().ok()
-}
-
-/// Жив ли процесс: есть /proc/<pid> и его cmdline похож на наш монитор.
-fn process_alive(pid: u32) -> bool {
-    let proc_dir = PathBuf::from("/proc").join(pid.to_string());
-    if !proc_dir.exists() {
-        return false;
-    }
-    // Если cmdline читается — проверяем, что это действительно монитор:
-    // PID мог быть переиспользован другим процессом. Имя тестового бинаря
-    // cargo — `nexxus_desktop-<hash>` (подчёркивание), у release-бинаря —
-    // `nexxus-desktop`, поэтому принимаем оба варианта.
-    match std::fs::read_to_string(proc_dir.join("cmdline")) {
-        Ok(cmdline) => {
-            cmdline.contains("nexxus-desktop") || cmdline.contains("nexxus_desktop")
-        }
-        Err(_) => true,
-    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    #[test]
-    fn lock_acquire_and_release() {
-        let tmp = std::env::temp_dir().join(format!("nexxus-instance-test-{}", std::process::id()));
-        let _ = std::fs::remove_dir_all(&tmp);
-        std::fs::create_dir_all(&tmp).unwrap();
-
-        let path = tmp.join("monitor.lock");
-        std::fs::write(&path, format!("{}\n", std::process::id())).unwrap();
-        assert_eq!(read_pid(&path), Some(std::process::id()));
-        assert!(process_alive(std::process::id()));
-        assert!(!process_alive(u32::MAX - 1));
-
-        let _ = std::fs::remove_dir_all(&tmp);
+    fn tmp_lock(name: &str) -> PathBuf {
+        let tmp = std::env::temp_dir().join(format!(
+            "nexxus-instance-{}-{name}",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_file(&tmp);
+        tmp
     }
 
     #[test]
-    fn stale_lock_pid_is_not_alive() {
-        let tmp = std::env::temp_dir().join(format!("nexxus-instance-stale-{}", std::process::id()));
-        let _ = std::fs::remove_dir_all(&tmp);
-        std::fs::create_dir_all(&tmp).unwrap();
+    fn second_acquire_on_same_file_fails_atomically() {
+        // TOCTOU-регрессия: два захвата одного файла — второй обязан получить Err,
+        // даже в одном процессе (flock per open-file-description).
+        let path = tmp_lock("race");
+        let first = InstanceLock::acquire_at(&path).expect("first acquire must succeed");
+        let second = InstanceLock::acquire_at(&path);
+        assert!(second.is_err(), "second acquire must fail while lock held");
+        drop(first);
+        // После drop lock освобождён — повторный захват успешен.
+        let third = InstanceLock::acquire_at(&path).expect("acquire after release must succeed");
+        drop(third);
+        let _ = std::fs::remove_file(&path);
+    }
 
-        let path = tmp.join("monitor.lock");
+    #[test]
+    fn stale_lock_file_without_holder_is_reacquired() {
+        // Lock-файл от упавшего процесса (никто не держит flock) захватывается сразу.
+        let path = tmp_lock("stale");
         std::fs::write(&path, "4294967290\n").unwrap();
         assert_eq!(read_pid(&path), Some(4294967290));
-        assert!(!process_alive(4294967290));
-
-        let _ = std::fs::remove_dir_all(&tmp);
+        let lock = InstanceLock::acquire_at(&path).expect("stale lock must be reacquired");
+        assert_eq!(read_pid(&path), Some(std::process::id()));
+        drop(lock);
+        let _ = std::fs::remove_file(&path);
     }
 }

@@ -29,16 +29,29 @@ impl VestingSchedule {
     }
 
     /// Amount vested (unlocked) so far. Linear: total * elapsed / LOCK, clamped.
+    /// Saturating: a huge total must not wrap negative.
     pub fn vested(&self) -> Money {
         if self.elapsed_days >= VESTING_LOCK_DAYS {
             return self.total;
         }
-        Money(self.total.0 * self.elapsed_days as i64 / VESTING_LOCK_DAYS as i64)
+        let days = i64::try_from(self.elapsed_days).unwrap_or(i64::MAX);
+        Money(
+            self.total
+                .0
+                .saturating_mul(days)
+                .saturating_div(VESTING_LOCK_DAYS as i64),
+        )
     }
 
     /// Amount still locked (not yet vested and not burned).
+    /// Saturating at zero — never negative even on inconsistent state.
     pub fn unvested(&self) -> Money {
-        Money(self.total.0 - self.vested().0 - self.burned.0)
+        Money(
+            self.total
+                .0
+                .saturating_sub(self.vested().0)
+                .saturating_sub(self.burned.0),
+        )
     }
 
     pub fn is_fully_vested(&self) -> bool {
@@ -49,7 +62,7 @@ impl VestingSchedule {
     /// Returns the burned amount; already-vested funds are untouched.
     pub fn burn_unvested(&mut self) -> Money {
         let burned = self.unvested();
-        self.burned = Money(self.burned.0 + burned.0);
+        self.burned = Money(self.burned.0.saturating_add(burned.0));
         burned
     }
 }
@@ -57,6 +70,23 @@ impl VestingSchedule {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn huge_total_does_not_wrap_negative() {
+        // Econ overflow regression: i64::MAX micro-NEXX total must not wrap.
+        let mut s = VestingSchedule::new(Money(i64::MAX));
+        s.advance(1);
+        let v = s.vested().0;
+        assert!(v >= 0);
+        assert!(s.unvested().0 >= 0);
+        s.advance(u64::MAX); // saturating advance
+        assert!(s.is_fully_vested());
+        assert_eq!(s.vested().0, i64::MAX);
+        assert_eq!(s.unvested().0, 0);
+        let b = s.burn_unvested();
+        assert_eq!(b.0, 0);
+        assert!(s.burned.0 >= 0);
+    }
 
     #[test]
     fn linear_vesting_halfway() {

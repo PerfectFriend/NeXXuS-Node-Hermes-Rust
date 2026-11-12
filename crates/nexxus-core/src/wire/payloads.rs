@@ -459,7 +459,7 @@ impl Payload for NodeAnnounce {
     }
 }
 
-/// ErrorResponse: code u16 || message_len u8 || message bytes
+/// ErrorResponse: code u16 || message_len u16 || message bytes (strict UTF-8).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ErrorResponse {
     pub code: u16,
@@ -471,19 +471,23 @@ impl Payload for ErrorResponse {
         let mut w = Writer::new();
         w.u16_be(self.code);
         let msg = self.message.as_bytes();
-        w.u8(msg.len() as u8).bytes(msg);
+        // u16: сообщения длиннее 255 байт не должны заворачиваться (fuzz-находка)
+        w.u16_be(msg.len() as u16).bytes(msg);
         w.buf
     }
 
     fn decode(payload: &[u8]) -> Result<Self, NexxusError> {
         let mut r = Reader::new(payload);
         let code = r.u16_be()?;
-        let msg_len = r.u8()? as usize;
+        let msg_len = r.u16_be()? as usize;
         let msg_bytes = r.bytes(msg_len)?;
-        Ok(ErrorResponse {
-            code,
-            message: String::from_utf8_lossy(msg_bytes).into_owned(),
-        })
+        let message = String::from_utf8(msg_bytes.to_vec()).map_err(|_| {
+            NexxusError::WireTruncated {
+                offset: 0,
+                need: msg_len,
+            }
+        })?;
+        Ok(ErrorResponse { code, message })
     }
 }
 

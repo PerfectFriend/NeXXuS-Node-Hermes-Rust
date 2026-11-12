@@ -18,6 +18,7 @@ pub struct SectionSplit {
 
 /// Splits a free-space amount (GB, including external devices) into sections.
 /// Base 16 GB yields a 2 GB vault; every extra section adds 1/8 of 16 GB = 2 GB.
+/// All arithmetic is saturating — a hostile u64::MAX input must not panic or wrap.
 pub fn split_into_sections(free_gb: u64) -> SectionSplit {
     let sections_16gb = free_gb / SECTION_SIZE_GB;
     let remainder_gb = free_gb % SECTION_SIZE_GB;
@@ -25,8 +26,8 @@ pub fn split_into_sections(free_gb: u64) -> SectionSplit {
     let vault_quota_gb = if sections_16gb == 0 {
         0
     } else {
-        let extra_gb = (sections_16gb - 1) * SECTION_SIZE_GB;
-        BASE_VAULT_REWARD_GB + extra_gb * EXPANDED_VAULT_RATIO_NUM / EXPANDED_VAULT_RATIO_DEN
+        let extra_gb = (sections_16gb - 1).saturating_mul(SECTION_SIZE_GB);
+        BASE_VAULT_REWARD_GB.saturating_add(extra_gb.saturating_mul(EXPANDED_VAULT_RATIO_NUM) / EXPANDED_VAULT_RATIO_DEN)
     };
 
     SectionSplit {
@@ -37,13 +38,17 @@ pub fn split_into_sections(free_gb: u64) -> SectionSplit {
 }
 
 /// Daily storer reward for a given amount of foreign GB actually held.
+/// Saturates at i64::MAX micro-NEXX instead of wrapping on huge inputs.
 pub fn daily_storer_reward(foreign_gb: u64) -> Money {
-    Money(crate::DAILY_NEXX_RATE_PER_GB * foreign_gb as i64)
+    let gb = i64::try_from(foreign_gb).unwrap_or(i64::MAX);
+    Money(crate::DAILY_NEXX_RATE_PER_GB.saturating_mul(gb))
 }
 
 /// Daily cost paid to treasury for a subscribed GB amount.
+/// Saturates at i64::MAX micro-NEXX instead of wrapping on huge inputs.
 pub fn daily_subscription_cost(subscribed_gb: u64) -> Money {
-    Money(crate::SUBSCRIPTION_DAILY_COST_PER_GB * subscribed_gb as i64)
+    let gb = i64::try_from(subscribed_gb).unwrap_or(i64::MAX);
+    Money(crate::SUBSCRIPTION_DAILY_COST_PER_GB.saturating_mul(gb))
 }
 
 /// Anti-loop Sybil invariant (README §economics):
@@ -98,5 +103,29 @@ mod tests {
         assert!(super::anti_loop_invariant_holds());
         // self-dealing is strictly negative: 1.25 - 1.30 = -0.05 NEXX/GB/day
         assert_eq!(super::self_dealing_yield_per_gb().to_decimal_string(), "-0.05");
+    }
+
+    #[test]
+    fn huge_gb_inputs_saturate_instead_of_wrapping() {
+        // Econ overflow regression: u64::MAX GB must not panic or wrap to negative.
+        let r = daily_storer_reward(u64::MAX);
+        assert_eq!(r.0, i64::MAX);
+        let c = daily_subscription_cost(u64::MAX);
+        assert_eq!(c.0, i64::MAX);
+        // boundary: largest gb that fits i64
+        let r = daily_storer_reward(i64::MAX as u64);
+        assert_eq!(r.0, i64::MAX); // 1.25e9 * i64::MAX saturates
+        // split_into_sections must not panic on u64::MAX either
+        let s = split_into_sections(u64::MAX);
+        assert_eq!(s.sections_16gb, u64::MAX / SECTION_SIZE_GB);
+    }
+
+    #[test]
+    fn money_arithmetic_is_saturating_not_wrapping() {
+        // direct invariant: reward never becomes negative due to overflow
+        for gb in [0u64, 1, 16, 1_000_000, u64::MAX / 2, u64::MAX] {
+            assert!(daily_storer_reward(gb).0 >= 0);
+            assert!(daily_subscription_cost(gb).0 >= 0);
+        }
     }
 }
