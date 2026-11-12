@@ -141,7 +141,7 @@ fn main() {
         });
         if let Some(phrase) = &fresh_mnemonic {
             eprintln!("nexxusd: NEW identity created. Write down this 12-word mnemonic (shown only once):");
-            eprintln!("  {phrase}");
+            eprintln!("  {}", phrase.as_str());
         }
         let our_id = node_iden.node_id;
 

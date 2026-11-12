@@ -11,6 +11,7 @@ use nexxus_core::keys::identity::Identity;
 use nexxus_core::keys::seed::{x25519_secret_from_seed, IdentitySeed};
 use nexxus_core::keys::slip10::DerivedKey;
 use nexxus_core::types::NodeId;
+use zeroize::Zeroizing;
 
 use crate::storage::ChunkStore;
 
@@ -29,17 +30,21 @@ pub struct NodeIdentity {
 /// Load the identity from the store, or generate a new mnemonic, persist it
 /// and derive keys. The second return value is `Some(mnemonic)` only when the
 /// identity was freshly created — the caller may print it exactly once.
+/// VLT-01: the mnemonic string is wrapped in `Zeroizing` so it is wiped from
+/// memory on drop.
 pub fn load_or_create_identity(
     store: &ChunkStore,
-) -> Result<(NodeIdentity, Option<String>), NexxusError> {
+) -> Result<(NodeIdentity, Option<Zeroizing<String>>), NexxusError> {
     if let Some(phrase_bytes) = store.get_meta(META_IDENTITY_MNEMONIC)? {
-        let phrase = String::from_utf8(phrase_bytes)
-            .map_err(|_| NexxusError::Io("identity mnemonic is not valid utf-8".into()))?;
+        let phrase = Zeroizing::new(
+            String::from_utf8(phrase_bytes)
+                .map_err(|_| NexxusError::Io("identity mnemonic is not valid utf-8".into()))?,
+        );
         let seed = IdentitySeed::validate(&phrase)?;
         return Ok((derive_identity(&seed), None));
     }
     let seed = IdentitySeed::generate()?;
-    let phrase = seed.mnemonic.clone();
+    let phrase = Zeroizing::new(seed.mnemonic.clone());
     store.put_meta(META_IDENTITY_MNEMONIC, phrase.as_bytes())?;
     Ok((derive_identity(&seed), Some(phrase)))
 }
@@ -49,7 +54,7 @@ pub fn load_or_create_identity(
 pub fn init_identity(
     store: &ChunkStore,
     mnemonic: Option<&str>,
-) -> Result<(NodeIdentity, Option<String>), NexxusError> {
+) -> Result<(NodeIdentity, Option<Zeroizing<String>>), NexxusError> {
     match mnemonic {
         Some(phrase) => {
             let seed = IdentitySeed::validate(phrase)?;
@@ -78,10 +83,11 @@ pub fn x25519_pub(secret: &[u8; 32]) -> [u8; 32] {
 /// Read the persisted BIP-39 mnemonic. Used ONLY by the one-time
 /// `node_identity_export` API call (with explicit confirmation) — the caller
 /// must never log it. Returns None if the store has no identity yet.
-pub fn read_mnemonic(store: &ChunkStore) -> Result<Option<String>, NexxusError> {
+/// VLT-01: returned as `Zeroizing<String>` — wiped on drop.
+pub fn read_mnemonic(store: &ChunkStore) -> Result<Option<Zeroizing<String>>, NexxusError> {
     match store.get_meta(META_IDENTITY_MNEMONIC)? {
         Some(bytes) => String::from_utf8(bytes)
-            .map(Some)
+            .map(|s| Some(Zeroizing::new(s)))
             .map_err(|_| NexxusError::Io("identity mnemonic is not valid utf-8".into())),
         None => Ok(None),
     }
@@ -103,10 +109,12 @@ pub fn identity_status(store: &ChunkStore) -> Result<(bool, Option<usize>), Nexx
 pub fn import_mnemonic(store: &ChunkStore, phrase: &str) -> Result<(NodeId, &'static str), NexxusError> {
     let seed = IdentitySeed::validate(phrase)?;
     if let Some(existing) = store.get_meta(META_IDENTITY_MNEMONIC)? {
-        let existing_seed = IdentitySeed::validate(
-            &String::from_utf8(existing)
+        // VLT-01: plaintext copy of the stored mnemonic is zeroized on drop.
+        let existing_phrase = Zeroizing::new(
+            String::from_utf8(existing)
                 .map_err(|_| NexxusError::Io("identity mnemonic is not valid utf-8".into()))?,
-        )?;
+        );
+        let existing_seed = IdentitySeed::validate(&existing_phrase)?;
         if existing_seed.seed_bytes() != seed.seed_bytes() {
             return Err(NexxusError::Io(
                 "store already initialized with a different mnemonic".into(),
@@ -208,7 +216,10 @@ mod tests {
         assert!(read_mnemonic(&store).unwrap().is_none());
         let (_, created) = load_or_create_identity(&store).unwrap();
         let phrase = created.unwrap();
-        assert_eq!(read_mnemonic(&store).unwrap().as_deref(), Some(phrase.as_str()));
+        assert_eq!(
+            read_mnemonic(&store).unwrap().as_ref().map(|z| z.as_str()),
+            Some(phrase.as_str())
+        );
         assert_eq!(identity_status(&store).unwrap(), (true, Some(12)));
     }
 

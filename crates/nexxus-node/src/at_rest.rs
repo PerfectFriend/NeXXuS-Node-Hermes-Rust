@@ -19,6 +19,10 @@ use zeroize::Zeroize;
 pub const STORE_ENCRYPTION_META: &str = "store_encryption";
 /// Значение флага для XChaCha20-Poly1305 (v1).
 pub const STORE_ENCRYPTION_V1: &str = "xchacha20poly1305-v1";
+/// STR-02: промежуточный флаг двухфазной миграции. Ставится ДО re-encrypt,
+/// финальный V1 — ПОСЛЕ. При старте с этим флагом миграция возобновляется:
+/// чанки, которые уже дешифруются — пропускаются, остальные дожимаются.
+pub const STORE_ENCRYPTION_MIGRATING: &str = "migrating-xchacha20poly1305-v1";
 
 const HKDF_SALT: &[u8] = b"nexxus-store-v1";
 const HKDF_INFO: &[u8] = b"nexxus-store-key";

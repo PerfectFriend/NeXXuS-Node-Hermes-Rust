@@ -114,8 +114,10 @@ pub fn restore_seed(store: &ChunkStore, pin: &str) -> Result<RestoreOutcome, Nex
     if dec.is_duress {
         return Ok(RestoreOutcome::Duress);
     }
-    let phrase = String::from_utf8(dec.decrypted_bytes)
-        .map_err(|_| NexxusError::Vault("decrypted seed is not valid utf-8".into()))?;
+    let phrase = zeroize::Zeroizing::new(
+        String::from_utf8(dec.decrypted_bytes)
+            .map_err(|_| NexxusError::Vault("decrypted seed is not valid utf-8".into()))?,
+    );
     let (node_id, status) = import_mnemonic(store, &phrase)?;
     Ok(if status == "imported" {
         RestoreOutcome::Imported(node_id)
@@ -156,7 +158,7 @@ mod tests {
         // Содержимое файла — JSON, без сид-фразы в открытом виде.
         let raw = std::fs::read_to_string(&path).unwrap();
         let phrase = read_mnemonic(&store).unwrap().unwrap();
-        assert!(!raw.contains(&phrase));
+        assert!(!raw.contains(phrase.as_str()));
     }
 
     #[test]

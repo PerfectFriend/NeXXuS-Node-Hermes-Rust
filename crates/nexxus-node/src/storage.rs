@@ -55,20 +55,22 @@ impl ChunkStore {
 
     /// Включает шифрование at rest ключом, выведенным из seed (at_rest::StoreKey).
     ///
-    /// Если стор уже помечен как зашифрованный (meta-флаг) — ключ просто
-    /// устанавливается (с проверкой дешифрования первого чанка). Если стор
-    /// открыт (флага нет) — выполняется миграция: один проход re-encrypt всех
-    /// чанков, затем флаг. Возвращает число мигрированных чанков.
+    /// STR-02 двухфазная миграция: сначала meta-флаг `migrating`, затем
+    /// re-encrypt всех чанков, затем финальный флаг `v1` — каждая фаза
+    /// отдельным коммитом. При падении между фазами рестарт видит
+    /// `migrating` и дожимает миграцию (уже зашифрованные чанки
+    /// распознаются по успешному decrypt и пропускаются).
+    ///
+    /// Если стор уже помечен как зашифрованный (v1) — ключ просто
+    /// устанавливается (с проверкой дешифрования первого чанка).
+    /// Возвращает число мигрированных чанков.
     pub fn enable_encryption(&self, key: crate::at_rest::StoreKey) -> Result<usize, NexxusError> {
-        use crate::at_rest::{decrypt_chunk, encrypt_chunk, STORE_ENCRYPTION_META, STORE_ENCRYPTION_V1};
+        use crate::at_rest::{
+            decrypt_chunk, STORE_ENCRYPTION_META, STORE_ENCRYPTION_MIGRATING,
+            STORE_ENCRYPTION_V1,
+        };
         match self.get_meta(STORE_ENCRYPTION_META)? {
-            Some(flag) => {
-                if flag != STORE_ENCRYPTION_V1.as_bytes() {
-                    return Err(NexxusError::Io(format!(
-                        "unsupported store encryption format: {}",
-                        String::from_utf8_lossy(&flag)
-                    )));
-                }
+            Some(flag) if flag == STORE_ENCRYPTION_V1.as_bytes() => {
                 // Уже зашифрован: проверяем ключ на первом чанке.
                 let hashes = self.list_chunk_hashes()?;
                 if let Some(first) = hashes.first() {
@@ -80,56 +82,98 @@ impl ChunkStore {
                 *self.crypto.lock().unwrap() = Some(key);
                 Ok(0)
             }
-            None => {
-                // Миграция открытого стора: читаем все, шифруем, пишем одной транзакцией.
-                let rtx = self
-                    .db
-                    .begin_read()
-                    .map_err(|e| NexxusError::Io(format!("redb read tx: {e}")))?;
-                let pairs: Vec<(ChunkHash, Vec<u8>)> = match rtx.open_table(CHUNKS) {
-                    Ok(t) => t
-                        .iter()
-                        .map_err(|e| NexxusError::Io(format!("redb iter: {e}")))?
-                        .collect::<Result<Vec<_>, redb::StorageError>>()
-                        .map_err(|e| NexxusError::Io(format!("redb iter item: {e}")))?
-                        .into_iter()
-                        .map(|(k, v)| (ChunkHash(k.value()), v.value().to_vec()))
-                        .collect(),
-                    Err(redb::TableError::TableDoesNotExist(_)) => Vec::new(),
-                    Err(e) => return Err(NexxusError::Io(format!("redb table: {e}"))),
-                };
-                drop(rtx);
-                let total = pairs.len();
-                let wtx = self
-                    .db
-                    .begin_write()
-                    .map_err(|e| NexxusError::Io(format!("redb write tx: {e}")))?;
-                {
-                    let mut chunks = wtx
-                        .open_table(CHUNKS)
-                        .map_err(|e| NexxusError::Io(format!("redb table: {e}")))?;
-                    for (i, (hash, plain)) in pairs.into_iter().enumerate() {
-                        let ct = encrypt_chunk(&key, &hash, &plain);
-                        chunks
-                            .insert(hash.0, ct.as_slice())
-                            .map_err(|e| NexxusError::Io(format!("redb insert: {e}")))?;
-                        if i % 1000 == 0 {
-                            eprintln!("nexxusd: store re-encrypt progress {}/{total}", i + 1);
-                        }
-                    }
-                    let mut meta = wtx
-                        .open_table(META)
-                        .map_err(|e| NexxusError::Io(format!("redb table: {e}")))?;
-                    meta.insert(STORE_ENCRYPTION_META, STORE_ENCRYPTION_V1.as_bytes())
-                        .map_err(|e| NexxusError::Io(format!("redb insert: {e}")))?;
-                }
-                wtx.commit()
-                    .map_err(|e| NexxusError::Io(format!("redb commit: {e}")))?;
+            Some(flag) if flag == STORE_ENCRYPTION_MIGRATING.as_bytes() => {
+                // STR-02: resume после краша — дожимаем миграцию.
+                let n = self.migrate_chunks(&key, true)?;
+                self.set_encryption_flag(STORE_ENCRYPTION_V1)?;
                 *self.crypto.lock().unwrap() = Some(key);
-                eprintln!("nexxusd: store re-encrypt done, {total} chunks");
-                Ok(total)
+                Ok(n)
+            }
+            Some(flag) => Err(NexxusError::Io(format!(
+                "unsupported store encryption format: {}",
+                String::from_utf8_lossy(&flag)
+            ))),
+            None => {
+                // Фаза 1: помечаем "migrating" отдельным коммитом ДО re-encrypt.
+                self.set_encryption_flag(STORE_ENCRYPTION_MIGRATING)?;
+                // Фаза 2: re-encrypt + финальный флаг.
+                let n = self.migrate_chunks(&key, false)?;
+                self.set_encryption_flag(STORE_ENCRYPTION_V1)?;
+                *self.crypto.lock().unwrap() = Some(key);
+                eprintln!("nexxusd: store re-encrypt done, {n} chunks");
+                Ok(n)
             }
         }
+    }
+
+    /// Write the encryption meta flag in its own transaction (migration phase marker).
+    fn set_encryption_flag(&self, flag: &str) -> Result<(), NexxusError> {
+        use crate::at_rest::STORE_ENCRYPTION_META;
+        let wtx = self
+            .db
+            .begin_write()
+            .map_err(|e| NexxusError::Io(format!("redb write tx: {e}")))?;
+        {
+            let mut meta = wtx
+                .open_table(META)
+                .map_err(|e| NexxusError::Io(format!("redb table: {e}")))?;
+            meta.insert(STORE_ENCRYPTION_META, flag.as_bytes())
+                .map_err(|e| NexxusError::Io(format!("redb insert: {e}")))?;
+        }
+        wtx.commit()
+            .map_err(|e| NexxusError::Io(format!("redb commit: {e}")))?;
+        Ok(())
+    }
+
+    /// Re-encrypt all plaintext chunks in one write transaction.
+    /// If `resume` is true, chunks that already decrypt with `key` are skipped
+    /// (crash-resume path). Returns the number of chunks (re-)encrypted.
+    fn migrate_chunks(&self, key: &crate::at_rest::StoreKey, resume: bool) -> Result<usize, NexxusError> {
+        use crate::at_rest::{decrypt_chunk, encrypt_chunk};
+        let rtx = self
+            .db
+            .begin_read()
+            .map_err(|e| NexxusError::Io(format!("redb read tx: {e}")))?;
+        let pairs: Vec<(ChunkHash, Vec<u8>)> = match rtx.open_table(CHUNKS) {
+            Ok(t) => t
+                .iter()
+                .map_err(|e| NexxusError::Io(format!("redb iter: {e}")))?
+                .collect::<Result<Vec<_>, redb::StorageError>>()
+                .map_err(|e| NexxusError::Io(format!("redb iter item: {e}")))?
+                .into_iter()
+                .map(|(k, v)| (ChunkHash(k.value()), v.value().to_vec()))
+                .collect(),
+            Err(redb::TableError::TableDoesNotExist(_)) => Vec::new(),
+            Err(e) => return Err(NexxusError::Io(format!("redb table: {e}"))),
+        };
+        drop(rtx);
+        let total = pairs.len();
+        let mut done = 0usize;
+        let wtx = self
+            .db
+            .begin_write()
+            .map_err(|e| NexxusError::Io(format!("redb write tx: {e}")))?;
+        {
+            let mut chunks = wtx
+                .open_table(CHUNKS)
+                .map_err(|e| NexxusError::Io(format!("redb table: {e}")))?;
+            for (i, (hash, raw)) in pairs.into_iter().enumerate() {
+                if resume && decrypt_chunk(key, &hash, &raw).is_ok() {
+                    continue; // already encrypted before the crash
+                }
+                let ct = encrypt_chunk(key, &hash, &raw);
+                chunks
+                    .insert(hash.0, ct.as_slice())
+                    .map_err(|e| NexxusError::Io(format!("redb insert: {e}")))?;
+                done += 1;
+                if i % 1000 == 0 {
+                    eprintln!("nexxusd: store re-encrypt progress {}/{total}", i + 1);
+                }
+            }
+        }
+        wtx.commit()
+            .map_err(|e| NexxusError::Io(format!("redb commit: {e}")))?;
+        Ok(done)
     }
 
     /// Сырое (как лежит в redb) значение чанка — для миграции и тестов.
@@ -410,6 +454,45 @@ mod tests {
         let store = ChunkStore::open(&path).unwrap();
         assert_eq!(store.enable_encryption(key).unwrap(), 0);
         assert_eq!(store.get_chunk(&h(b"plain-two")).unwrap().unwrap(), b"plain-two");
+    }
+
+    #[test]
+    fn migration_resume_after_crash_midway() {
+        // STR-02: краш между фазами — флаг "migrating", часть чанков уже
+        // зашифрована. Повторный enable_encryption дожимает остальное и
+        // ставит финальный флаг v1; все чанки читаются.
+        use crate::at_rest::{encrypt_chunk, STORE_ENCRYPTION_META, STORE_ENCRYPTION_MIGRATING, STORE_ENCRYPTION_V1};
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("store.redb");
+        let key = crate::at_rest::StoreKey::derive(&[0x7Cu8; 64]);
+
+        let h1 = h(b"chunk-one");
+        let h2 = h(b"chunk-two");
+        {
+            let store = ChunkStore::open(&path).unwrap();
+            store.put_chunk(&h1, b"chunk-one").unwrap();
+            store.put_chunk(&h2, b"chunk-two").unwrap();
+            // Симулируем краш после фазы 1: флаг migrating + один чанк уже зашифрован.
+            store.put_meta(STORE_ENCRYPTION_META, STORE_ENCRYPTION_MIGRATING.as_bytes()).unwrap();
+            let ct = encrypt_chunk(&key, &h1, b"chunk-one");
+            let wtx = store.db.begin_write().unwrap();
+            let mut t = wtx.open_table(CHUNKS).unwrap();
+            t.insert(h1.0, ct.as_slice()).unwrap();
+            drop(t);
+            wtx.commit().unwrap();
+        }
+
+        let store = ChunkStore::open(&path).unwrap();
+        // Resume: дожимается только незашифрованный чанк.
+        assert_eq!(store.enable_encryption(key.clone()).unwrap(), 1);
+        assert_eq!(
+            store.get_meta(STORE_ENCRYPTION_META).unwrap().unwrap(),
+            STORE_ENCRYPTION_V1.as_bytes()
+        );
+        assert_eq!(store.get_chunk(&h1).unwrap().unwrap(), b"chunk-one");
+        assert_eq!(store.get_chunk(&h2).unwrap().unwrap(), b"chunk-two");
+        // Повторный вызов — уже v1, миграции нет.
+        assert_eq!(store.enable_encryption(key).unwrap(), 0);
     }
 
     #[test]

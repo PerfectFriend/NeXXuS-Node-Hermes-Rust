@@ -463,7 +463,7 @@ impl LocalApi {
         }
         match read_mnemonic(&self.store)? {
             Some(phrase) => Ok(serde_json::json!({
-                "mnemonic": phrase,
+                "mnemonic": phrase.as_str(),
                 "word_count": phrase.split_whitespace().count(),
             })),
             None => Err(NexxusError::Io("identity not initialized".into())),

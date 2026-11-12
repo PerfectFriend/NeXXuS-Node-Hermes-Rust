@@ -299,7 +299,7 @@ fn cmd_init(rest: &[String]) -> i32 {
                     "node_id": hex::encode(iden.node_id.0),
                     "ed25519_pub": hex::encode(iden.identity.verifying_key.to_bytes()),
                     "x25519_pub": hex::encode(crate::identity_store::x25519_pub(&iden.x25519_secret)),
-                    "mnemonic": created,
+                    "mnemonic": created.as_ref().map(|z| z.as_str()),
                 }))
                 .unwrap()
             );

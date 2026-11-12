@@ -74,6 +74,7 @@ impl RoutingTable {
     }
 
     /// Required companion of `len` (clippy::len_without_is_empty).
+    #[allow(dead_code)]
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
