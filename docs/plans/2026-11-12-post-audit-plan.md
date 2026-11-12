@@ -68,3 +68,14 @@
 6. **DEP-03** ⚠️ — владелец: ротация PAT/bot-токенов + filter-repo/squash ДО раздачи репо аудитору.
 
 Проверено: `cargo test --workspace` 158/158 green, `cargo clippy --workspace --all-targets -- -D warnings` чист, live-smoke nexxusd (WS + P2P порты).
+
+## СТАТУС 2026-11-12 (коммит 261918b) — фаза A2 ЗАКРЫТА
+7. **NET-03** ✅ — `max_peers` (default 64, AtomicUsize) → announce при полной таблице отклоняется `0x0009`; `IDLE_TIMEOUT` 20 мин на established connections. Тест `peer_cap_rejects_announce_when_routing_full`.
+8. **VLT-01** ✅ — mnemonic везде как `Zeroizing<String>`: `read_mnemonic`, `load_or_create_identity`, `init_identity`, `restore_seed`, `import_mnemonic` (existing phrase). Вызовы в main/cli/local_api обновлены.
+9. **STR-02** ✅ — двухфазная миграция: флаг `migrating` отдельным коммитом → re-encrypt → флаг `v1`; при рестарте с `migrating` миграция дожимается (уже зашифрованные чанки пропускаются по decrypt). Тест `migration_resume_after_crash_midway`.
+10. **VLT-03** ✅ — проверено по коду: UI различает `duress` (алерт в Telegram, сид НЕ восстановлен) и `wrong_pin` (`nexxus-desktop/src/main.js` ~730, API статусы в `local_api.rs`).
+11. **THREAT_MODEL.md** ✅ — `docs/THREAT_MODEL.md`: 5 trust-boundary пунктов аудита + API-02 + статусы NET-01/02/03, BKP, остатки (DEP-01/03).
+
+Проверено: workspace 162/162 green, clippy `-D warnings` чист, WS live-smoke (ping ok / no-auth -32001 / 2MiB frame закрыт).
+
+Осталось: фаза B (VLT-02 re-encrypt 100k→600k, fuzz wire-парсера, econ overflow-тесты, DEP-02 единый rand, guardian TOCTOU) + ручные DEP-01 (cargo audit в CI) и DEP-03 (ротация секретов владельцем).
