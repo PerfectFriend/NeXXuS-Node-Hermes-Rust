@@ -1,0 +1,56 @@
+name: Rust CI (core/node/econ + desktop)
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+permissions:
+  contents: read
+
+jobs:
+  rust-gates:
+    name: test + clippy + audit + fuzz
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+
+      - name: cargo test --workspace
+        run: cargo test --workspace
+
+      - name: cargo clippy (deny warnings)
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+      - name: cargo build --release
+        run: cargo build --release --workspace
+
+      - name: cargo audit (RustSec, .cargo/audit.toml ignores)
+        run: |
+          cargo install cargo-audit --locked
+          cargo audit
+
+      - name: wire fuzz (proptest) + golden vectors
+        run: cargo test -p nexxus-core --test wire_fuzz --test wire_vectors --release
+
+  desktop-gates:
+    name: nexxus-desktop tests + clippy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Build deps for Tauri (Linux)
+        run: sudo apt-get update && sudo apt-get install -y libwebkit2gtk-4.1-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev
+      - name: cargo test (desktop)
+        working-directory: nexxus-desktop
+        run: cargo test --bin nexxus-desktop
+      - name: cargo clippy (desktop)
+        working-directory: nexxus-desktop
+        run: cargo clippy --all-targets -- -D warnings
