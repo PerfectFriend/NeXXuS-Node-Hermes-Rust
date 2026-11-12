@@ -39,6 +39,22 @@
 9. [🌐 Multi-Host Mesh Cluster Guide](#-multi-host-mesh-cluster-guide)
 10. [📈 3-Year Market Economics & DePIN Model (2026–2029)](#-3-year-market-economics--depin-model-20262029)
 11. [❓ FAQ & Troubleshooting](#-faq--troubleshooting)
+12. [🛡️ Security, Audit & Trust Boundaries](#️-security-audit--trust-boundaries)
+
+---
+
+## 🛡️ Security, Audit & Trust Boundaries
+
+- **Quick start & honest capabilities/limits:** [USER_GUIDE.md](USER_GUIDE.md)
+- **Vulnerability reporting & distribution rule (squash-mirror only):** [SECURITY.md](SECURITY.md)
+- **Threat model & residual risks:** [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md)
+- **External audit series (initial → re-audit #3, RC1 approved):** [docs/audits/](docs/audits/)
+- **Reviewer entry point:** [AUDITOR.md](AUDITOR.md)
+- **Post-RC1 evolution roadmap:** [docs/plans/2026-11-12-evolution-post-rc1.md](docs/plans/2026-11-12-evolution-post-rc1.md)
+
+> ⚠️ Economics in RC1 is **accounting only — not payments, not on-chain**.
+> Full `main` history contains historical bot tokens (risk-accepted by owner) —
+> download releases only from the **squash mirror** (see SECURITY.md).
 
 ---
 
