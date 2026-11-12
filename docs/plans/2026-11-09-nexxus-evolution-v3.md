@@ -68,31 +68,31 @@
 ### Task C1: Машина состояний онбординга (персистентная) — ✅ DONE
 - `nexxus-desktop/src-tauri/onboarding.rs`: `StepId` (Welcome → Identity → Store → Network → Notifications → Done), состояние в `~/.nexxus/onboarding.json` (атомарная запись tmp+rename, 0600, `NEXXUS_CONFIG_DIR` для тестов), `advance` идемпотентен и отклоняет пропуски, `reset`. 6 unit-тестов (сериализованы через ENV_LOCK, уникальные temp-dir). Команды `onboarding_get_cmd` / `onboarding_advance_cmd` / `onboarding_reset_cmd` + индикатор шага в шапке UI.
 
-### Task C2: BIP39 регистрация/восстановление/экспорт в UI
+### Task C2: BIP39 регистрация/восстановление/экспорт в UI — ✅ DONE (проверено 2026-11-12: API node_identity_export/import/status + панель «Идентичность» в мониторе)
 - В `identity_store.rs`: `export_mnemonic(confirm: bool)`, `import_mnemonic` (отказ на чужую фразу поверх существующего стора); проброс в API (`node_identity_export` с подтверждением, сид — только в ответе один раз, не в лог); UI: генерация 12/24 слов, ввод при восстановлении, QR-код сида (qrcode в dev-deps фронта), чекбокс «я записал».
 - **Вендорено из нашего репо BIP39-Onboarding-pipeline**: `crates/nexxus-core/src/keys/verification.rs` — `generate_verification_challenges` (3 вопроса «какое слово под номером N», 4 дистрактора из wordlist, retry с другими позициями) + `check_challenge`; UI онбординга использует их вместо своей логики.
 - Тесты: roundtrip node_id, отказ без confirm, challenges: 3 позиции/5 вариантов, retry исключает прежние. Commit `feat: BIP39 register/restore/export + verification challenges`.
 
-### Task C3: Зашифрованный бэкап сид-фразы
+### Task C3: Зашифрованный бэкап сид-фразы — ✅ DONE (API node_seed_backup/restore/vault_status + панель seed.vault в мониторе)
 - Используем вендоренный `keys::vault`: `encrypt_vault_payload(seed_json, pin, Some(duress_pin))` → `seed.vault` рядом со стором (AES-256-GCM, PBKDF2 600k, формат совместим с BIP39-ABOARD-SDK); восстановление — `decrypt_vault_payload`, duress → ложный успех + сигнал в лог/Telegram. Тесты roundtrip + отказ при неверном PIN + tamper → AeadAuthFailed. Commit `feat(desktop): encrypted seed vault backup (SDK-compatible)`.
 
 ## Phase D — Бэкапы, восстановление, self-heal
 
-### Task D1: Снапшоты store + конфига с проверкой целостности
+### Task D1: Снапшоты store + конфига с проверкой целостности — ✅ DONE (node_backup/verify/restore + flock + тесты, фаза B аудита)
 - Новая команда API `node_backup` (redb snapshot → tar.zst? без новых тяжёлых dep: redb online backup API + gzip через flate2 если уже в дереве, иначе plain copy с quiesce), манифест с merkle root стора; восстановление `node_restore` с верификацией манифеста. Тесты: бэкап → порча файла → restore отказывает; бэкап → restore на чистый стор → node_id совпадает. Commit `feat(node): verified store backups/restore`.
 
-### Task D2: Автобэкап в мониторе + 3-2-1
+### Task D2: Автобэкап в мониторе + 3-2-1 — ✅ DONE (commit f154a64: guardian scheduler, ротация, /run/media, Telegram)
 - Планировщик в guardian: раз в N часов (конфиг), ротация (хранить K последних), копия на внешний носитель если примонтирован (`/run/media/...`), отчёт в Telegram. Тесты планировщика на фиктивных часах. Commit `feat(desktop): scheduled encrypted backups with rotation`.
 
-### Task D3: `nexxusd doctor` — самодиагностика
+### Task D3: `nexxusd doctor` — самодиагностика — ✅ DONE (API node_doctor вызывается из монитора)
 - CLI-команда: проверка портов, прав на файлы, целостности стора, Tor, диска, памяти; вывод отчётом; монитор показывает результат в панели здоровья. Commit `feat(cli): nexxusd doctor self-check`.
 
 ## Phase E — Экономика и эпохи: видимость
 
-### Task E1: Панель экономики
+### Task E1: Панель экономики — ✅ DONE (API node_econ + панель «Экономика узла»: вестинг, секции, health)
 - API: `node_econ` — vesting progress (vested/unvested, дней до полной), секции (split_into_sections), health/degradation (offline hours → Health), анти-луп инвариант (anti_loop_invariant_holds) как индикатор; UI: прогресс-бар вестинга, карточки секций, health-meter. Тесты уже в econ; нужен только проброс + UI-тесты. Commit `feat(ui): economics panel (vesting, sections, health)`.
 
-### Task E2: Эпоха и аудиторы
+### Task E2: Эпоха и аудиторы — ✅ DONE (API node_epoch + панель «Эпоха и расчёты»)
 - `node_epoch` расширить: номер, merkle root, total_bytes, список auditor-подписей (verify_epoch_finalize → EpochVerifyResult), история последних N эпох из стора; UI таймлайн. Multisig (ADR 0008): статус кворума (сколько из auditorов подписали), без ончейн-интеграции пока. Commit `feat: epoch timeline + auditor quorum status`.
 
 ## Phase F — Сеть и парк узлов
@@ -108,13 +108,13 @@
 
 ## Phase G — Качество, CI, релизы
 
-### Task G1: Rust в CI
+### Task G1: Rust в CI — ✅ DONE (.github/workflows/rust-ci.yml: test/clippy -D warnings/release/audit/fuzz + desktop job)
 - `.github/workflows/ci-release.yml`: добавить job `cargo test --workspace`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo build --release --workspace`, `cargo build -p nexxus-desktop --release`; артефакты (nexxusd, nexxus-desktop) в release. Commit `ci: run cargo test/clippy/build`.
 
-### Task G2: Fuzz + proptest
+### Task G2: Fuzz + proptest — ✅ DONE (crates/nexxus-core/tests/wire_fuzz.rs, 512 кейсов, в CI)
 - proptest для RS encode/decode (любые k из n восстанавливают), merkle proof verify, wire parser (любой байтовый ввод не падает); cargo-fuzz цель для `wire::reader` (offline-локально, без CI-fuzz пока). Commit `test: property + fuzz tests for wire/rs/merkle`.
 
-### Task G3: Golden vectors на все опкоды + кросс-импл паритет
+### Task G3: Golden vectors на все опкоды + кросс-импл паритет — ✅ DONE (nexxus-vectors/06_wire_frames_v2_v3.json + тест + CI)
 - Расширить `nexxus-vectors/` векторами на каждый опкод (0x01–0x0D); тест в Rust читает те же JSON, что и TS (`test/golden-vectors.test.ts`) — один источник правды. Commit `test: golden vectors for all wire opcodes, shared Rust/TS`.
 
 ### Task G4: Self-update с верификацией подписи
@@ -140,3 +140,8 @@
 ## Порядок выполнения
 
 A1 → A2 → A3 → A4 → B1 → B2 → B3 → C1 → C2 → C3 → D1 → D2 → D3 → E1 → E2 → F1 → F2 → F3 → G1 → G2 → G3 → G4 → G5 → H1. Phase A обязателен первой: она закрывает реальные дыры безопасности до наращивания UI.
+
+## СТАТУС 2026-11-12 (коммит 454132b) — аудит закрыт, RC1 approved
+- Re-audit #2 (Grok): новых Critical/High/Medium нет; AB-02 закрыт (confirm в node_backup_delete), AB-01 задокументирован. Ответ: docs/audits/2026-11-12-reaudit2-response.md
+- C2/C3/D1/D2/D3/E1/E2/G1/G2/G3 проверены в коде и отмечены DONE выше.
+- Открыто дальше по плану: F1 (скоринг пиров — лимиты уже в NET-01/03), F2 (fleet view), F3 (onion-дашборд), G4 (signed self-update), G5 (пакеты), H1 (SMP inbox UI).
