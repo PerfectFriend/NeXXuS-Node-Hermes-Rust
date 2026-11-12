@@ -27,10 +27,17 @@ use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 use tokio::net::TcpListener;
 use tokio::sync::{mpsc, Mutex};
-use tokio_tungstenite::accept_async;
+use tokio_tungstenite::accept_async_with_config;
 use tokio_tungstenite::tungstenite::Message;
 
 /// Default bind address for the local API WebSocket server.
+///
+/// API-01 hardening: hard caps on WebSocket frame/message sizes (a local
+/// client must not be able to exhaust memory with one giant frame) and on
+/// the number of concurrent WS connections.
+pub const MAX_WS_MESSAGE_SIZE: usize = 1 << 20; // 1 MiB per message
+pub const MAX_WS_FRAME_SIZE: usize = 1 << 20; // 1 MiB per frame
+pub const MAX_WS_CONNECTIONS: usize = 16;
 pub const DEFAULT_API_ADDR: &str = "127.0.0.1:4010";
 
 /// Information about a connected peer (for the local API).
@@ -183,6 +190,8 @@ pub struct LocalApi {
     panic: Arc<std::sync::Mutex<crate::panic::PanicManager>>,
     /// Выставляется при duress-PIN: после отправки ответа — wipe стора + выход.
     duress_wipe: std::sync::atomic::AtomicBool,
+    /// API-01: семафор на число одновременных WebSocket соединений.
+    ws_conns: std::sync::Arc<tokio::sync::Semaphore>,
 }
 
 /// JSON-RPC error code: не пройдена аутентификация.
@@ -278,6 +287,7 @@ impl LocalApi {
                 }),
             )),
             duress_wipe: std::sync::atomic::AtomicBool::new(false),
+            ws_conns: std::sync::Arc::new(tokio::sync::Semaphore::new(MAX_WS_CONNECTIONS)),
             epoch_info: Arc::new(Mutex::new(EpochInfo {
                 epoch_number: 0,
                 merkle_root: hex::encode([0u8; 32]),
@@ -999,8 +1009,23 @@ impl LocalApi {
 
         while let Ok((stream, _addr)) = listener.accept().await {
             let api = Arc::clone(&self);
+            // API-01: cap concurrent WS connections; excess connections are
+            // accepted and closed immediately instead of spawning a task.
+            let permit = match Arc::clone(&api.ws_conns).try_acquire_owned() {
+                Ok(p) => p,
+                Err(_) => continue,
+            };
             tokio::spawn(async move {
-                let ws_stream = match accept_async(stream).await {
+                let _permit = permit; // held until the WS handler finishes
+                // API-01: cap WS frame/message sizes so a local client cannot
+                // exhaust memory with one giant frame; also cap the handshake.
+                let config = tokio_tungstenite::tungstenite::protocol::WebSocketConfig {
+                    max_message_size: Some(MAX_WS_MESSAGE_SIZE),
+                    max_frame_size: Some(MAX_WS_FRAME_SIZE),
+                    accept_unmasked_frames: false,
+                    ..Default::default()
+                };
+                let ws_stream = match accept_async_with_config(stream, Some(config)).await {
                     Ok(ws) => ws,
                     Err(e) => {
                         eprintln!("nexxusd API: WebSocket accept failed: {e}");

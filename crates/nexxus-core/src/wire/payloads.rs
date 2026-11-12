@@ -421,22 +421,29 @@ impl SmpEnvelope {
     }
 }
 
-/// NodeAnnounce: node_id[32] || pubkey[32] || ip u32 || port u16 — peer announces
-/// itself. The Ed25519 pubkey travels inside the payload and is bound to the
-/// frame by the frame's own signature, so every later frame on this connection
-/// can be verified against it.
+/// NodeAnnounce: node_id[32] || pubkey[32] || ip u32 || port u16 || session_nonce[32]
+/// — peer announces itself. The Ed25519 pubkey travels inside the payload and is
+/// bound to the frame by the frame's own signature, so every later frame on this
+/// connection can be verified against it. `session_nonce` is a fresh random value
+/// per connection: all frames this peer sends on the connection are signed with
+/// it in the v3 transcript (NET-02 fix: no more static zero nonce).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct NodeAnnounce {
     pub node_id: [u8; 32],
     pub pubkey: [u8; 32],
     pub ip: u32,
     pub port: u16,
+    pub session_nonce: [u8; 32],
 }
 
 impl Payload for NodeAnnounce {
     fn encode(&self) -> Vec<u8> {
         let mut w = Writer::new();
-        w.fixed(&self.node_id).fixed(&self.pubkey).u32_be(self.ip).u16_be(self.port);
+        w.fixed(&self.node_id)
+            .fixed(&self.pubkey)
+            .u32_be(self.ip)
+            .u16_be(self.port)
+            .fixed(&self.session_nonce);
         w.buf
     }
 
@@ -447,6 +454,7 @@ impl Payload for NodeAnnounce {
             pubkey: r.fixed::<32>()?,
             ip: r.u32_be()?,
             port: r.u16_be()?,
+            session_nonce: r.fixed::<32>()?,
         })
     }
 }
@@ -586,11 +594,12 @@ mod tests {
             pubkey: [0x24u8; 32],
             ip: 0x0a000001,
             port: 4001,
+            session_nonce: [0x77u8; 32],
         };
         let dec = NodeAnnounce::decode(&orig.encode()).unwrap();
         assert_eq!(dec, orig);
-        // wire layout: 32 + 32 + 4 + 2 = 70 bytes
-        assert_eq!(orig.encode().len(), 70);
+        // wire layout: 32 (node_id) + 32 (pubkey) + 4 (ip) + 2 (port) + 32 (session_nonce) = 102 bytes
+        assert_eq!(orig.encode().len(), 102);
     }
 
     #[test]

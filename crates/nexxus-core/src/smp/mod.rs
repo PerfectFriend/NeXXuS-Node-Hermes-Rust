@@ -196,6 +196,7 @@ mod tests {
             pubkey: [0x99u8; 32],
             ip: 0x0a000001,
             port: 4001,
+            session_nonce: [0x11u8; 32],
         };
         let dec = NodeAnnounce::decode(&announce.encode()).unwrap();
         assert_eq!(dec, announce);

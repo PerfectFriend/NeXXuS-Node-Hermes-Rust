@@ -27,6 +27,46 @@ pub fn backups_dir(store: &ChunkStore) -> PathBuf {
         .join("backups")
 }
 
+/// BKP-02: имя бэкапа — только один сегмент пути без `..` и разделителей.
+/// Иначе `backups_dir().join(name)` уйдёт за пределы каталога бэкапов.
+pub fn validate_backup_name(name: &str) -> Result<(), NexxusError> {
+    if name.is_empty()
+        || name.contains('/')
+        || name.contains('\\')
+        || name.contains("..")
+        || name.starts_with('.')
+    {
+        return Err(NexxusError::Io(format!("bad backup name: {name:?}")));
+    }
+    Ok(())
+}
+
+/// BKP-01: advisory flock на lock-файле. Exclusive для backup/swap,
+/// shared для verify — чтобы бэкап не копировался поверх swap и наоборот.
+#[cfg(unix)]
+fn lock_file(path: &Path, exclusive: bool) -> Result<std::fs::File, NexxusError> {
+    use fs2::FileExt;
+    let f = std::fs::OpenOptions::new()
+        .read(true)
+        .write(true)
+        .create(true)
+        .truncate(false)
+        .open(path)
+        .map_err(|e| NexxusError::Io(format!("open lock {}: {e}", path.display())))?;
+    let locked: std::io::Result<()> = if exclusive {
+        f.try_lock_exclusive().map_err(std::io::Error::other).map(|_| ())
+    } else {
+        f.try_lock_shared().map_err(std::io::Error::other).map(|_| ())
+    };
+    match locked {
+        Ok(()) => Ok(f),
+        Err(_) => Err(NexxusError::Io(format!(
+            "lock {} is held by another process",
+            path.display()
+        ))),
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BackupManifest {
     pub name: String,
@@ -66,7 +106,12 @@ pub fn backup_store(store: &ChunkStore) -> Result<BackupManifest, NexxusError> {
     // Millis in the name: two backups within the same second must not
     // overwrite each other's directory (that corrupts the manifest).
     let name = format!("backup-{ts}-{}", now_millis() % 1000);
-    let dir = backups_dir(store).join(&name);
+    let bdir = backups_dir(store);
+    std::fs::create_dir_all(&bdir).map_err(|e| NexxusError::Io(format!("mkdir {}: {e}", bdir.display())))?;
+    // BKP-01: exclusive lock на каталоге бэкапов на всё время бэкапа.
+    #[cfg(unix)]
+    let _lock = lock_file(&bdir.join(".backup.lock"), true)?;
+    let dir = bdir.join(&name);
     std::fs::create_dir_all(&dir).map_err(|e| NexxusError::Io(format!("mkdir {}: {e}", dir.display())))?;
 
     let src = store.path();
@@ -126,15 +171,21 @@ pub fn list_backups(store: &ChunkStore) -> Result<Vec<BackupManifest>, NexxusErr
 /// Verify a backup: manifest sha256 matches the file, and the copy opens as a
 /// valid redb with the same chunk count. Returns (manifest, ok, detail).
 pub fn verify_backup(store: &ChunkStore, name: &str) -> Result<(BackupManifest, bool, String), NexxusError> {
-    if name.contains('/') || name.contains("..") {
-        return Err(NexxusError::Io("bad backup name".into()));
-    }
-    let dir = backups_dir(store).join(name);
+    validate_backup_name(name)?;
+    let bdir = backups_dir(store);
+    // BKP-01: shared lock — verify не должен пересекаться с backup/swap.
+    #[cfg(unix)]
+    let _lock = lock_file(&bdir.join(".backup.lock"), false).ok();
+    let dir = bdir.join(name);
     let mpath = dir.join("manifest.json");
     let json = std::fs::read_to_string(&mpath)
         .map_err(|e| NexxusError::Io(format!("read manifest {name}: {e}")))?;
     let m: BackupManifest = serde_json::from_str(&json)
         .map_err(|e| NexxusError::Vault(format!("невалидный manifest: {e}")))?;
+    // BKP-02: store_file из manifest — тоже только имя файла, без пути.
+    validate_backup_name(&m.store_file).map_err(|_| {
+        NexxusError::Vault("manifest store_file is not a plain file name".into())
+    })?;
     let file = dir.join(&m.store_file);
     let actual = sha256_file(&file)?;
     if actual != m.sha256 {
@@ -187,13 +238,29 @@ pub fn restore_candidate(store: &ChunkStore, name: &str) -> Result<PathBuf, Nexx
 /// Swap a verified backup over the store file. ONLY safe with the daemon
 /// stopped — used by `nexxusd restore <name>`.
 pub fn swap_backup(store_path: &Path, name: &str) -> Result<PathBuf, NexxusError> {
+    validate_backup_name(name)?;
+    // BKP-01: exclusive lock на каталоге бэкапов + lock рядом со store,
+    // чтобы swap не шёл одновременно с backup работающего узла.
+    let bdir = {
+        let store = ChunkStore::open(store_path)?;
+        let d = backups_dir(&store);
+        drop(store);
+        d
+    };
+    #[cfg(unix)]
+    let _lock = lock_file(&bdir.join(".backup.lock"), true)?;
+    #[cfg(unix)]
+    let _store_lock = store_path
+        .parent()
+        .map(|p| lock_file(&p.join(".store.lock"), true))
+        .transpose()?;
     let store = ChunkStore::open(store_path)?;
     let (m, ok, detail) = verify_backup(&store, name)?;
     drop(store);
     if !ok {
         return Err(NexxusError::Vault(format!("backup {name} failed verification: {detail}")));
     }
-    let src = backups_dir(&ChunkStore::open(store_path)?).join(name).join(&m.store_file);
+    let src = bdir.join(name).join(&m.store_file);
     std::fs::copy(&src, store_path).map_err(|e| NexxusError::Io(format!("swap: {e}")))?;
     #[cfg(unix)]
     {
