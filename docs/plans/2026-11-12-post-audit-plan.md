@@ -98,3 +98,9 @@
 - **DEP-03** 📋 — `docs/DEP-03-secret-rotation.md`: скан истории нашёл 3 Telegram bot-токена (bot-ID 8853927147 / 8883516682 / 8896772547, 5 pre-squash коммитов), реальных ghp_ нет. Ревокация через @BotFather + filter-repo/squash — **владелец, ручной шаг**.
 
 Все пункты плана A1/A2/B + DEP-01 закрыты в коде. Открыто только DEP-03 (владелец).
+
+## СТАТУС 2026-11-12 (финал, коммит после 3eaaab2) — RC1 готов к внешнему аудиту
+- Squash-копия для аудитора собрана и просканирована: `/tmp/nexxus-auditor-squash` (1 коммит, 0 секретов по скану; рецепт в docs/DEP-03-secret-rotation.md).
+- Сетевой слой прогнан живьём: 17/17 net::network::tests (two_daemon_end_to_end, per-connection nonce replay → 0x0008, ip rate-limit 20/мин, handshake timeout 4s, peer cap 0x0009).
+- Полная верификация: workspace 172/172, desktop 19/19, clippy -D warnings = 0 (оба workspace), cargo audit = 0 vulns (игноры обоснованы), WS smoke OK.
+- Единственный открытый пункт: DEP-03 ручной — ревокация 3 bot-токенов (8853927147 / 8883516682 / 8896772547) через @BotFather + filter-repo истории. До этого аудитору выдаём только squash-копию.

@@ -33,6 +33,16 @@
 3. **Доказательство аудитору**: дать доступ к squash-копии (один коммит,
    без истории) — там секретов нет (проверено сканом выше по текущему дереву).
 
+   Squash-копия уже собрана и проверена (2026-11-12): `/tmp/nexxus-auditor-squash`
+   (1 коммит, скан по паттернам ghp_/github_pat_/TG-token/sk-/xox → 0 совпадений).
+   Воспроизведение из любого чистого clone:
+
+   ```
+   mkdir auditor-squash && git archive main | tar -x -C auditor-squash
+   cd auditor-squash && git init -q -b auditor-squash && git add -A
+   git -c user.name=auditor -c user.email=auditor@local commit -m "RC1 squash для аудита"
+   ```
+
 ## Проверка текущего дерева (2026-11-12)
 
 Скан рабочего дерева по тем же паттернам: чисто. Секреты живут только в
