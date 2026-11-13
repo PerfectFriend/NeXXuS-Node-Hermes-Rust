@@ -1114,7 +1114,22 @@ impl LocalApi {
                 Err(_) => continue,
             };
             tokio::spawn(async move {
-                let _permit = permit; // held until the WS handler finishes
+                let _permit = permit; // held until the handler finishes
+                // E1: plain-HTTP GET /metrics (Prometheus text exposition) for
+                // local scrapers. Detected via peek: a real WS handshake carries
+                // "Upgrade: websocket" and goes down the WS path unchanged.
+                let mut buf = [0u8; 2048];
+                if let Ok(n) = stream.peek(&mut buf).await {
+                    let head = String::from_utf8_lossy(&buf[..n]);
+                    if head.starts_with("GET /metrics")
+                        && !head.to_ascii_lowercase().contains("upgrade:")
+                    {
+                        if let Err(e) = api.handle_metrics_http(stream, &head).await {
+                            eprintln!("nexxusd API: /metrics http error: {e}");
+                        }
+                        return;
+                    }
+                }
                 // API-01: cap WS frame/message sizes so a local client cannot
                 // exhaust memory with one giant frame; also cap the handshake.
                 let config = tokio_tungstenite::tungstenite::protocol::WebSocketConfig {
@@ -1135,6 +1150,68 @@ impl LocalApi {
                 }
             });
         }
+        Ok(())
+    }
+
+    /// E1: plain-HTTP `GET /metrics` — Prometheus text exposition, token-gated
+    /// via `Authorization: Bearer <token>` (constant-time compare). Served on
+    /// the same localhost API port; WS handshakes never reach this path.
+    async fn handle_metrics_http(
+        &self,
+        mut stream: tokio::net::TcpStream,
+        head: &str,
+    ) -> Result<(), NexxusError> {
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+        // Read the full header block (peek already consumed nothing).
+        let mut full = head.to_string();
+        let mut tmp = [0u8; 2048];
+        while !full.contains("\r\n\r\n") {
+            match stream.read(&mut tmp).await {
+                Ok(0) | Err(_) => break,
+                Ok(n) => full.push_str(&String::from_utf8_lossy(&tmp[..n])),
+            }
+        }
+        let token_ok = match self.api_token.lock().unwrap().as_ref() {
+            None => false, // fail-closed
+            Some(expected) => {
+                let supplied = full
+                    .lines()
+                    .find_map(|l| {
+                        let l = l.to_ascii_lowercase();
+                        l.strip_prefix("authorization: bearer ")
+                            .map(|t| t.trim().to_string())
+                    })
+                    .unwrap_or_default();
+                !supplied.is_empty()
+                    && supplied.len() == expected.len()
+                    && bool::from(subtle::ConstantTimeEq::ct_eq(supplied.as_bytes(), expected.as_bytes()))
+            }
+        };
+        let body = if token_ok {
+            let mut body = self.network.metrics.prom();
+            let store = self.network.store();
+            let used = store.store_size().unwrap_or(0);
+            let cap = store.max_store_bytes();
+            let free = store.available_space().unwrap_or(0);
+            let chunks = store.list_chunk_hashes().map(|v| v.len()).unwrap_or(0);
+            body.push_str("# HELP nexxus_store Storage capacity gauges.\n# TYPE nexxus_store gauge\n");
+            body.push_str(&format!("nexxus_store_used_bytes {used}\n"));
+            body.push_str(&format!("nexxus_store_cap_bytes {cap}\n"));
+            body.push_str(&format!("nexxus_store_disk_free_bytes {free}\n"));
+            body.push_str(&format!("nexxus_store_chunks {chunks}\n"));
+            body
+        } else {
+            String::from("unauthorized\n")
+        };
+        let status = if token_ok { "200 OK" } else { "401 Unauthorized" };
+        let resp = format!(
+            "HTTP/1.1 {status}\r\nContent-Type: text/plain; version=0.0.4\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
+            body.len()
+        );
+        stream
+            .write_all(resp.as_bytes())
+            .await
+            .map_err(|e| NexxusError::Io(format!("metrics http write: {e}")))?;
         Ok(())
     }
 
