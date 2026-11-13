@@ -37,15 +37,25 @@ nexxusd            # слушает P2P 127.0.0.1:4001, Local API 127.0.0.1:4010
 - Экономика и эпохи: **accounting only** — vesting 56 дней, секции 16 GB,
   health; это не on-chain и не платежи. Подписанный экспорт отчёта:
   `node_econ_export` (ed25519-подпись над canonical JSON, верифицируется pubkey ноды)
-- Tor — опционально, design-level review
+- Tor — опционально, design-level review; onion на P2P-порт при `NEXXUS_TOR=1`,
+  плюс второй onion на API-порт при `NEXXUS_API_ONION=1` (F3, адрес в `node_tor.api_onion`)
+- Мониторинг: `GET /metrics` (Bearer-токен, Prometheus text), WS-m методы
+  `node_metrics`, `node_gc`; selftest (`selftest_cmd`) покрывает все read-only методы
+- Disk cap: `NEXXUS_MAX_STORE_BYTES` (0 = без лимита)
+- Ретенция чанков: TTL/pin/unpin (`node_chunk_ttl`, `node_chunk_pin`, `node_gc`)
+- Cold backup: `node_export_bundle` / `node_import_bundle` (зашифрованный PIN-ом
+  bundle вне redb, импорт с `confirm: true` и path только внутри `bundles/`)
+- Fleet: узлы в `~/.nexxus/nodes/<name>.conf` + `<name>.token`, переключение в UI монитора
+- SMP inbox: `node_smp` (история) + `node_smp_send` (seal X25519 + route), UI-панель inbox
+- Self-update: `nexxusd update [--check]` — ed25519-подпись релиза, atomic replace + rollback
 
 ## Чего НЕТ (намеренно, не SIM)
 
 - Платежи / marketplace / глобальные квоты — нет settlement-пути
 - Формальная верификация эконом-модели
 - FUSE/sync-folder с plaintext — threat model не позволяет
-- Onion-экспоуз дашборда монитора
-- Полный паритет платформ (Windows/Android — в roadmap E4)
+- Onion-экспоуз самого дашборда монитора (есть onion только для API ноды, token-gated)
+- Полный паритет платформ (Windows MSI/service, Android APK — в roadmap E4/G5)
 
 ## Безопасность
 

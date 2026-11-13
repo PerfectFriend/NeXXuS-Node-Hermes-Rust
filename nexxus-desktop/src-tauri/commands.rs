@@ -153,6 +153,8 @@ pub async fn selftest_cmd() -> Result<Value, String> {
         ("node_backup_list", None),
         ("node_doctor", None),
         ("node_econ", None),
+        ("node_metrics", None),
+        ("node_gc", None),
         ("panic_status", None),
     ];
     let mut results = Vec::new();
