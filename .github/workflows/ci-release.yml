@@ -158,9 +158,48 @@ jobs:
           name: nexxus-deb-rust
           path: dist/nexxus_*.deb
 
+  appimage:
+    name: AppImage (Linux x86_64)
+    needs: [ rust, desktop ]
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Check out repository
+        uses: actions/checkout@v4
+
+      - name: 📥 Download nexxusd (Rust) artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: nexxusd-rust
+          path: dist
+
+      - name: 📥 Download nexxus-desktop (Rust) artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: nexxus-desktop-rust
+          path: dist
+
+      - name: 📦 Build AppImage
+        run: bash scripts/build-appimage.sh dist/nexxusd dist/nexxus-desktop
+        env:
+          APPIMAGE_EXTRACT_AND_RUN: "1"
+
+      - name: ✅ Smoke — AppImage распаковывается, nexxusd на месте
+        run: |
+          chmod +x dist/*.AppImage
+          ./dist/*.AppImage --appimage-extract >/dev/null
+          test -x squashfs-root/usr/bin/nexxusd
+          test -x squashfs-root/usr/bin/nexxus-desktop
+          rm -rf squashfs-root
+
+      - name: 📤 Upload AppImage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nexxus-appimage
+          path: dist/*.AppImage
+
   release:
     name: Create GitHub Release
-    needs: [ build-and-test, rust, rust-tor, desktop, deb ]
+    needs: [ build-and-test, rust, rust-tor, desktop, deb, appimage ]
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
 
@@ -192,6 +231,12 @@ jobs:
           name: nexxus-deb-rust
           path: dist
 
+      - name: 📥 Download AppImage artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: nexxus-appimage
+          path: dist
+
       - name: 🚀 Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -200,6 +245,7 @@ jobs:
             dist/nexxusd
             dist/nexxus-desktop
             dist/*.deb
+            dist/*.AppImage
             install.sh
             install.ps1
           name: Release ${{ github.ref_name }}
