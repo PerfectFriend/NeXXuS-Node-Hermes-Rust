@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NeXXus Node Mobile</title>
+<style>
+  :root { color-scheme: dark; }
+  body { font-family: system-ui, sans-serif; background:#0b0e1a; color:#e6e6f0; margin:0; padding:14px; font-size:14px; }
+  h1 { font-size:18px; margin:0 0 10px; }
+  input { width:100%; box-sizing:border-box; background:#161a2e; color:#e6e6f0; border:1px solid #2a2f4a; border-radius:8px; padding:9px; margin:4px 0; }
+  button { background:#4c6ef5; color:#fff; border:0; border-radius:8px; padding:10px 14px; margin:4px 6px 4px 0; }
+  button.ghost { background:#2a2f4a; }
+  .row { display:flex; flex-wrap:wrap; }
+  .card { background:#161a2e; border:1px solid #2a2f4a; border-radius:10px; padding:10px; margin:8px 0; }
+  .k { color:#8a90b8; font-size:12px; }
+  .mono { font-family: ui-monospace, monospace; font-size:12px; word-break:break-all; }
+  #log { max-height:40vh; overflow:auto; }
+  .ok { color:#69db7c; } .err { color:#ff8787; }
+</style>
+</head>
+<body>
+<h1>🛡️ NeXXus Node Mobile</h1>
+<div class="card">
+  <div class="k">WS API узла (например ws://192.168.1.10:4010 или ws://&lt;onion&gt;:4010 через Orbot)</div>
+  <input id="addr" placeholder="ws://127.0.0.1:4010" value="ws://">
+  <input id="token" placeholder="API token (~/.nexxus/api.token)">
+  <div class="row">
+    <button id="btn-connect">Подключиться</button>
+    <button class="ghost" id="btn-status">Статус</button>
+    <button class="ghost" id="btn-peers">Пиры</button>
+    <button class="ghost" id="btn-chunks">Чанки</button>
+    <button class="ghost" id="btn-smp">SMP</button>
+  </div>
+</div>
+<div class="card" id="smp-card" style="display:none">
+  <div class="k">SMP: отправить сообщение</div>
+  <input id="smp-rcpt" placeholder="recipient node_id (hex 64)">
+  <input id="smp-pub" placeholder="recipient pubkey ed25519 (hex 64)">
+  <input id="smp-msg" placeholder="сообщение">
+  <button id="btn-smp-send">📨 Отправить</button>
+</div>
+<div class="card"><div id="out" class="mono">—</div></div>
+<div class="card"><div class="k">Лог</div><div id="log" class="mono"></div></div>
+<script src="app.js"></script>
+</body>
+</html>
