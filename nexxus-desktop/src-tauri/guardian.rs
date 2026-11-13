@@ -16,14 +16,49 @@ use tokio::net::TcpStream;
 use tokio::sync::Mutex;
 use tokio::time::sleep;
 
-const NEXXUSD_BIN: &str = "/home/thomas/build/cache/cargo-target-nexxus/release/nexxusd";
-const NEXXUSD_STORE: &str = "/home/thomas/.nexxus/store.redb";
-/// Файл лога ноды — его же читает команда `nexxusd logs`.
-const NEXXUSD_LOG: &str = "/home/thomas/.nexxus/nexxusd.log";
+/// Путь к бинарнику nexxusd: env NEXXUSD_BIN → рядом с текущим exe →
+/// /usr/local/bin и /usr/bin → PATH. Хардкод под build-хост убран.
+fn nexxusd_bin() -> String {
+    if let Ok(p) = std::env::var("NEXXUSD_BIN") {
+        if !p.is_empty() && std::path::Path::new(&p).exists() {
+            return p;
+        }
+    }
+    if let Ok(exe) = std::env::current_exe() {
+        if let Some(dir) = exe.parent() {
+            let cand = dir.join("nexxusd");
+            if cand.exists() {
+                return cand.to_string_lossy().into_owned();
+            }
+        }
+    }
+    for p in ["/usr/local/bin/nexxusd", "/usr/bin/nexxusd"] {
+        if std::path::Path::new(p).exists() {
+            return p.to_string();
+        }
+    }
+    "nexxusd".to_string() // надежда на PATH
+}
+
+/// Путь к store.redb (переопределяется через NEXXUS_STORE).
+fn nexxusd_store() -> String {
+    std::env::var("NEXXUS_STORE").unwrap_or_else(|_| {
+        let home = std::env::var("HOME").unwrap_or_else(|_| ".".into());
+        format!("{home}/.nexxus/store.redb")
+    })
+}
+
+/// Путь к логу ноды (переопределяется через NEXXUS_LOG_FILE).
+fn nexxusd_log() -> String {
+    std::env::var("NEXXUS_LOG_FILE").unwrap_or_else(|_| {
+        let home = std::env::var("HOME").unwrap_or_else(|_| ".".into());
+        format!("{home}/.nexxus/nexxusd.log")
+    })
+}
 
 /// Путь к лог-файлу ноды (используется командой `node_log_tail_cmd`).
-pub fn nexxusd_log_path() -> &'static str {
-    NEXXUSD_LOG
+pub fn nexxusd_log_path() -> String {
+    nexxusd_log()
 }
 /// Шаблон командной строки процесса ноды.
 ///
@@ -277,7 +312,7 @@ pub fn start_nexxusd() -> Result<(), String> {
     let env = crate::node_config::to_env(&cfg);
 
     // Лог ноды: stderr перенаправляем в файл (иначе `nexxusd logs` не найдёт его).
-    let log_path = std::path::PathBuf::from(NEXXUSD_LOG);
+    let log_path = std::path::PathBuf::from(nexxusd_log());
     if let Some(parent) = log_path.parent() {
         let _ = std::fs::create_dir_all(parent);
     }
@@ -290,8 +325,8 @@ pub fn start_nexxusd() -> Result<(), String> {
         .try_clone()
         .map_err(|e| format!("Не удалось клонировать лог: {e}"))?;
 
-    let mut cmd = Command::new(NEXXUSD_BIN);
-    cmd.arg(NEXXUSD_STORE)
+    let mut cmd = Command::new(nexxusd_bin());
+    cmd.arg(nexxusd_store())
         .env("NEXXUS_LOG", &log_path)
         .stdout(Stdio::from(log_out))
         .stderr(Stdio::from(log_err));
@@ -687,10 +722,26 @@ mod start_flow_tests {
     use super::*;
     use std::time::Instant;
 
+    /// Общий мьютекс на env-мутации — тесты идут параллельно.
+    static ENV_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+    fn real_nexxusd() -> String {
+        let dir = std::env::var("CARGO_TARGET_DIR_NEXXUS")
+            .unwrap_or_else(|_| "/home/thomas/build/cache/cargo-target-nexxus".into());
+        let cand = format!("{dir}/debug/nexxusd");
+        if std::path::Path::new(&cand).exists() {
+            cand
+        } else {
+            format!("{dir}/release/nexxusd")
+        }
+    }
+
     /// Прогоняет реальный флоу кнопки «Start»: start_nexxusd → wait_for_api_ready →
     /// node_status, с замерами каждого шага. Ловит зависание на Starting.
     #[tokio::test]
     async fn start_flow_completes_with_timings() {
+        let _g = ENV_LOCK.lock().unwrap();
+        std::env::set_var("NEXXUSD_BIN", real_nexxusd());
         let _ = stop_nexxusd();
         let t0 = Instant::now();
         start_nexxusd().expect("start_nexxusd");
@@ -705,7 +756,25 @@ mod start_flow_tests {
         assert!(status.is_ok(), "node_status failed: {:?}", status.err());
 
         let _ = stop_nexxusd();
+        std::env::remove_var("NEXXUSD_BIN");
         eprintln!("[t+{:.1?}] done", t0.elapsed());
+    }
+
+    #[test]
+    fn bin_and_paths_resolve_without_hardcoded_host() {
+        let _g = ENV_LOCK.lock().unwrap();
+        // NEXXUSD_BIN указывает на реальный файл → берётся он
+        std::env::set_var("NEXXUSD_BIN", "/bin/true");
+        assert_eq!(super::nexxusd_bin(), "/bin/true");
+        std::env::remove_var("NEXXUSD_BIN");
+        // без env — строка непустая (любой фолбэк разумен)
+        assert!(!super::nexxusd_bin().is_empty());
+        // store/log уважают env и HOME
+        std::env::set_var("NEXXUS_STORE", "/tmp/x.redb");
+        assert_eq!(super::nexxusd_store(), "/tmp/x.redb");
+        std::env::remove_var("NEXXUS_STORE");
+        assert!(super::nexxusd_store().ends_with("store.redb"));
+        assert!(super::nexxusd_log_path().ends_with("nexxusd.log"));
     }
 }
 
