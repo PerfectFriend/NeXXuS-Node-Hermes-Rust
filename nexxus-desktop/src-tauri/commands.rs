@@ -108,6 +108,35 @@ pub async fn node_api_cmd(method: String, params: Option<Value>) -> Result<Value
     crate::guardian::api_call(&method, params).await
 }
 
+/// F2: список fleet-узлов (`<config_dir>/nodes/*.conf` + их токены).
+#[command]
+pub async fn nodes_list_cmd() -> Result<Value, String> {
+    Ok(serde_json::json!({ "nodes": crate::node_config::list_fleet_nodes() }))
+}
+
+/// F2: WS-запрос к конкретному fleet-узлу по имени (свой api-адрес и токен).
+#[command]
+pub async fn node_api_to_cmd(
+    name: String,
+    method: String,
+    params: Option<Value>,
+) -> Result<Value, String> {
+    let node = crate::node_config::list_fleet_nodes()
+        .into_iter()
+        .find(|n| n.name == name)
+        .ok_or_else(|| format!("fleet node '{name}' not found"))?;
+    let token = std::fs::read_to_string(&node.token_file)
+        .map_err(|e| format!("token file {}: {e}", node.token_file))?
+        .trim()
+        .to_string();
+    if token.is_empty() {
+        return Err(format!("token file {} is empty", node.token_file));
+    }
+    let url = url::Url::parse(&format!("ws://{}", node.api))
+        .map_err(|e| format!("bad api addr '{}': {e}", node.api))?;
+    crate::api_client::api_call_to(&url, &token, &method, params).await
+}
+
 /// Selftest (R6): прогоняет все WS-методы ноды и возвращает отчёт ok/err.
 #[command]
 pub async fn selftest_cmd() -> Result<Value, String> {

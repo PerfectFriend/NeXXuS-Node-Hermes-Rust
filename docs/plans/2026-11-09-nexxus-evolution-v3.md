@@ -100,7 +100,7 @@
 ### Task F1: Качество пиров и лимиты
 - Скоринг пиров (успешные fetch/Por, latency из `node_test_interhost`), чёрный/белый списки, лимит скорости (token bucket) в конфиге; UI: таблица пиров со скорингом. Commit `feat(node): peer scoring + bandwidth caps`.
 
-### Task F2: Fleet view — несколько узлов из одного монитора
+### Task F2: Fleet view (несколько узлов в мониторе) — ✅ DONE (`~/.nexxus/nodes/<name>.conf` + `<name>.token`; команды `nodes_list_cmd`/`node_api_to_cmd`; выпадающий список узлов в шапке монитора, все панели переключаются на выбранный узел; тест list/валидации имён, desktop 20/20, clippy 0)
 - Монитор управляет N узлами: конфиги `~/.nexxus/nodes/<name>.conf`, переключение в UI, агрегированный статус; удалённый узел по onion (`node_dial_onion` + API поверх onion через arti). Commit `feat(desktop): multi-node fleet view`.
 
 ### Task F3: Удалённый доступ к дашборду через onion (опционально, с токеном)

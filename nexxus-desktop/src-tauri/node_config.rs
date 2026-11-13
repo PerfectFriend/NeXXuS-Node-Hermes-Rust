@@ -91,6 +91,58 @@ pub fn config_path() -> PathBuf {
     config_dir().join("node.conf")
 }
 
+/// Каталог fleet-конфигов: `<config_dir>/nodes/<name>.conf` (F2).
+pub fn nodes_dir() -> PathBuf {
+    config_dir().join("nodes")
+}
+
+/// Описание узла fleet: имя + адрес API + файл токена.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct FleetNode {
+    pub name: String,
+    pub conf_path: String,
+    pub api: String,
+    pub token_file: String,
+}
+
+/// Список узлов fleet из `<config_dir>/nodes/*.conf`.
+/// Токен узла — `<nodes_dir>/<name>.token` (или NEXXUS_API_TOKEN_FILE для дефолта).
+pub fn list_fleet_nodes() -> Vec<FleetNode> {
+    list_fleet_nodes_in(&nodes_dir())
+}
+
+/// То же для произвольного каталога (явный путь — дружелюбно к параллельным тестам).
+pub fn list_fleet_nodes_in(dir: &std::path::Path) -> Vec<FleetNode> {
+    let mut out = Vec::new();
+    if let Ok(rd) = std::fs::read_dir(dir) {
+        for e in rd.flatten() {
+            let p = e.path();
+            if p.extension().and_then(|x| x.to_str()) != Some("conf") {
+                continue;
+            }
+            let Some(name) = p.file_stem().and_then(|s| s.to_str()).map(|s| s.to_string()) else {
+                continue;
+            };
+            if name.is_empty() || name.contains(['/', '\\', '.']) {
+                continue;
+            }
+            let cfg = load_from(&p);
+            let token_file = dir
+                .join(format!("{name}.token"))
+                .to_string_lossy()
+                .into_owned();
+            out.push(FleetNode {
+                name,
+                conf_path: p.to_string_lossy().into_owned(),
+                api: cfg.api,
+                token_file,
+            });
+        }
+    }
+    out.sort_by(|a, b| a.name.cmp(&b.name));
+    out
+}
+
 /// Стандартный путь лога ноды.
 pub fn default_log_path() -> PathBuf {
     config_dir().join("nexxusd.log")
@@ -361,5 +413,27 @@ mod tests {
         let tmp = TempDir::new("missing");
         let cfg = load_from(&tmp.conf());
         assert_eq!(cfg, NodeConfig::default());
+    }
+
+    #[test]
+    fn fleet_nodes_listed_and_name_validated() {
+        let tmp = TempDir::new("fleet");
+        let dir = tmp.0.join("nodes");
+        std::fs::create_dir_all(&dir).unwrap();
+        // валидный узел
+        let cfg = NodeConfig { api: "127.0.0.1:4011".into(), ..Default::default() };
+        save_to(&cfg, &dir.join("alpha.conf")).unwrap();
+        std::fs::write(dir.join("alpha.token"), "tok-alpha").unwrap();
+        // опасное имя — пропускается
+        save_to(&NodeConfig::default(), &dir.join("../evil.conf")).ok();
+        std::fs::write(dir.join("..conf"), "{}").ok();
+        // не .conf — игнорируется
+        std::fs::write(dir.join("notes.txt"), "hi").unwrap();
+
+        let nodes = list_fleet_nodes_in(&dir);
+        assert_eq!(nodes.len(), 1, "только валидный .conf: {nodes:?}");
+        assert_eq!(nodes[0].name, "alpha");
+        assert_eq!(nodes[0].api, "127.0.0.1:4011");
+        assert!(nodes[0].token_file.ends_with("alpha.token"));
     }
 }

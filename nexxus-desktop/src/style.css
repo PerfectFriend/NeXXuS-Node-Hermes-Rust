@@ -52,6 +52,15 @@ body {
   color: var(--muted);
   font-style: italic;
 }
+.fleet-select {
+  font-size: 0.85rem;
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--foreground);
+  max-width: 260px;
+}
 .header-right {
   display: flex;
   gap: 16px;

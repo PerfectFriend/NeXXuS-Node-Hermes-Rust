@@ -88,8 +88,44 @@ function setBox(id, text, cls = '') {
 }
 
 /// Прокси к локальному API ноды (авторизация токеном — внутри монитора).
+/// F2: если выбран fleet-узел — запрос идёт на его адрес/токен.
+let currentFleetNode = '';
 async function api(method, params = null) {
+  if (currentFleetNode) {
+    return invoke('node_api_to_cmd', { name: currentFleetNode, method, params });
+  }
   return invoke('node_api_cmd', { method, params });
+}
+
+/// F2: заполнить выпадающий список fleet-узлов из ~/.nexxus/nodes/*.conf.
+async function refreshFleetList() {
+  const sel = document.getElementById('fleet-select');
+  if (!sel) return;
+  try {
+    const r = await invoke('nodes_list_cmd');
+    const nodes = (r && r.nodes) || [];
+    const keep = currentFleetNode;
+    sel.innerHTML = '<option value="">— одиночный узел —</option>';
+    for (const n of nodes) {
+      const o = document.createElement('option');
+      o.value = n.name;
+      o.textContent = `${n.name} (${n.api})`;
+      sel.appendChild(o);
+    }
+    if (nodes.some(n => n.name === keep)) sel.value = keep;
+    sel.style.display = nodes.length > 0 ? '' : 'none';
+  } catch (e) {
+    sel.style.display = 'none';
+  }
+}
+
+function bindFleetSelect() {
+  const sel = document.getElementById('fleet-select');
+  if (!sel) return;
+  sel.addEventListener('change', () => {
+    currentFleetNode = sel.value;
+    refreshAll();
+  });
 }
 
 /// Выполнить действие с записью результата в лог этапов.
@@ -595,11 +631,16 @@ async function fetchOnboarding() {
 async function init() {
   activateTab('overview');
   addStageLog('Гардиан инициализирован.', 'info');
+  bindFleetSelect();
+  await refreshFleetList();
   await fetchStatus();
   await fetchOnboarding();
   setInterval(fetchStatus, 5000);
   setInterval(fetchOnboarding, 30000);
 }
+
+/// F2: «обновить всё» = активная панель (используется при смене fleet-узла).
+const refreshAll = refreshActivePane;
 
 // Обработчики кнопок
 els.btnStart.addEventListener('click', startNode);
