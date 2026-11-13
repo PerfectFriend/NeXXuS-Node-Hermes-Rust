@@ -20,6 +20,7 @@ nexxusd            # слушает P2P 127.0.0.1:4001, Local API 127.0.0.1:4010
 | `NEXXUS_API_LISTEN` | `127.0.0.1:4010` | Local WS API, токен в `~/.nexxus/api.token`, fail-closed |
 | `NEXXUS_DATA_DIR` | `~/.nexxus` | стор, бэкапы, конфиг |
 | `NEXXUS_TOR` | `0` | `1` — публикация onion-сервиса через arti |
+| `NEXXUS_API_ONION` | `0` | `1` — второй onion v3 сервис на порт локального API (F3, remote dashboard/мониторинг); адрес в `node_tor.api_onion`. По умолчанию API наружу закрыт |
 | `NEXXUS_CONFIG_DIR` | — | переопределение каталога конфигов (тесты) |
 | `GET /metrics` | API-порт, `Authorization: Bearer <api.token>` | Prometheus text: P2P-счётчики + стор (used/cap/free/chunks); без токена — 401 |
 | `NEXXUS_MAX_STORE_BYTES` | `0` (без лимита) | user-defined disk cap стора; `put_chunk` отклоняет запись сверх cap и при free space < 2× размер чанка |

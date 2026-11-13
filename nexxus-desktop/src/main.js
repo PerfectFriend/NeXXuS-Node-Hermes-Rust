@@ -512,7 +512,8 @@ async function refreshTor() {
     setBox('tor-data', {
       'включён': t.enabled ? 'да' : 'нет',
       'подключён': t.connected ? 'да' : 'нет',
-      'onion': t.onion_address || '—',
+      'onion (P2P)': t.onion_address || '—',
+      'onion (API, F3)': t.api_onion || '— (NEXXUS_API_ONION=1 чтобы опубликовать)',
       'socks': t.socks_port || t.socks_proxy || '—',
       'путь': t.path || '—',
     });

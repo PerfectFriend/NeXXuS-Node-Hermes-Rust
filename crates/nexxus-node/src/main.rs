@@ -239,6 +239,7 @@ fn main() {
                                 api_tor.set_tor_status(crate::local_api::TorStatus {
                                     enabled: true,
                                     onion_address: Some(onion),
+                                    api_onion: None,
                                     connected: true,
                                 })
                                 .await;
@@ -248,9 +249,26 @@ fn main() {
                                 api_tor.set_tor_status(crate::local_api::TorStatus {
                                     enabled: true,
                                     onion_address: None,
+                                    api_onion: None,
                                     connected: false,
                                 })
                                 .await;
+                            }
+                        }
+                        // F3: второй onion v3 сервис на локальный API-порт —
+                        // только при явном NEXXUS_API_ONION=1 (API наружу по умолчанию закрыт).
+                        let api_onion_enabled = std::env::var("NEXXUS_API_ONION")
+                            .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
+                            .unwrap_or(false);
+                        if api_onion_enabled {
+                            match ts.publish_api_onion(api_addr).await {
+                                Ok(onion) => {
+                                    eprintln!("nexxusd: tor onion v3 published for API: {onion}");
+                                    api_tor.set_tor_api_onion(onion).await;
+                                }
+                                Err(e) => {
+                                    eprintln!("nexxusd: tor api onion publish failed: {e}");
+                                }
                             }
                         }
                         // Сессия живёт в API (для node_dial_onion) и в отдельной задаче до конца процесса.
@@ -266,6 +284,7 @@ fn main() {
                         api_tor.set_tor_status(crate::local_api::TorStatus {
                             enabled: false,
                             onion_address: None,
+                            api_onion: None,
                             connected: false,
                         })
                         .await;

@@ -23,6 +23,8 @@ mod imp {
     pub struct TorSession {
         client: Arc<TorClientType>,
         our_onion: Option<String>,
+        /// F3: второй onion v3 сервис на локальный API-порт (NEXXUS_API_ONION=1).
+        api_onion: Option<String>,
     }
 
     impl TorSession {
@@ -43,15 +45,28 @@ mod imp {
             Ok(Self {
                 client,
                 our_onion: None,
+                api_onion: None,
             })
         }
 
-        /// Опубликовать onion v3 hidden service, форвардящий на локальный P2P-порт.
+        /// Опубликовать onion v3 hidden service, форвардящий на локальный порт.
         /// Возвращает адрес вида `<56 base32>.onion`.
         pub async fn publish_onion(&mut self, local_addr: SocketAddr) -> std::io::Result<String> {
+            self.publish_onion_as(local_addr, "nexxus").await
+        }
+
+        /// То же с произвольным nickname сервиса (нужен второй сервис для API).
+        pub async fn publish_onion_as(
+            &mut self,
+            local_addr: SocketAddr,
+            nickname: &str,
+        ) -> std::io::Result<String> {
+            if nickname.is_empty() || nickname.len() > 16 || !nickname.chars().all(|c| c.is_ascii_alphanumeric()) {
+                return Err(io_err("onion nickname must be 1-16 ascii alnum"));
+            }
             let svc_cfg = tor_hsservice::config::OnionServiceConfigBuilder::default()
                 .nickname(
-                    tor_hsservice::HsNickname::new("nexxus".to_string()).map_err(io_err)?,
+                    tor_hsservice::HsNickname::new(nickname.to_string()).map_err(io_err)?,
                 )
                 .build()
                 .map_err(io_err)?;
@@ -86,6 +101,14 @@ mod imp {
             Ok(onion)
         }
 
+        /// F3: опубликовать второй onion v3 сервис на локальный API-порт
+        /// (только при NEXXUS_API_ONION=1 — API наружу по умолчанию закрыт).
+        pub async fn publish_api_onion(&mut self, api_addr: SocketAddr) -> std::io::Result<String> {
+            let onion = self.publish_onion_as(api_addr, "nexxusapi").await?;
+            self.api_onion = Some(onion.clone());
+            Ok(onion)
+        }
+
         /// Подключиться к onion v3 адресу (например, "<id>.onion:4001").
         /// Используется в `P2pNetwork::dial_onion` для P2P-соединений через Tor.
         pub async fn connect_onion(
@@ -98,6 +121,11 @@ mod imp {
         /// Наш onion v3 адрес, если сервис опубликован.
         pub fn our_onion(&self) -> Option<&str> {
             self.our_onion.as_deref()
+        }
+
+        /// F3: onion v3 адрес API-сервиса, если опубликован.
+        pub fn api_onion(&self) -> Option<&str> {
+            self.api_onion.as_deref()
         }
     }
 }

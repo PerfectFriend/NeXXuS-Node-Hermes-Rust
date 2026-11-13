@@ -101,6 +101,8 @@ pub struct ChunkStats {
 pub struct TorStatus {
     pub enabled: bool,
     pub onion_address: Option<String>,
+    /// F3: onion v3 адрес локального API (NEXXUS_API_ONION=1), если опубликован.
+    pub api_onion: Option<String>,
     pub connected: bool,
 }
 
@@ -313,6 +315,7 @@ impl LocalApi {
             tor_status: Arc::new(Mutex::new(TorStatus {
                 enabled: false,
                 onion_address: None,
+                api_onion: None,
                 connected: false,
             })),
             #[cfg(feature = "tor")]
@@ -389,6 +392,11 @@ impl LocalApi {
     #[cfg(feature = "tor")]
     pub async fn set_tor_status(&self, status: TorStatus) {
         *self.tor_status.lock().await = status;
+    }
+
+    /// F3: записать api_onion адрес (не трогая остальной статус).
+    pub async fn set_tor_api_onion(&self, onion: String) {
+        self.tor_status.lock().await.api_onion = Some(onion);
     }
 
     /// Attach the live Tor session so `node_dial_onion` can reach .onion peers.
@@ -1119,9 +1127,15 @@ impl LocalApi {
         let mut status = self.tor_status.lock().await.clone();
         // Если сессия поднята, но статус ещё без адреса — добираем из самой сессии.
         #[cfg(feature = "tor")]
-        if status.onion_address.is_none() {
-            if let Some(ts) = self.tor_session.lock().await.as_ref() {
-                status.onion_address = ts.our_onion().map(|s| s.to_string());
+        {
+            let ts = self.tor_session.lock().await;
+            if let Some(ts) = ts.as_ref() {
+                if status.onion_address.is_none() {
+                    status.onion_address = ts.our_onion().map(|s| s.to_string());
+                }
+                if status.api_onion.is_none() {
+                    status.api_onion = ts.api_onion().map(|s| s.to_string());
+                }
             }
         }
         serde_json::to_value(status).map_err(|e| NexxusError::Io(e.to_string()))
