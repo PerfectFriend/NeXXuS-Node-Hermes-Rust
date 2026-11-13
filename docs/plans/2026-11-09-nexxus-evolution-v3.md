@@ -103,7 +103,7 @@
 ### Task F2: Fleet view (несколько узлов в мониторе) — ✅ DONE (`~/.nexxus/nodes/<name>.conf` + `<name>.token`; команды `nodes_list_cmd`/`node_api_to_cmd`; выпадающий список узлов в шапке монитора, все панели переключаются на выбранный узел; тест list/валидации имён, desktop 20/20, clippy 0)
 - Монитор управляет N узлами: конфиги `~/.nexxus/nodes/<name>.conf`, переключение в UI, агрегированный статус; удалённый узел по onion (`node_dial_onion` + API поверх onion через arti). Commit `feat(desktop): multi-node fleet view`.
 
-### Task F3: Удалённый доступ к дашборду через onion (опционально, с токеном)
+### Task F3: Удалённый доступ к дашборду через onion (опционально, с токеном) — ✅ DONE (node side: `NEXXUS_API_ONION=1` → второй onion v3 на API-порт, `node_tor.api_onion`; UI показывает адрес; API по-прежнему token-gated, F2 fleet может ходить на onion-узел)
 - Монитор поднимает скрытый сервис (arti) для своего HTTP, доступ только с api-token; предупреждение в UI о риске. Commit `feat(desktop): optional onion-exposed dashboard (token-gated)`.
 
 ## Phase G — Качество, CI, релизы
