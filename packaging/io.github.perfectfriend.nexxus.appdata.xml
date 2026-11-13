@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.perfectfriend.nexxus</id>
+  <name>NeXXus Node Monitor</name>
+  <summary>P2P storage node monitor</summary>
+  <metadata_license>MIT</metadata_license>
+  <project_license>MIT</project_license>
+  <description>
+    <p>
+      NeXXuS — децентрализованный P2P-узел хранения (Rust daemon nexxusd) с
+      зашифрованным стором, BIP39-идентичностью, Tor/onion-поддержкой и
+      локальным мониторингом через десктопный монитор (Tauri).
+    </p>
+  </description>
+  <launchable type="desktop-id">nexxus.desktop</launchable>
+  <url type="homepage">https://github.com/PerfectFriend/NeXXuS-Node-Hermes-Rust</url>
+  <developer id="io.github.perfectfriend">
+    <name>PerfectFriend</name>
+  </developer>
+  <provides>
+    <binary>nexxusd</binary>
+    <binary>nexxus-desktop</binary>
+  </provides>
+  <categories>
+    <category>Network</category>
+    <category>Utility</category>
+  </categories>
+  <content_rating type="oars-1.1"/>
+  <releases>
+    <release version="2.0.0" date="2026-11-13"/>
+  </releases>
+</component>

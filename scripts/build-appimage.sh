@@ -24,7 +24,8 @@ fi
 
 rm -rf "$APPDIR"
 mkdir -p "$APPDIR/usr/bin" "$APPDIR/usr/share/applications" \
-         "$APPDIR/usr/share/icons/hicolor/256x256/apps" "$APPDIR/usr/share/nexxus"
+         "$APPDIR/usr/share/icons/hicolor/256x256/apps" \
+         "$APPDIR/usr/share/metainfo" "$APPDIR/usr/share/nexxus"
 
 install -m 0755 "$NEXXUSD" "$APPDIR/usr/bin/nexxusd"
 install -m 0755 "$DESKTOP" "$APPDIR/usr/bin/nexxus-desktop"
@@ -50,6 +51,11 @@ Type=Application
 Categories=Network;Utility;
 EOF
 cp "$APPDIR/nexxus.desktop" "$APPDIR/usr/share/applications/nexxus.desktop"
+
+# AppStream метаданные (appimagetool без них ругается warning-ом)
+if [ -f packaging/io.github.perfectfriend.nexxus.appdata.xml ]; then
+  install -m 0644 packaging/io.github.perfectfriend.nexxus.appdata.xml "$APPDIR/usr/share/metainfo/io.github.perfectfriend.nexxus.appdata.xml"
+fi
 
 cat > "$APPDIR/AppRun" <<'EOF'
 #!/usr/bin/env bash
