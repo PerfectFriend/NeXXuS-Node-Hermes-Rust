@@ -409,16 +409,44 @@ async function refreshChunks() {
 }
 
 async function refreshSmp() {
+  const inbox = document.getElementById('smp-inbox');
+  const list = document.getElementById('smp-list');
+  const box = document.getElementById('storage-data');
   try {
     const s = await api('node_smp');
     const msgs = s.messages || [];
+    inbox.style.display = '';
+    box.style.display = 'none';
     if (!msgs.length) {
-      setBox('storage-data', 'SMP-сообщений пока нет');
+      list.innerHTML = '<div class="smp-empty">SMP-сообщений пока нет</div>';
       return;
     }
-    setBox('storage-data', msgs.slice(-20));
+    const rows = msgs.slice().reverse().map(m => {
+      const dir = m.direction === 'sent' ? '📤' : '📥';
+      const other = m.direction === 'sent' ? m.recipient_node_id : (m.sender_node_id || '—');
+      const short = other.length > 16 ? other.slice(0, 8) + '…' + other.slice(-8) : other;
+      const t = new Date((m.timestamp || 0) * 1000).toLocaleString('ru-RU');
+      const st = m.status === 'sent' || m.status === 'delivered' ? 'ok' : (m.status === 'failed' ? 'err' : 'warn');
+      return `<div class="smp-row"><span>${dir}</span> <code>${short}</code> <span>${m.payload_size} B</span> <span class="smp-status smp-${st}">${m.status}</span> <span class="smp-time">${t}</span></div>`;
+    }).join('');
+    list.innerHTML = rows;
   } catch (e) {
-    setBox('storage-data', `ошибка: ${e}`);
+    inbox.style.display = '';
+    list.innerHTML = `<div class="smp-empty">ошибка: ${e}</div>`;
+  }
+}
+
+async function sendSmp() {
+  const recipient = document.getElementById('smp-recipient').value.trim();
+  const pub = document.getElementById('smp-recipient-pub').value.trim();
+  const message = document.getElementById('smp-message').value;
+  try {
+    const r = await api('node_smp_send', { recipient_node_id: recipient, recipient_pub: pub, message });
+    addStageLog(`SMP send: ${r.ok ? 'ok' : 'failed — ' + (r.error || r.status)}`, r.ok ? 'success' : 'error');
+    document.getElementById('smp-message').value = '';
+    refreshSmp();
+  } catch (e) {
+    addStageLog(`SMP send: ${e}`, 'error');
   }
 }
 
@@ -665,6 +693,7 @@ $('btn-connect').addEventListener('click', connectPeer);
 
 $('btn-chunks-refresh').addEventListener('click', refreshChunks);
 $('btn-smp-refresh').addEventListener('click', refreshSmp);
+$('btn-smp-send').addEventListener('click', sendSmp);
 $('btn-por').addEventListener('click', runPor);
 $('btn-store-info').addEventListener('click', storeInfo);
 

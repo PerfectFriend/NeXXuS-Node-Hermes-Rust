@@ -423,6 +423,7 @@ impl LocalApi {
             "node_export_bundle" => self.handle_node_export_bundle(req.params),
             "node_import_bundle" => self.handle_node_import_bundle(req.params),
             "node_smp" => self.handle_node_smp().await,
+            "node_smp_send" => self.handle_node_smp_send(req.params).await,
             "node_epoch" => self.handle_node_epoch().await,
             "node_tor" => self.handle_node_tor().await,
             "send_smp_envelope" => self.handle_send_smp_envelope(req.params).await,
@@ -1046,6 +1047,66 @@ impl LocalApi {
             .map(|m| serde_json::to_value(m).unwrap_or(Value::Null))
             .collect();
         Ok(serde_json::json!({ "messages": list }))
+    }
+
+    /// H1: отправка SMP-сообщения. params: recipient_node_id (hex),
+    /// recipient_pub (ed25519 hex — конвертируется в X25519 для seal),
+    /// message (plaintext, шифруется в envelope).
+    async fn handle_node_smp_send(&self, params: Option<Value>) -> Result<Value, NexxusError> {
+        let recipient_hex = params
+            .as_ref()
+            .and_then(|p| p.get("recipient_node_id"))
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| NexxusError::Io("param 'recipient_node_id' required".into()))?;
+        let recipient_bytes = hex::decode(recipient_hex)
+            .map_err(|e| NexxusError::Io(format!("bad recipient_node_id hex: {e}")))?;
+        let recipient: [u8; 32] = recipient_bytes
+            .try_into()
+            .map_err(|_| NexxusError::Io("recipient_node_id must be 32 bytes".into()))?;
+        let pub_hex = params
+            .as_ref()
+            .and_then(|p| p.get("recipient_pub"))
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| NexxusError::Io("param 'recipient_pub' (ed25519 hex) required".into()))?;
+        let pub_bytes = hex::decode(pub_hex)
+            .map_err(|e| NexxusError::Io(format!("bad recipient_pub hex: {e}")))?;
+        let pub_arr: [u8; 32] = pub_bytes
+            .try_into()
+            .map_err(|_| NexxusError::Io("recipient_pub must be 32 bytes".into()))?;
+        let message = params
+            .as_ref()
+            .and_then(|p| p.get("message"))
+            .and_then(|v| v.as_str())
+            .unwrap_or("");
+        if message.is_empty() {
+            return Err(NexxusError::Io("param 'message' must be non-empty".into()));
+        }
+        if message.len() > 4096 {
+            return Err(NexxusError::Io("message too large (max 4096 bytes)".into()));
+        }
+        use ed25519_dalek::VerifyingKey;
+        let vk = VerifyingKey::from_bytes(&pub_arr)
+            .map_err(|e| NexxusError::Io(format!("bad recipient_pub: {e}")))?;
+        let recipient_x = vk.to_montgomery();
+        let sender_id = self.network.our_id().0;
+        let (_eph, env) = nexxus_core::wire::payloads::SmpEnvelope::seal(
+            sender_id,
+            recipient,
+            &recipient_x,
+            message.as_bytes(),
+        );
+        let size = message.len();
+        let res = self.network.route_smp_envelope(&env).await;
+        let (status, err) = match &res {
+            Ok(()) => ("sent", String::new()),
+            Err(e) => ("failed", e.to_string()),
+        };
+        self.record_smp_full("sent", &hex::encode(sender_id), recipient_hex, size, status)
+            .await;
+        match res {
+            Ok(()) => Ok(serde_json::json!({ "ok": true, "status": status, "payload_size": size })),
+            Err(_) => Ok(serde_json::json!({ "ok": false, "status": status, "error": err, "payload_size": size })),
+        }
     }
 
     async fn handle_node_epoch(&self) -> Result<Value, NexxusError> {

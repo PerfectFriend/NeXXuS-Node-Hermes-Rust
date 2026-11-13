@@ -153,11 +153,23 @@
           <h2>Хранилище</h2>
           <div class="controls-row">
             <button class="btn btn-outline" id="btn-chunks-refresh">📦 Чанки</button>
-            <button class="btn btn-outline" id="btn-smp-refresh">🧩 SMP-состояние</button>
+            <button class="btn btn-outline" id="btn-smp-refresh">🧩 SMP inbox</button>
             <button class="btn btn-outline" id="btn-por">🔍 PoR-проверка</button>
             <button class="btn btn-outline" id="btn-store-info">🗄 Инфо о сторе</button>
           </div>
           <div id="storage-data" class="data-box">—</div>
+          <div id="smp-inbox" class="smp-inbox" style="display:none">
+            <h3>🧩 SMP inbox</h3>
+            <div class="row-inline">
+              <input id="smp-recipient" placeholder="recipient node_id (hex 64)">
+              <input id="smp-recipient-pub" placeholder="recipient pubkey (ed25519 hex 64)">
+            </div>
+            <div class="row-inline">
+              <input id="smp-message" placeholder="сообщение (до 4096 байт, шифруется в envelope)" style="flex:1">
+              <button class="btn btn-primary" id="btn-smp-send">📨 Отправить</button>
+            </div>
+            <div id="smp-list" class="smp-list">—</div>
+          </div>
         </section>
       </div>
 

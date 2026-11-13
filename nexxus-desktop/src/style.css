@@ -61,6 +61,37 @@ body {
   color: var(--foreground);
   max-width: 260px;
 }
+.smp-inbox {
+  margin-top: 12px;
+  border-top: 1px solid var(--border);
+  padding-top: 10px;
+}
+.smp-inbox h3 {
+  margin: 4px 0 8px;
+  font-size: 0.95rem;
+}
+.smp-list {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 320px;
+  overflow-y: auto;
+  font-size: 0.82rem;
+}
+.smp-row {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  padding: 4px 6px;
+  border-radius: 6px;
+  background: var(--card);
+}
+.smp-status.smp-ok { color: #2e7d32; }
+.smp-status.smp-err { color: #c62828; }
+.smp-status.smp-warn { color: #ef6c00; }
+.smp-time { color: var(--muted); margin-left: auto; }
+.smp-empty { color: var(--muted); font-style: italic; }
 .header-right {
   display: flex;
   gap: 16px;
