@@ -175,7 +175,7 @@ Q3+             E6 Ecosystem, formal bits, marketplace only with real settlement
 2. [x] **Prometheus metrics** — plain-HTTP `GET /metrics` на API-порту (localhost), `Authorization: Bearer <api.token>`, constant-time compare, fail-closed 401; WS-путь не затронут (smoke OK)  
 3. [x] **Signed accounting export** — `node_econ_export`: canonical JSON отчёта (метрики, стор, econ, disclaimer «accounting only») + ed25519-подпись ноды; WS smoke OK  
 4. **Windows service + firewall** из текущего Tauri/CI задела  
-5. **Peer score MVP** (uptime + successful PoR) без сложной репутации
+5. [x] **Peer score MVP** — скоринг в ноде (success/fail → 0..100) + score/success/fail в панели «Сеть и пиры» монитора
 
 Эти пять пунктов сильно поднимают ощущение «готового продукта» при минимальном риске для протокола.
 
