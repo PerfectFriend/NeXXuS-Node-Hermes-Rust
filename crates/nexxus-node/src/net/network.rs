@@ -306,6 +306,11 @@ impl P2pNetwork {
         self.identity.verifying_key
     }
 
+    /// Full identity (for signing local reports, e.g. accounting export).
+    pub fn identity(&self) -> &Identity {
+        &self.identity
+    }
+
     /// Our NodeId.
     pub fn node_id(&self) -> NodeId {
         self.our_id

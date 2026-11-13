@@ -33,7 +33,8 @@ nexxusd            # слушает P2P 127.0.0.1:4001, Local API 127.0.0.1:4010
   демоне), `node_backup_delete` с `confirm: true`, автобэкап + ротация + 3-2-1
 - Идентичность: BIP39, зашифрованный seed.vault, verification challenges
 - Экономика и эпохи: **accounting only** — vesting 56 дней, секции 16 GB,
-  health; это не on-chain и не платежи
+  health; это не on-chain и не платежи. Подписанный экспорт отчёта:
+  `node_econ_export` (ed25519-подпись над canonical JSON, верифицируется pubkey ноды)
 - Tor — опционально, design-level review
 
 ## Чего НЕТ (намеренно, не SIM)

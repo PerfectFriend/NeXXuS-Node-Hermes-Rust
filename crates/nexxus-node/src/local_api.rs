@@ -430,6 +430,7 @@ impl LocalApi {
             "node_backup_delete" => self.handle_node_backup_delete(req.params),
             "node_doctor" => self.handle_node_doctor(),
             "node_econ" => self.handle_node_econ(),
+            "node_econ_export" => self.handle_node_econ_export().await,
             _ => return error_response(id, ERR_METHOD_NOT_FOUND, format!("method '{}' not found", req.method)),
         };
         match result {
@@ -696,6 +697,49 @@ impl LocalApi {
                 "fully_vested": vest.is_fully_vested(),
             },
             "health": health_str,
+        }))
+    }
+
+    /// E3 quick win: signed accounting export (still NO payments — the report
+    /// explicitly says "accounting only"). Canonical JSON of the report is
+    /// signed with the node's Ed25519 identity; the monitor can hand the
+    /// {report, signature, pubkey} triple to anyone for verification.
+    async fn handle_node_econ_export(&self) -> Result<Value, NexxusError> {
+        let econ = self.handle_node_econ()?;
+        let m = self.network.metrics.snapshot();
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map(|d| d.as_secs())
+            .unwrap_or(0);
+        let uptime_ms = self.start_time.elapsed().map(|d| d.as_millis()).unwrap_or(0);
+        let store_used = self.network.store().store_size().unwrap_or(0);
+        let disk_free = self.network.store().available_space().unwrap_or(0);
+        let report = serde_json::json!({
+            "kind": "nexxus_accounting_export",
+            "version": 1,
+            "disclaimer": "accounting only — not payments, not on-chain settlement",
+            "node_id": hex::encode(self.network.node_id().0),
+            "ed25519_pub": hex::encode(self.network.identity_pubkey()),
+            "exported_at_unix": now,
+            "uptime_ms": uptime_ms,
+            "peers_connected": self.connected_peers.lock().await.len(),
+            "store": {
+                "used_bytes": store_used,
+                "cap_bytes": self.network.store().max_store_bytes(),
+                "disk_free_bytes": disk_free,
+                "chunks": self.store.list_chunk_hashes()?.len(),
+            },
+            "metrics": m,
+            "econ": econ,
+        });
+        let canonical = serde_json::to_string(&report)
+            .map_err(|e| NexxusError::Io(format!("canonical json: {e}")))?;
+        let sig = self.network.identity().sign(canonical.as_bytes());
+        Ok(serde_json::json!({
+            "report": report,
+            "canonical": canonical,
+            "signature": hex::encode(sig),
+            "pubkey": hex::encode(self.network.identity_pubkey()),
         }))
     }
 
@@ -1195,6 +1239,31 @@ mod tests {
         assert_eq!(resp_code(&r.0), 0);
         assert!(!r.1, "ping не закрывает соединение");
         assert!(!auth);
+    }
+
+    #[test]
+    fn accounting_export_signature_verifies_and_tamper_fails() {
+        // E3: подпись ed25519 над canonical JSON отчёта — verify с pubkey,
+        // tamper с отчётом ломает проверку.
+        let identity = nexxus_core::keys::identity::Identity::generate();
+        let report = serde_json::json!({
+            "kind": "nexxus_accounting_export",
+            "node_id": hex::encode(identity.node_id().0),
+            "disclaimer": "accounting only — not payments, not on-chain settlement",
+        });
+        let canonical = serde_json::to_string(&report).unwrap();
+        let sig = identity.sign(canonical.as_bytes());
+        assert!(nexxus_core::keys::identity::Identity::verify(
+            &identity.verifying_key,
+            canonical.as_bytes(),
+            &sig
+        ));
+        let tampered = canonical.replace("accounting only", "PAYMENTS READY");
+        assert!(!nexxus_core::keys::identity::Identity::verify(
+            &identity.verifying_key,
+            tampered.as_bytes(),
+            &sig
+        ));
     }
 
     #[test]

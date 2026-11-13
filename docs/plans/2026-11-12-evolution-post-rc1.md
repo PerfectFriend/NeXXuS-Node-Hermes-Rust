@@ -173,7 +173,7 @@ Q3+             E6 Ecosystem, formal bits, marketplace only with real settlement
 
 1. [x] **User-defined disk cap** (`NEXXUS_MAX_STORE_BYTES`) + free-space guard в `put_chunk` + метрики в `node_metrics`  
 2. **Prometheus metrics** на localhost  
-3. **Signed accounting export** (ещё без денег)  
+3. [x] **Signed accounting export** — `node_econ_export`: canonical JSON отчёта (метрики, стор, econ, disclaimer «accounting only») + ed25519-подпись ноды; WS smoke OK  
 4. **Windows service + firewall** из текущего Tauri/CI задела  
 5. **Peer score MVP** (uptime + successful PoR) без сложной репутации
 
