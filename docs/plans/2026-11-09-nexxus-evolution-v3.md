@@ -120,7 +120,7 @@
 ### Task G4: Self-update с верификацией подписи — ✅ DONE (signed self-update: `nexxusd update [--check] [--url …]`, ed25519 detached sig против зашитого RELEASE_PUBKEY, curl download, atomic tmp+rename + rollback; release-приватник вне репо: `~/.hermes/secrets/nexxus_release_signing_key.hex`)
 - `nexxusd update`: скачать релиз с GitHub, проверить ed25519-подпись (публичный ключ в коде), atomic replace (rename), rollback при падении после апдейта. Commit `feat(node): signed self-update with rollback`.
 
-### Task G5: Пакеты и платформы — 🟡 IN PROGRESS (✅ .deb в CI, ✅ AppImage в CI + локальная сборка 11M проверена; осталось: Windows MSI/InnoSetup, Android APK, AppStream метаданные)
+### Task G5: Пакеты и платформы — 🟡 IN PROGRESS (✅ .deb, ✅ AppImage + AppStream, ✅ Android APK NeXXus Node Mobile собран локально 3.2MB + CI job; осталось: Windows MSI/InnoSetup + E4 service)
 - .deb уже в CI; добавить AppImage/Flatpak (Linux), MSI/InnoSetup (Windows, фазы W3–W4 roadmap), Windows tray companion (W5), Android APK (A2–A4). Каждая — отдельная задача с smoke на целевой платформе. Commit по платформе.
 
 ## Phase H — Мессенджер (SMP) как продукт
