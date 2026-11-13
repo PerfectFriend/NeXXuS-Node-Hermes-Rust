@@ -68,7 +68,7 @@
 | Функция | Описание |
 |---------|----------|
 | **Реальные квоты диска** | Не только «64 MiB foreign» / abstract sections — проверка free space + user-defined cap |
-| **Политики ретенции** | TTL чанков, pin/unpin, «хранить N копий минимум» |
+- **Политики ретенции** | TTL чанков (`node_chunk_ttl`), pin/unpin (`node_chunk_pin`/`node_chunk_unpin`), GC просроченных (`node_gc`), lazy-expiry в `get_chunk`; pin защищает и от TTL, и от GC |
 | **Доказательства хранения (PoR) в расписании** | Уже есть challenge; сделать периодический audit_holder + penalty в UI |
 | **Импорт/экспорт архивов** | Зашифрованный bundle (chunk set + manifest) для cold backup вне redb |
 | **Версионирование файлов (optional)** | Не git; простой history указателей в журнале владельца |

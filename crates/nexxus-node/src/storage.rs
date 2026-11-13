@@ -317,6 +317,16 @@ impl ChunkStore {
             .get(hash.0)
             .map_err(|e| NexxusError::Io(format!("redb get: {e}")))?;
         let raw = res.map(|v| v.value().to_vec());
+        // E2: expired unpinned chunk reads as gone (lazy TTL).
+        if raw.is_some() {
+            let now = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map(|d| d.as_secs())
+                .unwrap_or(0);
+            if self.is_expired(hash, now)? {
+                return Ok(None);
+            }
+        }
         // При включённом at-rest ключе дешифруем; ошибка = неверный ключ/повреждение.
         match (&*self.crypto.lock().unwrap(), raw) {
             (Some(key), Some(ct)) => Ok(Some(crate::at_rest::decrypt_chunk(key, hash, &ct)?)),
@@ -378,6 +388,111 @@ impl ChunkStore {
             None => Ok(None),
         }
     }
+
+    // --- E2 retention: pin / TTL / GC (meta keys, chunk rows untouched) ---
+
+    fn pin_key(hash: &ChunkHash) -> String {
+        format!("pin_{}", hex::encode(hash.0))
+    }
+    fn ttl_key(hash: &ChunkHash) -> String {
+        format!("ttl_exp_{}", hex::encode(hash.0))
+    }
+
+    /// Pin a chunk: pinned chunks are never GC'd and ignore TTL expiry.
+    pub fn pin_chunk(&self, hash: &ChunkHash) -> Result<(), NexxusError> {
+        self.put_meta(&Self::pin_key(hash), b"1")
+    }
+
+    pub fn unpin_chunk(&self, hash: &ChunkHash) -> Result<(), NexxusError> {
+        self.delete_meta(&Self::pin_key(hash))
+    }
+
+    pub fn is_pinned(&self, hash: &ChunkHash) -> Result<bool, NexxusError> {
+        Ok(self.get_meta(&Self::pin_key(hash))?.is_some())
+    }
+
+    /// Set TTL in seconds from `now`; 0 clears the TTL. Returns expiry unix ts
+    /// (None when cleared).
+    pub fn set_chunk_ttl(
+        &self,
+        hash: &ChunkHash,
+        ttl_secs: u64,
+        now: u64,
+    ) -> Result<Option<u64>, NexxusError> {
+        if ttl_secs == 0 {
+            self.delete_meta(&Self::ttl_key(hash))?;
+            return Ok(None);
+        }
+        let exp = now.saturating_add(ttl_secs);
+        self.put_meta(&Self::ttl_key(hash), exp.to_string().as_bytes())?;
+        Ok(Some(exp))
+    }
+
+    pub fn chunk_expiry(&self, hash: &ChunkHash) -> Result<Option<u64>, NexxusError> {
+        match self.get_meta(&Self::ttl_key(hash))? {
+            Some(b) => Ok(String::from_utf8_lossy(&b).parse::<u64>().ok()),
+            None => Ok(None),
+        }
+    }
+
+    /// Expired = TTL set, now past expiry, and not pinned.
+    pub fn is_expired(&self, hash: &ChunkHash, now: u64) -> Result<bool, NexxusError> {
+        if self.is_pinned(hash)? {
+            return Ok(false);
+        }
+        Ok(matches!(self.chunk_expiry(hash)?, Some(exp) if now > exp))
+    }
+
+    /// Delete a chunk row (explicit; allowed even when pinned — pin only
+    /// protects against GC/TTL, not against an explicit delete).
+    pub fn delete_chunk(&self, hash: &ChunkHash) -> Result<bool, NexxusError> {
+        let wtx = self
+            .db
+            .begin_write()
+            .map_err(|e| NexxusError::Io(format!("redb write tx: {e}")))?;
+        let existed = {
+            let mut table = wtx
+                .open_table(CHUNKS)
+                .map_err(|e| NexxusError::Io(format!("redb table: {e}")))?;
+            let removed = table
+                .remove(hash.0)
+                .map_err(|e| NexxusError::Io(format!("redb remove: {e}")))?;
+            removed.is_some()
+        };
+        wtx.commit()
+            .map_err(|e| NexxusError::Io(format!("redb commit: {e}")))?;
+        Ok(existed)
+    }
+
+    /// GC: delete all expired, unpinned chunks. Returns count deleted.
+    pub fn gc_expired(&self, now: u64) -> Result<usize, NexxusError> {
+        let hashes = self.list_chunk_hashes()?;
+        let mut deleted = 0;
+        for h in hashes {
+            if self.is_expired(&h, now)? && self.delete_chunk(&h)? {
+                deleted += 1;
+            }
+        }
+        Ok(deleted)
+    }
+
+    fn delete_meta(&self, key: &str) -> Result<(), NexxusError> {
+        let wtx = self
+            .db
+            .begin_write()
+            .map_err(|e| NexxusError::Io(format!("redb write tx: {e}")))?;
+        {
+            let mut table = wtx
+                .open_table(META)
+                .map_err(|e| NexxusError::Io(format!("redb table: {e}")))?;
+            table
+                .remove(key)
+                .map_err(|e| NexxusError::Io(format!("redb remove meta: {e}")))?;
+        }
+        wtx.commit()
+            .map_err(|e| NexxusError::Io(format!("redb commit: {e}")))?;
+        Ok(())
+    }
 }
 
 #[cfg(test)]
@@ -424,6 +539,44 @@ mod tests {
         // visibility for node_metrics
         assert!(store.store_size().unwrap() > 0);
         assert!(store.available_space().unwrap() > 0);
+    }
+
+    #[test]
+    fn ttl_pin_gc_retention_policy() {
+        // E2: TTL expiry (lazy read + GC), pin protects from both.
+        let dir = tempfile::tempdir().unwrap();
+        let store = ChunkStore::open(dir.path().join("store.redb")).unwrap();
+        let a: Vec<u8> = vec![1u8; 64];
+        let b: Vec<u8> = vec![2u8; 64];
+        let ha = h(&a);
+        let hb = h(&b);
+        store.put_chunk(&ha, &a).unwrap();
+        store.put_chunk(&hb, &b).unwrap();
+
+        // TTL on A (expires at 1000), pin B with TTL too — pin must win.
+        assert_eq!(store.set_chunk_ttl(&ha, 100, 900).unwrap(), Some(1000));
+        assert_eq!(store.set_chunk_ttl(&hb, 100, 900).unwrap(), Some(1000));
+        store.pin_chunk(&hb).unwrap();
+
+        assert!(!store.is_expired(&ha, 999).unwrap());
+        assert!(store.is_expired(&ha, 1001).unwrap());
+        assert!(!store.is_expired(&hb, 1001).unwrap(), "pinned ignores TTL");
+
+        // lazy: get_chunk on expired unpinned reads as gone, row still there
+        assert!(store.get_chunk(&ha).unwrap().is_none());
+        assert_eq!(store.list_chunk_hashes().unwrap().len(), 2);
+
+        // GC deletes only expired+unpinned
+        assert_eq!(store.gc_expired(1001).unwrap(), 1);
+        assert!(store.get_chunk(&ha).unwrap().is_none());
+        assert_eq!(store.get_chunk(&hb).unwrap().unwrap(), b, "pinned survives GC");
+
+        // unpin + clear TTL
+        store.unpin_chunk(&hb).unwrap();
+        assert!(!store.is_pinned(&hb).unwrap());
+        assert_eq!(store.set_chunk_ttl(&hb, 0, 1001).unwrap(), None, "0 clears TTL");
+        assert!(!store.is_expired(&hb, 99999).unwrap());
+        assert_eq!(store.gc_expired(99999).unwrap(), 0);
     }
 
     #[test]

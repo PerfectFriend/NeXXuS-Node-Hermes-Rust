@@ -15,7 +15,7 @@ use crate::storage::ChunkStore;
 use curve25519_dalek::MontgomeryPoint;
 use nexxus_core::{
     error::NexxusError,
-    types::NodeId,
+    types::{ChunkHash, NodeId},
     wire::payloads::SmpEnvelope,
 };
 use futures_util::{SinkExt, StreamExt};
@@ -196,6 +196,20 @@ pub struct LocalApi {
 
 /// JSON-RPC error code: не пройдена аутентификация.
 pub const ERR_UNAUTHORIZED: i32 = -32001;
+
+/// Parse params.hash (64 hex chars) into a ChunkHash.
+fn parse_hash_param(params: Option<Value>) -> Result<ChunkHash, NexxusError> {
+    let s = params
+        .as_ref()
+        .and_then(|p| p.get("hash"))
+        .and_then(|v| v.as_str())
+        .ok_or_else(|| NexxusError::Io("param 'hash' required".into()))?;
+    let bytes = hex::decode(s).map_err(|e| NexxusError::Io(format!("bad hash hex: {e}")))?;
+    let arr: [u8; 32] = bytes
+        .try_into()
+        .map_err(|_| NexxusError::Io("hash must be 32 bytes".into()))?;
+    Ok(ChunkHash(arr))
+}
 
 /// Гейт аутентификации: вызывается до диспетчеризации метода.
 ///
@@ -402,6 +416,10 @@ impl LocalApi {
             "node_metrics" => self.handle_node_metrics(),
             "node_peers" => self.handle_node_peers().await,
             "node_chunks" => self.handle_node_chunks().await,
+            "node_chunk_pin" => self.handle_node_chunk_pin(req.params, true),
+            "node_chunk_unpin" => self.handle_node_chunk_pin(req.params, false),
+            "node_chunk_ttl" => self.handle_node_chunk_ttl(req.params),
+            "node_gc" => self.handle_node_gc(),
             "node_smp" => self.handle_node_smp().await,
             "node_epoch" => self.handle_node_epoch().await,
             "node_tor" => self.handle_node_tor().await,
@@ -870,6 +888,43 @@ impl LocalApi {
             }
         }
         Ok(serde_json::json!({ "peers": list }))
+    }
+
+    /// E2 retention: pin/unpin a chunk (params: hash hex).
+    fn handle_node_chunk_pin(&self, params: Option<Value>, pin: bool) -> Result<Value, NexxusError> {
+        let hash = parse_hash_param(params)?;
+        if pin {
+            self.store.pin_chunk(&hash)?;
+        } else {
+            self.store.unpin_chunk(&hash)?;
+        }
+        Ok(serde_json::json!({ "hash": hex::encode(hash.0), "pinned": pin }))
+    }
+
+    /// E2 retention: set chunk TTL in seconds (params: hash hex, ttl_secs; 0 = clear).
+    fn handle_node_chunk_ttl(&self, params: Option<Value>) -> Result<Value, NexxusError> {
+        let hash = parse_hash_param(params.clone())?;
+        let ttl = params
+            .as_ref()
+            .and_then(|p| p.get("ttl_secs"))
+            .and_then(|v| v.as_u64())
+            .ok_or_else(|| NexxusError::Io("param 'ttl_secs' required".into()))?;
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map(|d| d.as_secs())
+            .unwrap_or(0);
+        let exp = self.store.set_chunk_ttl(&hash, ttl, now)?;
+        Ok(serde_json::json!({ "hash": hex::encode(hash.0), "ttl_secs": ttl, "expires_unix": exp }))
+    }
+
+    /// E2 retention: delete all expired unpinned chunks now.
+    fn handle_node_gc(&self) -> Result<Value, NexxusError> {
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map(|d| d.as_secs())
+            .unwrap_or(0);
+        let deleted = self.store.gc_expired(now)?;
+        Ok(serde_json::json!({ "deleted": deleted }))
     }
 
     async fn handle_node_chunks(&self) -> Result<Value, NexxusError> {
