@@ -29,6 +29,7 @@ mod vault;
 mod seed_vault;
 mod backup;
 mod bundle;
+mod update;
 
 use crate::net::P2pNetwork;
 use crate::storage::ChunkStore;
@@ -66,9 +67,9 @@ fn main() {
     // test-por/test-interhost/logs/benchmark — обрабатываются в cli::run.
     // Всё остальное (или `serve`) — запуск демона; позиционный аргумент —
     // путь к файлу хранилища redb (по умолчанию ~/.nexxus/store.redb).
-    const CLI_CMDS: [&str; 11] = [
+    const CLI_CMDS: [&str; 12] = [
         "init", "id", "status", "peers", "peer", "upload", "download",
-        "test-por", "test-interhost", "logs", "benchmark",
+        "test-por", "test-interhost", "logs", "benchmark", "update",
     ];
     let args: Vec<String> = env::args().skip(1).collect();
     if args

@@ -167,12 +167,62 @@ async fn async_main(args: Vec<String>) -> i32 {
         "logs" => cmd_logs(&rest),
         "benchmark" => cmd_benchmark(),
         "doctor" => cmd_doctor(&rest),
+        "update" => cmd_update(&rest),
         "backup" => cmd_backup(&rest),
         "backups" => cmd_backups(&rest),
         "restore" => cmd_restore(&rest),
         other => {
             eprintln!("unknown command: {other}");
             2
+        }
+    }
+}
+
+fn cmd_update(rest: &[String]) -> i32 {
+    // G4: nexxusd update [--check] [--url <release-url>]
+    // --check: скачать и проверить подпись, не заменяя бинарник.
+    let mut check_only = false;
+    let mut url = crate::update::DEFAULT_RELEASE_URL.to_string();
+    let mut i = 0;
+    while i < rest.len() {
+        match rest[i].as_str() {
+            "--check" => check_only = true,
+            "--url" => {
+                if let Some(u) = rest.get(i + 1) {
+                    url = u.clone();
+                    i += 1;
+                }
+            }
+            _ => {}
+        }
+        i += 1;
+    }
+    println!("nexxusd update: downloading {url} …");
+    let (bytes, sig) = match crate::update::download(&url) {
+        Ok(x) => x,
+        Err(e) => {
+            eprintln!("update: download failed: {e}");
+            return 1;
+        }
+    };
+    if let Err(e) = crate::update::verify_release(&bytes, &sig) {
+        eprintln!("update: {e} — бинарник НЕ заменён");
+        return 1;
+    }
+    println!("update: signature OK ({} bytes)", bytes.len());
+    if check_only {
+        println!("update --check: OK, бинарник не менялся");
+        return 0;
+    }
+    let current = std::env::current_exe().unwrap_or_else(|_| PathBuf::from("nexxusd"));
+    match crate::update::install_update(&bytes, &sig, &current) {
+        Ok(p) => {
+            println!("update: installed to {} — перезапустите демон", p.display());
+            0
+        }
+        Err(e) => {
+            eprintln!("update: install failed (rollback выполнен): {e}");
+            1
         }
     }
 }

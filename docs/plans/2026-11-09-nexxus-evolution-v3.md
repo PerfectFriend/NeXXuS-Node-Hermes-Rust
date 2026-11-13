@@ -117,7 +117,7 @@
 ### Task G3: Golden vectors на все опкоды + кросс-импл паритет — ✅ DONE (nexxus-vectors/06_wire_frames_v2_v3.json + тест + CI)
 - Расширить `nexxus-vectors/` векторами на каждый опкод (0x01–0x0D); тест в Rust читает те же JSON, что и TS (`test/golden-vectors.test.ts`) — один источник правды. Commit `test: golden vectors for all wire opcodes, shared Rust/TS`.
 
-### Task G4: Self-update с верификацией подписи
+### Task G4: Self-update с верификацией подписи — ✅ DONE (signed self-update: `nexxusd update [--check] [--url …]`, ed25519 detached sig против зашитого RELEASE_PUBKEY, curl download, atomic tmp+rename + rollback; release-приватник вне репо: `~/.hermes/secrets/nexxus_release_signing_key.hex`)
 - `nexxusd update`: скачать релиз с GitHub, проверить ed25519-подпись (публичный ключ в коде), atomic replace (rename), rollback при падении после апдейта. Commit `feat(node): signed self-update with rollback`.
 
 ### Task G5: Пакеты и платформы
