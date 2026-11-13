@@ -476,6 +476,28 @@ impl ChunkStore {
         Ok(deleted)
     }
 
+    /// List meta keys with the given prefix (for bundle export of manifests).
+    pub fn list_meta_prefix(&self, prefix: &str) -> Result<Vec<(String, Vec<u8>)>, NexxusError> {
+        let rtx = self
+            .db
+            .begin_read()
+            .map_err(|e| NexxusError::Io(format!("redb read tx: {e}")))?;
+        let table = match rtx.open_table(META) {
+            Ok(t) => t,
+            Err(redb::TableError::TableDoesNotExist(_)) => return Ok(Vec::new()),
+            Err(e) => return Err(NexxusError::Io(format!("redb table: {e}"))),
+        };
+        let mut out = Vec::new();
+        for res in table.iter().map_err(|e| NexxusError::Io(format!("redb iter: {e}")))? {
+            let (k, v) = res.map_err(|e| NexxusError::Io(format!("redb iter item: {e}")))?;
+            let key = k.value().to_string();
+            if key.starts_with(prefix) {
+                out.push((key, v.value().to_vec()));
+            }
+        }
+        Ok(out)
+    }
+
     fn delete_meta(&self, key: &str) -> Result<(), NexxusError> {
         let wtx = self
             .db

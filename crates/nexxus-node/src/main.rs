@@ -28,6 +28,7 @@ mod cli;
 mod vault;
 mod seed_vault;
 mod backup;
+mod bundle;
 
 use crate::net::P2pNetwork;
 use crate::storage::ChunkStore;

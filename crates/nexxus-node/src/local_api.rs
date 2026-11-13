@@ -420,6 +420,8 @@ impl LocalApi {
             "node_chunk_unpin" => self.handle_node_chunk_pin(req.params, false),
             "node_chunk_ttl" => self.handle_node_chunk_ttl(req.params),
             "node_gc" => self.handle_node_gc(),
+            "node_export_bundle" => self.handle_node_export_bundle(req.params),
+            "node_import_bundle" => self.handle_node_import_bundle(req.params),
             "node_smp" => self.handle_node_smp().await,
             "node_epoch" => self.handle_node_epoch().await,
             "node_tor" => self.handle_node_tor().await,
@@ -925,6 +927,96 @@ impl LocalApi {
             .unwrap_or(0);
         let deleted = self.store.gc_expired(now)?;
         Ok(serde_json::json!({ "deleted": deleted }))
+    }
+
+    /// E2: экспорт cold-backup bundle (зашифрован PIN'ом) в `<data>/bundles/`.
+    /// params: pin (обязателен, затирается), опционально name.
+    fn handle_node_export_bundle(&self, params: Option<Value>) -> Result<Value, NexxusError> {
+        let pin = params
+            .as_ref()
+            .and_then(|p| p.get("pin"))
+            .and_then(|v| v.as_str())
+            .filter(|s| !s.is_empty())
+            .ok_or_else(|| NexxusError::Vault("param 'pin' required".into()))?
+            .to_string();
+        let node_id = hex::encode(self.network.node_id().0);
+        let (vault, total, nmeta) = crate::bundle::export_bundle(&self.store, &node_id, &pin)?;
+        let dir = self
+            .store
+            .path()
+            .parent()
+            .map(|p| p.join("bundles"))
+            .ok_or_else(|| NexxusError::Io("no data dir".into()))?;
+        std::fs::create_dir_all(&dir)
+            .map_err(|e| NexxusError::Io(format!("bundles dir: {e}")))?;
+        let name = format!(
+            "bundle-{}.json",
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .map(|d| d.as_secs())
+                .unwrap_or(0)
+        );
+        let path = dir.join(&name);
+        // bundle уже зашифрован; временный файл + rename, права 0600.
+        let tmp = path.with_extension("json.tmp");
+        std::fs::write(&tmp, &vault)
+            .map_err(|e| NexxusError::Io(format!("bundle write: {e}")))?;
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            let _ = std::fs::set_permissions(&tmp, std::fs::Permissions::from_mode(0o600));
+        }
+        std::fs::rename(&tmp, &path)
+            .map_err(|e| NexxusError::Io(format!("bundle rename: {e}")))?;
+        Ok(serde_json::json!({
+            "path": path.to_string_lossy(),
+            "chunks_total": total,
+            "meta_entries": nmeta,
+            "encrypted": true,
+        }))
+    }
+
+    /// E2: импорт bundle из файла. params: path, pin, confirm=true (симметрия
+    /// с restore/delete — импорт пишет в живой стор).
+    fn handle_node_import_bundle(&self, params: Option<Value>) -> Result<Value, NexxusError> {
+        let path = params
+            .as_ref()
+            .and_then(|p| p.get("path"))
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| NexxusError::Io("param 'path' required".into()))?;
+        let confirm = params
+            .as_ref()
+            .and_then(|p| p.get("confirm"))
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false);
+        if !confirm {
+            return Err(NexxusError::Vault(
+                "param 'confirm' must be true to import a bundle".into(),
+            ));
+        }
+        let pin = params
+            .as_ref()
+            .and_then(|p| p.get("pin"))
+            .and_then(|v| v.as_str())
+            .filter(|s| !s.is_empty())
+            .ok_or_else(|| NexxusError::Vault("param 'pin' required".into()))?;
+        // path traversal guard: только внутри bundles/ каталога стора
+        let base = self
+            .store
+            .path()
+            .parent()
+            .map(|p| p.join("bundles"))
+            .ok_or_else(|| NexxusError::Io("no data dir".into()))?;
+        let canon = std::fs::canonicalize(path)
+            .map_err(|e| NexxusError::Io(format!("bundle path: {e}")))?;
+        let base_canon = std::fs::canonicalize(&base)
+            .map_err(|e| NexxusError::Io(format!("bundles dir: {e}")))?;
+        if !canon.starts_with(&base_canon) {
+            return Err(NexxusError::Io("bundle path outside bundles/ dir".into()));
+        }
+        let vault = std::fs::read_to_string(&canon)
+            .map_err(|e| NexxusError::Io(format!("bundle read: {e}")))?;
+        crate::bundle::import_bundle(&self.store, &vault, pin)
     }
 
     async fn handle_node_chunks(&self) -> Result<Value, NexxusError> {
