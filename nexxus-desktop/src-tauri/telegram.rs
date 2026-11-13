@@ -170,6 +170,16 @@ impl TelegramBot {
             name, deleted, ext
         )).await
     }
+
+    /// E2: результат планового PoR (proof-of-retrievability) ноды.
+    pub async fn notify_por(&self, ok: bool, chunk: &str, elapsed_ms: u64, chunks_total: u64) -> Result<(), String> {
+        if !self.is_configured() { return Ok(()); }
+        let status = if ok { "✅ пройден" } else { "❌ ПРОВАЛЕН" };
+        self.send_message(&format!(
+            "🔐 <b>PoR (доказательство хранения)</b> {}\nЧанк: <code>{}…</code>\nВремя: {} мс\nВсего чанков: {}",
+            status, &chunk[..16.min(chunk.len())], elapsed_ms, chunks_total
+        )).await
+    }
 }
 
 static TELEGRAM_BOT: Mutex<Option<TelegramBot>> = Mutex::const_new(None);

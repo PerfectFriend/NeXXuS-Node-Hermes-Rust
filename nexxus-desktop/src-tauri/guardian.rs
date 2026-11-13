@@ -89,6 +89,8 @@ pub struct GuardianState {
     pub monitor_enabled: Mutex<bool>,
     /// D2: время последнего успешного автобэкапа (unix secs).
     pub last_auto_backup: Mutex<Option<u64>>,
+    /// E2: время последнего планового PoR (unix secs).
+    pub last_por: Mutex<Option<u64>>,
 }
 
 impl GuardianState {
@@ -101,6 +103,7 @@ impl GuardianState {
             nexxusd_pid: Mutex::new(None),
             monitor_enabled: Mutex::new(true),
             last_auto_backup: Mutex::new(None),
+            last_por: Mutex::new(None),
         }
     }
 }
@@ -468,6 +471,27 @@ pub async fn health_loop(state: Arc<GuardianState>) {
                         Err(e) => {
                             eprintln!("guardian: auto-backup failed: {e}");
                         }
+                    }
+                }
+
+                // E2: плановый PoR по расписанию (только когда нода жива).
+                let por_due = {
+                    let last = *state.last_por.lock().await;
+                    auto_backup_due(now_secs, last, cfg.por_interval_hours)
+                };
+                if por_due {
+                    match api_call("node_por", None).await {
+                        Ok(v) => {
+                            let ok = v.get("ok").and_then(|o| o.as_bool()).unwrap_or(false);
+                            let chunk = v.get("chunk").and_then(|c| c.as_str()).unwrap_or("").to_string();
+                            let ms = v.get("elapsed_ms").and_then(|m| m.as_u64()).unwrap_or(0);
+                            let total = v.get("chunks_total").and_then(|t| t.as_u64()).unwrap_or(0);
+                            let _ = bot.notify_por(ok, &chunk, ms, total).await;
+                            if ok {
+                                *state.last_por.lock().await = Some(now_secs);
+                            }
+                        }
+                        Err(e) => eprintln!("guardian: scheduled PoR failed: {e}"),
                     }
                 }
             }
