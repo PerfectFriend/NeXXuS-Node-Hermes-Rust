@@ -325,6 +325,9 @@ async function refreshPeers() {
       addr: x.addr || x.address || '—',
       node_id: (x.node_id || '').slice(0, 16) || '—',
       connected: x.connected ?? '—',
+      score: x.score ?? (x.score_detail ? x.score_detail.score : '—'),
+      success: x.score_detail?.success ?? '—',
+      fail: x.score_detail?.fail ?? '—',
     })));
   } catch (e) {
     setBox('peers-list', `ошибка: ${e}`);
