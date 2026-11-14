@@ -292,8 +292,27 @@ pub async fn guardian_shutdown_everything(state: Arc<GuardianState>) {
 ///
 /// Если нода уже установлена как systemd-юнит и запущена — монитор её не
 /// трогает: второй процесс занял бы тот же порт и упал бы с `address in use`.
+/// Синхронная проверка: кто-то уже слушает API-адрес (настоящий WS не нужен,
+/// достаточно TCP connect — но без handshake нода пишет в лог «Handshake not
+/// finished», поэтому после connect сразу закрываем).
+pub fn api_tcp_open(addr: &str) -> bool {
+    use std::net::TcpStream;
+    TcpStream::connect_timeout(
+        &addr
+            .parse()
+            .unwrap_or_else(|_| std::net::SocketAddr::from(([127, 0, 0, 1], 4010))),
+        Duration::from_millis(300),
+    )
+    .is_ok()
+}
+
 pub fn start_nexxusd() -> Result<(), String> {
     if is_nexxusd_running() {
+        return Ok(());
+    }
+    // Процесс не нашёлся pgrep (запущен чужим путём), но API отвечает —
+    // не плодим второй экземпляр на той же БД (redb lock → паника в логе).
+    if api_tcp_open(&api_addr()) {
         return Ok(());
     }
 
@@ -758,6 +777,16 @@ mod start_flow_tests {
         let _ = stop_nexxusd();
         std::env::remove_var("NEXXUSD_BIN");
         eprintln!("[t+{:.1?}] done", t0.elapsed());
+    }
+
+    #[test]
+    fn api_tcp_open_detects_listener_and_closed_port() {
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        assert!(super::api_tcp_open(&addr));
+        drop(listener);
+        // порт закрыт — connect_timeout отказывает быстро
+        assert!(!super::api_tcp_open(&addr));
     }
 
     #[test]
