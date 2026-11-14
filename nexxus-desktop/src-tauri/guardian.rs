@@ -408,9 +408,11 @@ pub async fn api_is_reachable() -> bool {
     };
     let response = String::from_utf8_lossy(&buf[..n]);
     let ok = response.starts_with("HTTP/1.1 101");
-    // WS close-фрейм (0x88 0x00) + shutdown: иначе нода ловит RST и пишет
-    // «Connection reset by peer» в лог на каждый health-check.
-    let _ = stream.write_all(&[0x88, 0x00]).await;
+    // WS close-фрейм, обязательно замаскированный (RFC 6455: клиент→сервер
+    // все фреймы в маске). Без маски нода пишет «Received an unmasked frame».
+    // Close, payload пустой: 0x88, len=0x80|0, 4 байта маски.
+    let mask = [0x12, 0x34, 0x56, 0x78];
+    let _ = stream.write_all(&[0x88, 0x80, mask[0], mask[1], mask[2], mask[3]]).await;
     let _ = stream.shutdown().await;
     ok
 }
