@@ -407,7 +407,12 @@ pub async fn api_is_reachable() -> bool {
         return false;
     };
     let response = String::from_utf8_lossy(&buf[..n]);
-    response.starts_with("HTTP/1.1 101")
+    let ok = response.starts_with("HTTP/1.1 101");
+    // WS close-фрейм (0x88 0x00) + shutdown: иначе нода ловит RST и пишет
+    // «Connection reset by peer» в лог на каждый health-check.
+    let _ = stream.write_all(&[0x88, 0x00]).await;
+    let _ = stream.shutdown().await;
+    ok
 }
 
 /// Выполняет JSON-RPC запрос к локальному API (через WebSocket).
